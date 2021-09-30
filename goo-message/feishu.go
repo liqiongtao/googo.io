@@ -23,7 +23,7 @@ func (*feishu) Text(hookUrl string, text string) {
 		goo_log.Error(err.Error())
 		return
 	}
-	
+
 	rst, _ := goo_utils.Byte(buf).Params()
 	if rst.Get("StatusMessage").String() != "success" {
 		goo_log.Error(rst)

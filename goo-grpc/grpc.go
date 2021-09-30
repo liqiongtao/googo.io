@@ -4,14 +4,16 @@ import (
 	"context"
 	"fmt"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/metadata"
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
 )
 
 func New() *Server {
-	return &Server{}
+	return &Server{
+		grpc.NewServer(grpc_middleware.WithUnaryServerChain(GRPCInterceptor)),
+	}
 }
 
 type Server struct {
@@ -19,8 +21,6 @@ type Server struct {
 }
 
 func (s *Server) Serve(addr string) error {
-	s.Server = grpc.NewServer(grpc_middleware.WithUnaryServerChain(GRPCInterceptor))
-
 	grpc_health_v1.RegisterHealthServer(s.Server, &Health{})
 
 	return NewGRPCGraceful("tcp", addr, s.Server).Serve()
