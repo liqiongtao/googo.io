@@ -1,4 +1,4 @@
-module googo.io
+module github.com/liqiongtao/googo.io
 
 go 1.16
 

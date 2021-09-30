@@ -1,9 +1,9 @@
 package goo_message
 
 import (
-	goo_http_request "googo.io/goo-http-request"
-	goo_log "googo.io/goo-log"
-	goo_utils "googo.io/goo-utils"
+	goo_http_request "github.com/liqiongtao/googo.io/goo-http-request"
+	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 )
 
 var FeiShu = new(feishu)

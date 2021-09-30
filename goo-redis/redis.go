@@ -3,7 +3,7 @@ package goo_redis
 import (
 	"context"
 	"github.com/go-redis/redis"
-	goo_log "googo.io/goo-log"
+	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	"time"
 )
 

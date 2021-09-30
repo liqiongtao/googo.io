@@ -1,7 +1,7 @@
 package goo
 
 import (
-	goo_utils "googo.io/goo-utils"
+	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	"time"
 )
 

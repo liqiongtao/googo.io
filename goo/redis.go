@@ -1,7 +1,7 @@
 package goo
 
 import (
-	goo_redis "googo.io/goo-redis"
+	goo_redis "github.com/liqiongtao/googo.io/goo-redis"
 )
 
 func Redis(names ...string) *goo_redis.Redis {

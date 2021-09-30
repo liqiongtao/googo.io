@@ -2,7 +2,7 @@ package goo_http_request
 
 import (
 	"bytes"
-	goo_log "googo.io/goo-log"
+	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	"io"
 	"mime/multipart"
 )

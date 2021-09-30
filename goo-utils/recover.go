@@ -1,7 +1,7 @@
 package goo_utils
 
 import (
-	goo_log "googo.io/goo-log"
+	goo_log "github.com/liqiongtao/googo.io/goo-log"
 )
 
 func Recover() {

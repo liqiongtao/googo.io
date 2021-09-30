@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/fvbock/endless"
 	"github.com/gin-gonic/gin"
-	goo_log "googo.io/goo-log"
+	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	"io/ioutil"
 	"os"
 	"strings"

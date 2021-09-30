@@ -1,7 +1,7 @@
 package goo
 
 import (
-	goo_db "googo.io/goo-db"
+	goo_db "github.com/liqiongtao/googo.io/goo-db"
 )
 
 func DB(names ...string) *goo_db.XOrm {

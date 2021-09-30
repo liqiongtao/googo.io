@@ -3,8 +3,8 @@ package goo
 import (
 	"encoding/json"
 	"errors"
-	goo_log "googo.io/goo-log"
-	goo_utils "googo.io/goo-utils"
+	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	"time"
 )
 

@@ -2,7 +2,7 @@ package goo
 
 import (
 	"context"
-	goo_grpc "googo.io/goo-grpc"
+	goo_grpc "github.com/liqiongtao/googo.io/goo-grpc"
 )
 
 func NewGRPCServer() *goo_grpc.Server {

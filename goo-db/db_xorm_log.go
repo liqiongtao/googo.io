@@ -2,7 +2,7 @@ package goo_db
 
 import (
 	"fmt"
-	goo_log "googo.io/goo-log"
+	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	"strings"
 	"xorm.io/core"
 )

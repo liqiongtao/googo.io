@@ -2,8 +2,8 @@ package goo_redis
 
 import (
 	"context"
-	goo_log "googo.io/goo-log"
-	goo_utils "googo.io/goo-utils"
+	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 )
 
 var __clients = map[string]*Redis{}

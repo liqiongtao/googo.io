@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/facebookgo/grace/gracenet"
 	"google.golang.org/grpc"
-	goo_utils "googo.io/goo-utils"
+	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	"io/ioutil"
 	"log"
 	"os"

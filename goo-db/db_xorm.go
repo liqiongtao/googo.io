@@ -4,7 +4,7 @@ import (
 	"context"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/go-xorm/xorm"
-	goo_log "googo.io/goo-log"
+	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	"time"
 )
 
