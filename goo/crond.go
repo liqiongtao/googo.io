@@ -13,7 +13,7 @@ func CronDay(fns ...func()) {
 		timer := time.NewTimer(0)
 		for {
 			select {
-			case <-Context.Done():
+			case <-CancelContext().Done():
 				return
 			case <-timer.C:
 				for _, fn := range fns {
@@ -34,7 +34,7 @@ func CronHour(fns ...func()) {
 		timer := time.NewTimer(0)
 		for {
 			select {
-			case <-Context.Done():
+			case <-CancelContext().Done():
 				return
 			case <-timer.C:
 				for _, fn := range fns {
@@ -55,7 +55,7 @@ func CronMinute(fns ...func()) {
 		timer := time.NewTimer(0)
 		for {
 			select {
-			case <-Context.Done():
+			case <-CancelContext().Done():
 				return
 			case <-timer.C:
 				for _, fn := range fns {
@@ -76,7 +76,7 @@ func Crond(d time.Duration, fns ...func()) {
 		timer := time.NewTimer(0)
 		for {
 			select {
-			case <-Context.Done():
+			case <-CancelContext().Done():
 				return
 			case <-timer.C:
 				for _, fn := range fns {

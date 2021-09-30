@@ -32,6 +32,11 @@ func Client(names ...string) *Redis {
 	if client, ok := __clients[name]; ok {
 		return client
 	}
+	if l := len(__clients); l == 1 {
+		for _, client := range __clients {
+			return client
+		}
+	}
 	goo_log.Error("no default redis client")
 	return nil
 }

@@ -3,6 +3,7 @@ package goo_db
 import (
 	"fmt"
 	goo_log "googo.io/goo-log"
+	"strings"
 	"xorm.io/core"
 )
 
@@ -41,6 +42,9 @@ func (l xormLogger) Info(v ...interface{}) {
 }
 
 func (l xormLogger) Infof(format string, v ...interface{}) {
+	if strings.Index(format, "PING DATABASE") != -1 {
+		return
+	}
 	l.l.Info(fmt.Sprintf(format, v...))
 }
 

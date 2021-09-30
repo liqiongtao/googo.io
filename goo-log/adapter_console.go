@@ -24,8 +24,10 @@ func (ca ConsoleAdapter) Write(msg *Message) {
 	buf.WriteString(" ")
 	buf.WriteString(msg.Content)
 	buf.WriteString(" ")
-	if b, err := json.Marshal(&msg.Data); err == nil {
-		buf.Write(b)
+	if l := len(msg.Data); l > 0 {
+		if b, err := json.Marshal(&msg.Data); err == nil {
+			buf.Write(b)
+		}
 	}
 	ca.writer().Write(append(buf.Bytes(), '\n'))
 }

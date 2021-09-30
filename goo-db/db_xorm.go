@@ -52,7 +52,7 @@ func (db *XOrm) connect() (err error) {
 }
 
 func (db *XOrm) ping() {
-	dur := 60 * time.Second
+	dur := 3 * time.Second
 	ti := time.NewTimer(dur)
 	defer ti.Stop()
 	for {

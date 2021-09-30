@@ -32,18 +32,19 @@ func Client(names ...string) DB {
 	if client, ok := __clients[name]; ok {
 		return client
 	}
+	if l := len(__clients); l == 1 {
+		for _, client := range __clients {
+			return client
+		}
+	}
 	goo_log.Error("no default db client")
 	return nil
 }
 
 func XOrmClient(names ...string) *XOrm {
-	name := "default"
-	if l := len(names); l > 0 {
-		name = names[0]
+	client := Client(names...)
+	if client == nil {
+		return nil
 	}
-	if client, ok := __clients[name]; ok {
-		return client.(*XOrm)
-	}
-	goo_log.Error("no default db client")
-	return nil
+	return client.(*XOrm)
 }

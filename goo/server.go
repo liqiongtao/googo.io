@@ -6,51 +6,73 @@ import (
 	"fmt"
 	"github.com/fvbock/endless"
 	"github.com/gin-gonic/gin"
-	goo_log "github.com/liqiongtao/goo-log"
+	goo_log "googo.io/goo-log"
 	"io/ioutil"
 	"os"
 	"strings"
 	"time"
 )
 
-type iController interface {
-	DoHandle(c *gin.Context) *Response
-}
-
-func Handler(controller iController) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		nw := time.Now()
-		rsp := controller.DoHandle(c)
-		if rsp == nil {
-			return
-		}
-		if l := len(rsp.ErrMsg); l > 0 {
-			c.Set("__response_err", rsp.ErrMsg)
-			rsp.ErrMsg = nil
-		}
-		c.Set("__response", rsp)
-		c.Header("X-Response-TS", fmt.Sprintf("%dms", time.Since(nw)/1e6))
-		c.JSON(200, rsp)
-	}
-}
-
+// 定义web服务
 type server struct {
 	*gin.Engine
-	noLogPaths map[string]interface{}
 }
 
-func NewServer() *server {
+func NewServer(opts ...Option) *server {
 	s := &server{
 		Engine: gin.New(),
-		noLogPaths: map[string]interface{}{
-			"/favicon.ico": nil,
-		},
 	}
-	s.Use(s.cors(), s.noAccess(), s.logger(), s.recovery())
+
+	// 不允许访问的路径
+	noAccessPathMap := map[string]struct{}{
+		"/favicon.ico": {},
+	}
+
+	// 不记录日志的路径
+	noLogPathMap := map[string]struct{}{
+		"/favicon.ico": {},
+	}
+
+	// 跨域http.header字段
+	headFields := []string{
+		"Content-Type", "Content-Length",
+		"Accept", "Referer", "User-Agent", "Authorization",
+		"X-Requested-Id", "X-Request-Timestamp", "X-Request-Sign",
+		"X-Request-AppId", "X-Request-Source", "X-Request-Token",
+	}
+
+	if l := len(opts); l > 0 {
+		for _, opt := range opts {
+			switch opt.Name {
+			case noAccessPaths:
+				for _, value := range opt.Value.([]string) {
+					noAccessPathMap[value] = struct{}{}
+				}
+			case noLogPaths:
+				for _, value := range opt.Value.([]string) {
+					noLogPathMap[value] = struct{}{}
+				}
+			case corsHeaderKeys:
+				for _, value := range opt.Value.([]string) {
+					headFields = append(headFields, value)
+				}
+			}
+		}
+	}
+
+	s.Use(s.ts())
+	s.Use(s.cors(headFields))
+	s.Use(s.noAccess(noAccessPathMap))
+	s.Use(s.logger(noLogPathMap))
+	s.Use(s.recovery())
+
 	s.NoRoute(s.noRoute())
+
 	return s
 }
 
+// 启动服务
+// 生成.pid文件
 func (s *server) Run(addr string) {
 	pid := fmt.Sprintf("%d", os.Getpid())
 	if err := ioutil.WriteFile(".pid", []byte(pid), 0644); err != nil {
@@ -59,119 +81,132 @@ func (s *server) Run(addr string) {
 	endless.NewServer(addr, s.Engine).ListenAndServe()
 }
 
-func (s *server) SetNoLogPath(paths ...string) {
-	for _, v := range paths {
-		s.noLogPaths[v] = nil
+// 执行时间
+func (*server) ts() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		ctx.Set("__timestamp", time.Now())
 	}
 }
 
-func (*server) cors() gin.HandlerFunc {
-	allowHeaders := []string{
-		"Content-Type", "Content-Length",
-		"Accept", "Referer", "User-Agent, ",
-		"Authorization",
-		"X-Requested-Id", "X-Request-Timestamp", "X-Request-Sign",
-		"X-Request-AppId", "X-Request-Source", "X-Request-Token",
-	}
-
-	return func(c *gin.Context) {
-		c.Header("Access-Control-Allow-Origin", "*")
-		c.Header("Access-Control-Allow-Methods", "PUT, POST, GET, DELETE, OPTIONS")
-		c.Header("Access-Control-Allow-Headers", strings.Join(allowHeaders, ","))
-		c.Next()
+// 跨域
+func (*server) cors(headFields []string) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		ctx.Header("Access-Control-Allow-Origin", "*")
+		ctx.Header("Access-Control-Allow-Methods", "PUT, POST, GET, DELETE, OPTIONS")
+		ctx.Header("Access-Control-Allow-Headers", strings.Join(headFields, ","))
+		ctx.Next()
 	}
 }
 
-func (s *server) logger() gin.HandlerFunc {
-	var traceId = 1000
-
-	return func(c *gin.Context) {
-		if _, ok := s.noLogPaths[c.Request.URL.Path]; ok {
+// 禁止访问
+func (*server) noAccess(noAccessPathMap map[string]struct{}) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		if ctx.Request.Method == "OPTIONS" {
+			ctx.AbortWithStatus(200)
 			return
 		}
 
-		traceId++
-		c.Set("__trace_id", traceId)
+		if _, ok := noAccessPathMap[ctx.Request.URL.Path]; ok {
+			ctx.AbortWithStatus(200)
+			return
+		}
 
-		start := time.Now()
+		ctx.Next()
+	}
+}
 
-		var body interface{}
-		switch c.ContentType() {
+// 日志
+func (*server) logger(noAccessLogPathMap map[string]struct{}) gin.HandlerFunc {
+	var (
+		requestId = 0
+		body      interface{}
+	)
+
+	return func(ctx *gin.Context) {
+		if _, ok := noAccessLogPathMap[ctx.Request.URL.Path]; ok {
+			ctx.Next()
+			return
+		}
+
+		requestId++
+		ctx.Set("__request_id", requestId)
+
+		switch ctx.ContentType() {
 		case "application/x-www-form-urlencoded", "text/xml":
-			buf, _ := ioutil.ReadAll(c.Request.Body)
-			c.Request.Body = ioutil.NopCloser(bytes.NewBuffer(buf))
+			buf, _ := ioutil.ReadAll(ctx.Request.Body)
+			ctx.Request.Body = ioutil.NopCloser(bytes.NewBuffer(buf))
+			ctx.Set("__request_body", string(buf))
 			body = string(buf)
 		case "application/json":
-			buf, _ := ioutil.ReadAll(c.Request.Body)
-			c.Request.Body = ioutil.NopCloser(bytes.NewBuffer(buf))
+			buf, _ := ioutil.ReadAll(ctx.Request.Body)
+			ctx.Request.Body = ioutil.NopCloser(bytes.NewBuffer(buf))
+			ctx.Set("__request_body", string(buf))
 			json.Unmarshal(buf, &body)
 		default:
 			body = ""
 		}
 
-		c.Next()
+		ctx.Next()
 
 		defer func() {
-			l := goo_log.WithField("trace-id", traceId).
-				WithField("request-method", c.Request.Method).
-				WithField("request-uri", c.Request.RequestURI).
+			start, _ := ctx.Get("__timestamp")
+
+			clientIp := func(ctx *gin.Context) string {
+				if ip := ctx.GetHeader("X-Real-IP"); ip != "" {
+					return ip
+				}
+				if ip := ctx.GetHeader("X-Forwarded-For"); ip != "" {
+					return ip
+				}
+				ip := ctx.ClientIP()
+				if ip == "::1" {
+					return "127.0.0.1"
+				}
+				return ip
+			}(ctx)
+
+			l := goo_log.WithField("request-id", requestId).
+				WithField("request-method", ctx.Request.Method).
+				WithField("request-uri", ctx.Request.RequestURI).
 				WithField("request-body", body).
-				WithField("authorization", c.GetHeader("Authorization")).
-				WithField("x-request-id", c.GetHeader("X-Request-Id")).
-				WithField("x-request-source", c.GetHeader("X-Request-Source")).
-				WithField("x-request-sign", c.GetHeader("X-Request-Sign")).
-				WithField("content-type", c.ContentType()).
-				WithField("client-ip", c.ClientIP()).
-				WithField("referer", c.GetHeader("Referer")).
-				WithField("execution-time", fmt.Sprintf("%dms", time.Since(start)/1e6))
-			if rsp, ok := c.Get("__response"); ok && rsp != nil {
+				WithField("client-ip", clientIp).
+				WithField("authorization", ctx.GetHeader("Authorization")).
+				WithField("content-type", ctx.GetHeader("Content-Type")).
+				WithField("x-request-id", ctx.GetHeader("X-Request-Id")).
+				WithField("x-request-sign", ctx.GetHeader("X-Request-Sign")).
+				WithField("request-time", fmt.Sprintf("%dms", time.Since(start.(time.Time))/1e6))
+
+			if rsp, _ := ctx.Get("__response"); rsp != nil {
 				l.WithField("response", rsp)
+				if errMsg := rsp.(*Response).ErrMsg; len(errMsg) > 0 {
+					l.Error(errMsg...)
+					return
+				}
 			}
-			if rspErr, ok := c.Get("__response_err"); ok && rspErr != nil {
-				l.Error(rspErr)
-				return
-			}
-			l.Info()
+
+			l.Debug()
 		}()
 	}
 }
 
-func (s *server) recovery() gin.HandlerFunc {
-	return func(c *gin.Context) {
+// 捕获panic信息
+func (*server) recovery() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
 		defer func() {
 			if err := recover(); err != nil {
-				rsp := Error(500, "请求异常")
-				c.Set("__response", rsp)
-				c.Set("__response_err", fmt.Sprint(err))
-				c.AbortWithStatusJSON(200, rsp)
+				rsp := Error(500, "请求异常", err)
+				ctx.Set("__response", rsp)
+				ctx.AbortWithStatusJSON(200, rsp)
 			}
 		}()
-		c.Next()
+
+		ctx.Next()
 	}
 }
 
-func (*server) noAccess() gin.HandlerFunc {
-	noAccessPaths := map[string]interface{}{
-		"/favicon.ico": nil,
-	}
-
-	return func(c *gin.Context) {
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(200)
-			return
-		}
-
-		if _, ok := noAccessPaths[c.Request.URL.Path]; ok {
-			c.AbortWithStatus(200)
-			return
-		}
-
-		c.Next()
-	}
-}
-
+// 找不到路由
 func (*server) noRoute() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.AbortWithStatusJSON(200, Error(404, "Page Not Found"))
+	return func(ctx *gin.Context) {
+		ctx.AbortWithStatusJSON(200, Error(404, "Page Not Found"))
 	}
 }
