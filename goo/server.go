@@ -117,10 +117,7 @@ func (*server) noAccess(noAccessPathMap map[string]struct{}) gin.HandlerFunc {
 
 // 日志
 func (*server) logger(noAccessLogPathMap map[string]struct{}) gin.HandlerFunc {
-	var (
-		requestId = 0
-		body      interface{}
-	)
+	var requestId = 0
 
 	return func(ctx *gin.Context) {
 		if _, ok := noAccessLogPathMap[ctx.Request.URL.Path]; ok {
@@ -131,6 +128,8 @@ func (*server) logger(noAccessLogPathMap map[string]struct{}) gin.HandlerFunc {
 		requestId++
 		ctx.Set("__request_id", requestId)
 
+		var body interface{}
+		
 		switch ctx.ContentType() {
 		case "application/x-www-form-urlencoded", "text/xml":
 			buf, _ := ioutil.ReadAll(ctx.Request.Body)
@@ -165,7 +164,7 @@ func (*server) logger(noAccessLogPathMap map[string]struct{}) gin.HandlerFunc {
 				return ip
 			}(ctx)
 
-			l := goo_log.WithField("request-id", requestId).
+			l := goo_log.WithField("request-id", ctx.GetInt("__request_id")).
 				WithField("request-method", ctx.Request.Method).
 				WithField("request-uri", ctx.Request.RequestURI).
 				WithField("request-body", body).
