@@ -6,6 +6,10 @@ func init() {
 	__log = New(NewConsoleAdapter())
 }
 
+func Default() *Logger {
+	return __log
+}
+
 func SetAdapter(adapter Adapter) {
 	__log.SetAdapter(adapter)
 }
