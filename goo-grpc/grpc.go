@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
-	goo_log "github.com/liqiongtao/goo-log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/metadata"
+	goo_log "googo.io/goo-log"
 )
 
 func New() *Server {

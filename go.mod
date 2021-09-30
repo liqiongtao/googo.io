@@ -16,7 +16,6 @@ require (
 	github.com/go-xorm/xorm v0.7.9
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/hashicorp/consul/api v1.11.0
-	github.com/liqiongtao/goo-log v0.0.0-20210928100947-d3dab1cb106d
 	google.golang.org/grpc v1.29.1
 	gopkg.in/yaml.v2 v2.2.8
 	xorm.io/core v0.7.2-0.20190928055935-90aeac8d08eb

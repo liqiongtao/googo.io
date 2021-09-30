@@ -1,7 +1,7 @@
 package goo
 
 import (
-	goo_log "github.com/liqiongtao/goo-log"
+	goo_log "googo.io/goo-log"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 )
