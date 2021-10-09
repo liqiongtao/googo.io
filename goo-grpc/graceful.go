@@ -61,13 +61,13 @@ func (g *GRPCGraceful) handleSignal(errs chan error) <-chan struct{} {
 
 		for sig := range ch {
 			switch sig {
-			case syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
+			case syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
 				signal.Stop(ch)
 				g.s.GracefulStop()
 				close(quit)
 				return
 
-			case syscall.SIGUSR1, syscall.SIGUSR2:
+			case syscall.SIGHUP, syscall.SIGUSR1, syscall.SIGUSR2:
 				if _, err := g.net.StartProcess(); err != nil {
 					errs <- err
 				}
