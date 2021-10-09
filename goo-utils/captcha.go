@@ -32,6 +32,6 @@ func CaptchaGet(width, height int) map[string]string {
 }
 
 // 验证图片验证码
-func CaptchaValid(id, code string) bool {
+func CaptchaVerify(id, code string) bool {
 	return _store.Verify(id, code, true)
 }
