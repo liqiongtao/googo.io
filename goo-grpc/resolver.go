@@ -1,13 +1,14 @@
 package goo_grpc
 
 import (
-	"github.com/liqiongtao/googo.io/goo"
+	"context"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	"google.golang.org/grpc/resolver"
 )
 
 type Resolver struct {
+	ctx    context.Context
 	target resolver.Target
 	cc     resolver.ClientConn
 }
@@ -17,7 +18,7 @@ func (r *Resolver) Watch(ch chan []resolver.Address) {
 	goo_utils.AsyncFunc(func() {
 		for {
 			select {
-			case <-goo.CancelContext().Done():
+			case <-r.ctx.Done():
 				return
 			case addresses := <-ch:
 				r.cc.UpdateState(resolver.State{Addresses: addresses})
