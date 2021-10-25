@@ -7,6 +7,7 @@ import (
 	"github.com/fvbock/endless"
 	"github.com/gin-gonic/gin"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -129,7 +130,7 @@ func (*server) logger(noAccessLogPathMap map[string]struct{}) gin.HandlerFunc {
 		ctx.Set("__request_id", requestId)
 
 		var body interface{}
-		
+
 		switch ctx.ContentType() {
 		case "application/x-www-form-urlencoded", "text/xml":
 			buf, _ := ioutil.ReadAll(ctx.Request.Body)
@@ -193,7 +194,7 @@ func (*server) recovery() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		defer func() {
 			if err := recover(); err != nil {
-				rsp := Error(500, "请求异常", err)
+				rsp := Error(500, "请求异常", err, goo_utils.Trace(2))
 				ctx.Set("__response", rsp)
 				ctx.AbortWithStatusJSON(200, rsp)
 			}
