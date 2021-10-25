@@ -55,6 +55,10 @@ func (entry *Entry) output(level Level, v ...interface{}) {
 	entry.msg.Time = time.Now()
 	entry.msg.Content = fmt.Sprint(v...)
 
+	for _, trimPath := range entry.l.trimPaths {
+		entry.msg.Content = strings.Replace(entry.msg.Content, trimPath, "", -1)
+	}
+
 	if level >= ERROR {
 		entry.msg.WithField("trace", entry.trace())
 	}
