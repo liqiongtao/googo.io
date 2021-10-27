@@ -15,7 +15,7 @@ func New(opts ...Option) *Request {
 	}
 	for _, opt := range opts {
 		switch opt.Name {
-		case "tsl":
+		case "tls":
 			v := opt.Value.(map[string]string)
 			req.Tls = &Tls{
 				CaCrtFile:     v["caCrtFile"],
