@@ -2,8 +2,12 @@ package goo_etcd
 
 import (
 	"context"
+	"crypto/tls"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	"go.etcd.io/etcd/client/pkg/v3/transport"
 	clientv3 "go.etcd.io/etcd/client/v3"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"time"
 )
 
@@ -22,20 +26,41 @@ func Init(cfg Config) {
 }
 
 func New(cfg Config) (cli *Client, err error) {
-	_cfg := clientv3.Config{
+	cli = &Client{ctx: context.Background()}
+
+	config := clientv3.Config{
 		Endpoints:   cfg.Endpoints,
 		DialTimeout: 5 * time.Second,
-	}
-	
-	if cfg.User != "" {
-		_cfg.Username = cfg.User
-	}
-	if cfg.Password != "" {
-		_cfg.Password = cfg.Password
+		// 该日志配置，用于屏蔽原生日志输出
+		LogConfig: &zap.Config{
+			Level:    zap.NewAtomicLevelAt(zapcore.ErrorLevel),
+			Encoding: "json",
+		},
 	}
 
-	cli = &Client{ctx: context.Background()}
-	cli.Client, err = clientv3.New(_cfg)
+	if cfg.User != "" {
+		config.Username = cfg.User
+	}
+	if cfg.Password != "" {
+		config.Password = cfg.Password
+	}
+
+	if cfg.TLS != nil {
+		tlsInfo := &transport.TLSInfo{
+			CertFile:      cfg.TLS.CertFile,
+			KeyFile:       cfg.TLS.KeyFile,
+			TrustedCAFile: cfg.TLS.CAFile,
+		}
+		var clientConfig *tls.Config
+		clientConfig, err = tlsInfo.ClientConfig()
+		if err != nil {
+			goo_log.Error(err.Error())
+			return
+		}
+		config.TLS = clientConfig
+	}
+
+	cli.Client, err = clientv3.New(config)
 	if err != nil {
 		goo_log.Error(err.Error())
 	}
