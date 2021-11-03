@@ -26,10 +26,10 @@ type Server struct {
 
 func (s *Server) Register2Etcd(cli *goo_etcd.Client) *Server {
 	var key string
-	if str := s.cfg.ENV; str != "" {
+	if str := s.cfg.ServiceName; str != "" {
 		key += "/" + str
 	}
-	if str := s.cfg.ServiceName; str != "" {
+	if str := s.cfg.ENV; str != "" {
 		key += "/" + str
 	}
 	if str := s.cfg.Version; str != "" {
