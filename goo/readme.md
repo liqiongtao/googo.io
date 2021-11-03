@@ -123,10 +123,14 @@ func main() {
 # grpc
 
 ```
-var endpoints = []string{"localhost:23791", "localhost:23792", "localhost:23793"}
+var cfg = goo_etcd.Config{
+    User: "test",
+    Password: "123456",
+    Endpoints: []string{"localhost:23791", "localhost:23792", "localhost:23793"},
+}
 
 func init() {
-    goo_etcd.Init(endpoints)
+	goo_etcd.Init(cfg)
 }
 
 func main() {

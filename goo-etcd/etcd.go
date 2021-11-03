@@ -13,18 +13,20 @@ func CLI() *Client {
 	return __cli
 }
 
-func Init(endpoints []string) {
+func Init(cfg Config) {
 	var err error
-	__cli, err = New(endpoints)
+	__cli, err = New(cfg)
 	if err != nil {
 		goo_log.Panic(err.Error())
 	}
 }
 
-func New(endpoints []string) (cli *Client, err error) {
+func New(cfg Config) (cli *Client, err error) {
 	cli = &Client{ctx: context.Background()}
 	cli.Client, err = clientv3.New(clientv3.Config{
-		Endpoints:   endpoints,
+		Username:    cfg.User,
+		Password:    cfg.Password,
+		Endpoints:   cfg.Endpoints,
 		DialTimeout: 5 * time.Second,
 	})
 	if err != nil {

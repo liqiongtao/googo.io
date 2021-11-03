@@ -3,11 +3,17 @@
 ## set/get
 
 ```
-var endpoints = []string{"localhost:23791", "localhost:23792", "localhost:23793"}
+var cfg = goo_etcd.Config{
+    User: "test",
+    Password: "123456",
+    Endpoints: []string{"localhost:23791", "localhost:23792", "localhost:23793"},
+}
+
+func init() {
+	goo_etcd.Init(cfg)
+}
 
 func main() {
-	goo_etcd.Init(endpoints)
-
 	key := "/test/proj.com/grpc-user/v100"
 	val := "hnatao"
 
@@ -20,10 +26,14 @@ func main() {
 ## GetMap
 
 ```
-var endpoints = []string{"localhost:23791", "localhost:23792", "localhost:23793"}
+var cfg = goo_etcd.Config{
+    User: "test",
+    Password: "123456",
+    Endpoints: []string{"localhost:23791", "localhost:23792", "localhost:23793"},
+}
 
-func init() {    
-	goo_etcd.Init(endpoints)
+func init() {
+	goo_etcd.Init(cfg)
 }
 
 func main() {
@@ -45,10 +55,14 @@ func main() {
 ## GetArray
 
 ```
-var endpoints = []string{"localhost:23791", "localhost:23792", "localhost:23793"}
+var cfg = goo_etcd.Config{
+    User: "test",
+    Password: "123456",
+    Endpoints: []string{"localhost:23791", "localhost:23792", "localhost:23793"},
+}
 
-func init() {    
-	goo_etcd.Init(endpoints)
+func init() {
+	goo_etcd.Init(cfg)
 }
 
 func main() {
@@ -70,10 +84,14 @@ func main() {
 ## SetWithKeepAlive
 
 ```
-var endpoints = []string{"localhost:23791", "localhost:23792", "localhost:23793"}
+var cfg = goo_etcd.Config{
+    User: "test",
+    Password: "123456",
+    Endpoints: []string{"localhost:23791", "localhost:23792", "localhost:23793"},
+}
 
-func init() {    
-	goo_etcd.Init(endpoints)
+func init() {
+	goo_etcd.Init(cfg)
 }
 
 func main() {
