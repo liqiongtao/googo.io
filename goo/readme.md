@@ -1,55 +1,3 @@
-# CancelContext
-
-```
-func main() {
-	var wg sync.WaitGroup
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		fmt.Println("-----begin 1----")
-		<-goo.CancelContext().Done()
-		fmt.Println("-----end 1----")
-	}()
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		fmt.Println("-----begin 2----")
-		<-goo.CancelContext().Done()
-		fmt.Println("-----end 2----")
-	}()
-
-	wg.Wait()
-}
-```
-
-# TimeoutContext
-
-```
-func main() {
-	var wg sync.WaitGroup
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		fmt.Println("-----begin 1----")
-		<-goo.TimeoutContext(3 * time.Second).Done()
-		fmt.Println("-----end 1----")
-	}()
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		fmt.Println("-----begin 2----")
-		<-goo.TimeoutContext(5 * time.Second).Done()
-		fmt.Println("-----end 2----")
-	}()
-
-	wg.Wait()
-}
-```
-
 # 定时任务
 
 ```
@@ -79,7 +27,7 @@ func main() {
 	wg.Add(1)
 	goo_utils.AsyncFunc(func() {
 		defer wg.Done()
-		<-goo.CancelContext().Done()
+		<-goo_context.Cancel().Done()
 	})
 
 	wg.Wait()
@@ -90,7 +38,7 @@ func main() {
 
 ```
 func main() {
-	goo_db.Init(goo.CancelContext(), goo_db.Config{
+	goo_db.Init(goo_context.Cancel(), goo_db.Config{
 		Name:   "",
 		Driver: "mysql",
 		Master:      "root:123456@tcp(192.168.1.100:3306)/ttxian",
@@ -117,7 +65,7 @@ func main() {
 	wg.Add(1)
 	goo_utils.AsyncFunc(func() {
 		defer wg.Done()
-		<-goo.CancelContext().Done()
+		<-goo_context.Cancel().Done()
 	})
 	wg.Wait()
 }
@@ -127,7 +75,7 @@ func main() {
 
 ```
 func main() {
-	goo_redis.Init(goo.CancelContext(), goo_redis.Config{
+	goo_redis.Init(goo_context.Cancel(), goo_redis.Config{
 		Name:     "",
 		Addr:     "192.168.1.100:6379",
 		Password: "123456",
@@ -148,7 +96,7 @@ func main() {
 	wg.Add(1)
 	goo_utils.AsyncFunc(func() {
 		defer wg.Done()
-		<-goo.CancelContext().Done()
+		<-goo_context.Cancel().Done()
 	})
 	wg.Wait()
 }
@@ -175,6 +123,24 @@ func main() {
 # grpc
 
 ```
+var endpoints = []string{"localhost:23791", "localhost:23792", "localhost:23793"}
+
+func init() {
+    goo_etcd.Init(endpoints)
+}
+
+func main() {
+	s := goo.NewGRPCServer(goo_grpc.Config{
+		ENV:         "test",
+		ServiceName: "lpro/grpc-user",
+		Version:     "v100",
+		Addr:        "127.0.0.1:10011",
+	}).Register2Etcd(goo_etcd.CLI())
+
+	pb_user_v1.RegisterGetterServer(s.Server, &Server{})
+
+	s.Serve()
+}
 ```
 
 # server

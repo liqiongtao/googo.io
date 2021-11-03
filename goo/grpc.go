@@ -5,8 +5,8 @@ import (
 	goo_grpc "github.com/liqiongtao/googo.io/goo-grpc"
 )
 
-func NewGRPCServer() *goo_grpc.Server {
-	return goo_grpc.New()
+func NewGRPCServer(cfg goo_grpc.Config) *goo_grpc.Server {
+	return goo_grpc.New(cfg)
 }
 
 func GRPCContext(ctx *Context) context.Context {

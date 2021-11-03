@@ -14,6 +14,10 @@ import (
 	"time"
 )
 
+type Context struct {
+	*gin.Context
+}
+
 // 定义web服务
 type server struct {
 	*gin.Engine

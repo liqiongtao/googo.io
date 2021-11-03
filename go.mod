@@ -15,10 +15,11 @@ require (
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/go-xorm/xorm v0.7.9
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
-	github.com/hashicorp/consul/api v1.11.0
 	github.com/mojocn/base64Captcha v1.3.5
+	go.etcd.io/etcd/api/v3 v3.5.1
+	go.etcd.io/etcd/client/v3 v3.5.1
 	golang.org/x/text v0.3.6
-	google.golang.org/grpc v1.29.1
-	gopkg.in/yaml.v2 v2.2.8
+	google.golang.org/grpc v1.38.0
+	gopkg.in/yaml.v2 v2.3.0
 	xorm.io/core v0.7.2-0.20190928055935-90aeac8d08eb
 )

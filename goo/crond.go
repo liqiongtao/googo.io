@@ -1,6 +1,7 @@
 package goo
 
 import (
+	goo_context "github.com/liqiongtao/googo.io/goo-context"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	"time"
 )
@@ -13,7 +14,7 @@ func CronDay(fns ...func()) {
 		timer := time.NewTimer(0)
 		for {
 			select {
-			case <-CancelContext().Done():
+			case <-goo_context.Cancel().Done():
 				return
 			case <-timer.C:
 				for _, fn := range fns {
@@ -34,7 +35,7 @@ func CronHour(fns ...func()) {
 		timer := time.NewTimer(0)
 		for {
 			select {
-			case <-CancelContext().Done():
+			case <-goo_context.Cancel().Done():
 				return
 			case <-timer.C:
 				for _, fn := range fns {
@@ -55,7 +56,7 @@ func CronMinute(fns ...func()) {
 		timer := time.NewTimer(0)
 		for {
 			select {
-			case <-CancelContext().Done():
+			case <-goo_context.Cancel().Done():
 				return
 			case <-timer.C:
 				for _, fn := range fns {
@@ -76,7 +77,7 @@ func Crond(d time.Duration, fns ...func()) {
 		timer := time.NewTimer(0)
 		for {
 			select {
-			case <-CancelContext().Done():
+			case <-goo_context.Cancel().Done():
 				return
 			case <-timer.C:
 				for _, fn := range fns {
