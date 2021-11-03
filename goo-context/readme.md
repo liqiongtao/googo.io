@@ -18,7 +18,7 @@ func main() {
 }
 ```
 
-## 
+## Timeout
 
 ```
 func main() {

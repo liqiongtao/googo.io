@@ -25,8 +25,20 @@ type Server struct {
 }
 
 func (s *Server) Register2Etcd(cli *goo_etcd.Client) *Server {
-	service := fmt.Sprintf("/%s/%s/%s", s.cfg.ENV, s.cfg.ServiceName, s.cfg.Version)
-	cli.SetWithKeepAlive(service, s.cfg.Addr, 15)
+	var key string
+	if str := s.cfg.ENV; str != "" {
+		key += "/" + str
+	}
+	if str := s.cfg.ServiceName; str != "" {
+		key += "/" + str
+	}
+	if str := s.cfg.Version; str != "" {
+		key += "/" + str
+	}
+	if key == "" {
+		key = s.cfg.Addr
+	}
+	cli.SetWithKeepAlive(key, s.cfg.Addr, 15)
 	return s
 }
 
