@@ -9,6 +9,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/metadata"
+	"strings"
 )
 
 func New(cfg Config) *Server {
@@ -25,10 +26,7 @@ type Server struct {
 }
 
 func (s *Server) Register2Etcd(cli *goo_etcd.Client) *Server {
-	var key string
-	if str := s.cfg.ServiceName; str != "" {
-		key += "/" + str
-	}
+	key := s.cfg.ServiceName
 	if str := s.cfg.ENV; str != "" {
 		key += "/" + str
 	}
@@ -37,6 +35,9 @@ func (s *Server) Register2Etcd(cli *goo_etcd.Client) *Server {
 	}
 	if key == "" {
 		key = s.cfg.Addr
+	}
+	if strings.Index(key, "/") != 0 {
+		key += "/" + key
 	}
 	cli.SetWithKeepAlive(key, s.cfg.Addr, 15)
 	return s
