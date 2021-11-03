@@ -15,9 +15,9 @@ require (
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/go-xorm/xorm v0.7.9
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
-	github.com/hashicorp/consul/api v1.11.0
 	github.com/mojocn/base64Captcha v1.3.5
-	go.etcd.io/etcd/client/v3 v3.5.1 // indirect
+	go.etcd.io/etcd/api/v3 v3.5.1
+	go.etcd.io/etcd/client/v3 v3.5.1
 	golang.org/x/text v0.3.6
 	google.golang.org/grpc v1.38.0
 	gopkg.in/yaml.v2 v2.3.0

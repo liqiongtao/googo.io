@@ -4,26 +4,35 @@ import (
 	"context"
 	"fmt"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	goo_etcd "github.com/liqiongtao/googo.io/goo-etcd"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/metadata"
 )
 
-func New() *Server {
-	return &Server{
-		grpc.NewServer(grpc_middleware.WithUnaryServerChain(GRPCInterceptor)),
+func New(cfg Config) *Server {
+	s := &Server{
+		cfg:    cfg,
+		Server: grpc.NewServer(grpc_middleware.WithUnaryServerChain(GRPCInterceptor)),
 	}
+	return s
 }
 
 type Server struct {
 	*grpc.Server
+	cfg Config
 }
 
-func (s *Server) Serve(addr string) error {
-	grpc_health_v1.RegisterHealthServer(s.Server, &Health{})
+func (s *Server) Register2Etcd(cli *goo_etcd.Client) *Server {
+	service := fmt.Sprintf("/%s/%s/%s", s.cfg.ENV, s.cfg.ServiceName, s.cfg.Version)
+	cli.SetWithKeepAlive(service, s.cfg.Addr, 15)
+	return s
+}
 
-	return NewGRPCGraceful("tcp", addr, s.Server).Serve()
+func (s *Server) Serve() error {
+	grpc_health_v1.RegisterHealthServer(s.Server, &Health{})
+	return NewGRPCGraceful("tcp", s.cfg.Addr, s.Server).Serve()
 }
 
 func GRPCInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (rsp interface{}, err error) {

@@ -2,6 +2,7 @@ package goo_log
 
 import (
 	"fmt"
+	"os"
 	"runtime"
 	"strings"
 	"time"
@@ -44,10 +45,12 @@ func (entry *Entry) Error(v ...interface{}) {
 
 func (entry *Entry) Panic(v ...interface{}) {
 	entry.output(PANIC, v...)
+	panic(fmt.Sprint(v...))
 }
 
 func (entry *Entry) Fatal(v ...interface{}) {
 	entry.output(FATAL, v...)
+	os.Exit(1)
 }
 
 func (entry *Entry) output(level Level, v ...interface{}) {

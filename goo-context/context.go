@@ -1,43 +1,24 @@
-package goo
+package goo_context
 
 import (
 	"context"
-	"fmt"
-	"github.com/gin-gonic/gin"
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
-	"os"
-	"os/signal"
 	"sync"
 	"syscall"
 	"time"
 )
 
-type Context struct {
-	*gin.Context
-}
-
 var (
-	signalCH          chan os.Signal
-	signalOnce        sync.Once
 	cancelContext     context.Context
 	cancelFunc        context.CancelFunc
 	cancelContextOnce sync.Once
 )
 
-func Signal() chan os.Signal {
-	signalOnce.Do(func() {
-		signalCH = make(chan os.Signal)
-		signal.Notify(signalCH, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGUSR1, syscall.SIGUSR2)
-	})
-	return signalCH
-}
-
-func CancelContext() context.Context {
+func Cancel() context.Context {
 	cancelContextOnce.Do(func() {
 		cancelContext, cancelFunc = context.WithCancel(context.Background())
 		goo_utils.AsyncFunc(func() {
-			for sig := range Signal() {
+			for sig := range signalCH {
 				switch sig {
 				case syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
 					cancelFunc()
@@ -51,7 +32,7 @@ func CancelContext() context.Context {
 	return cancelContext
 }
 
-func TimeoutContext(d time.Duration, v ...map[string]interface{}) context.Context {
+func Timeout(d time.Duration, v ...map[string]interface{}) context.Context {
 	var parent = context.Background()
 
 	if l := len(v); l > 0 {
@@ -60,14 +41,13 @@ func TimeoutContext(d time.Duration, v ...map[string]interface{}) context.Contex
 		}
 	}
 
-	ctx, cancel := context.WithTimeout(parent, d)
+	ctx, cancelFunc := context.WithTimeout(parent, d)
 
 	goo_utils.AsyncFunc(func() {
-		for sig := range Signal() {
+		for sig := range signalCH {
 			switch sig {
 			case syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
-				goo_log.Error(fmt.Sprintf("request timeout in %fs", d.Seconds()))
-				cancel()
+				cancelFunc()
 				return
 			case syscall.SIGUSR1:
 			case syscall.SIGUSR2:
