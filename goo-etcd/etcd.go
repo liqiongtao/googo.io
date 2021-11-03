@@ -22,13 +22,20 @@ func Init(cfg Config) {
 }
 
 func New(cfg Config) (cli *Client, err error) {
-	cli = &Client{ctx: context.Background()}
-	cli.Client, err = clientv3.New(clientv3.Config{
-		Username:    cfg.User,
-		Password:    cfg.Password,
+	_cfg := clientv3.Config{
 		Endpoints:   cfg.Endpoints,
 		DialTimeout: 5 * time.Second,
-	})
+	}
+	
+	if cfg.User != "" {
+		_cfg.Username = cfg.User
+	}
+	if cfg.Password != "" {
+		_cfg.Password = cfg.Password
+	}
+
+	cli = &Client{ctx: context.Background()}
+	cli.Client, err = clientv3.New(_cfg)
 	if err != nil {
 		goo_log.Error(err.Error())
 	}
