@@ -8,11 +8,13 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"time"
 )
 
 type Request struct {
 	Headers map[string]string
 	Tls     *Tls
+	timeout time.Duration
 	debug   bool
 }
 
@@ -36,8 +38,18 @@ func (r *Request) JsonContentType() *Request {
 	return r
 }
 
+func (r *Request) SetTimeout(d time.Duration) *Request {
+	r.timeout = d
+	return r
+}
+
 func (r *Request) getClient() *http.Client {
-	client := &http.Client{}
+	if r.timeout == 0 {
+		r.timeout = 8 * time.Second
+	}
+	client := &http.Client{
+		Timeout: r.timeout,
+	}
 	if r.Tls != nil {
 		pool := x509.NewCertPool()
 		pool.AppendCertsFromPEM(r.Tls.CaCrt())
