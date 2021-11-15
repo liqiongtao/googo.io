@@ -46,13 +46,13 @@ func Trace(skip int) []string {
 	return trace
 }
 
-func WriteToFile(filename, content string) error {
+func WriteToFile(filename string, b []byte) error {
 	f, err := os.Create(filename)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	if _, err := f.WriteString(content); err != nil {
+	if _, err := f.Write(b); err != nil {
 		return err
 	}
 	return nil
