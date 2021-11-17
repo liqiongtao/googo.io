@@ -125,13 +125,17 @@ func (*server) logger(noAccessLogPathMap map[string]struct{}) gin.HandlerFunc {
 	var requestId = 0
 
 	return func(ctx *gin.Context) {
+		requestId++
+		ctx.Set("__request_id", requestId)
+
+		if _, ok := noAccessLogPathMap["*"]; ok {
+			ctx.Next()
+			return
+		}
 		if _, ok := noAccessLogPathMap[ctx.Request.URL.Path]; ok {
 			ctx.Next()
 			return
 		}
-
-		requestId++
-		ctx.Set("__request_id", requestId)
 
 		var body interface{}
 
@@ -152,7 +156,7 @@ func (*server) logger(noAccessLogPathMap map[string]struct{}) gin.HandlerFunc {
 
 		ctx.Next()
 
-		defer func() {
+		goo_utils.AsyncFunc(func() {
 			start, _ := ctx.Get("__timestamp")
 
 			clientIp := func(ctx *gin.Context) string {
@@ -189,7 +193,7 @@ func (*server) logger(noAccessLogPathMap map[string]struct{}) gin.HandlerFunc {
 			}
 
 			l.Debug()
-		}()
+		})
 	}
 }
 
