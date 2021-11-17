@@ -1,10 +1,7 @@
 package goo_http_request
 
 import (
-	"bytes"
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	"io"
-	"mime/multipart"
 )
 
 func New(opts ...Option) *Request {
@@ -50,29 +47,6 @@ func Put(url string, data []byte) ([]byte, error) {
 	return New().Put(url, data)
 }
 
-func Upload(url, field, fileName string, f io.Reader, data map[string]string) ([]byte, error) {
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
-	part, err := writer.CreateFormFile(field, fileName)
-	if err != nil {
-		goo_log.Error(err.Error())
-		return nil, err
-	}
-	if _, err = io.Copy(part, f); err != nil {
-		goo_log.Error(err.Error())
-		return nil, err
-	}
-
-	for k, v := range data {
-		writer.WriteField(k, v)
-	}
-
-	if err = writer.Close(); err != nil {
-		goo_log.Error(err.Error())
-		return nil, err
-	}
-
-	request := New()
-	request.SetHearder("Content-Type", writer.FormDataContentType())
-	return request.Do("POST", url, body)
+func Upload(url, fileField, fileName string, f io.Reader, data map[string]string) (b []byte, err error) {
+	return New().Upload(url, fileField, fileName, f, data)
 }

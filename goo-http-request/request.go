@@ -7,6 +7,7 @@ import (
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	"io"
 	"io/ioutil"
+	"mime/multipart"
 	"net/http"
 	"time"
 )
@@ -124,4 +125,30 @@ func (r *Request) Post(url string, data []byte) ([]byte, error) {
 
 func (r *Request) Put(url string, data []byte) ([]byte, error) {
 	return r.Do("PUT", url, bytes.NewReader(data))
+}
+
+func (r *Request) Upload(url, fileField, fileName string, f io.Reader, data map[string]string) (b []byte, err error) {
+	var (
+		body *bytes.Buffer
+		part io.Writer
+	)
+
+	w := multipart.NewWriter(body)
+	if part, err = w.CreateFormFile(fileField, fileName); err != nil {
+		goo_log.Error(err.Error())
+		return
+	}
+	defer w.Close()
+
+	if _, err = io.Copy(part, f); err != nil {
+		goo_log.Error(err.Error())
+		return
+	}
+
+	for k, v := range data {
+		w.WriteField(k, v)
+	}
+
+	r.SetHearder("Content-Type", w.FormDataContentType())
+	return r.Do("POST", url, body)
 }
