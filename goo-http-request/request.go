@@ -129,7 +129,7 @@ func (r *Request) Put(url string, data []byte) ([]byte, error) {
 
 func (r *Request) Upload(url, fileField, fileName string, f io.Reader, data map[string]string) (b []byte, err error) {
 	var (
-		body *bytes.Buffer
+		body = new(bytes.Buffer)
 		part io.Writer
 	)
 
