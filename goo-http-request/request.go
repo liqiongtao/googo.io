@@ -129,16 +129,15 @@ func (r *Request) Put(url string, data []byte) ([]byte, error) {
 
 func (r *Request) Upload(url, fileField, fileName string, f io.Reader, data map[string]string) (b []byte, err error) {
 	var (
-		body = new(bytes.Buffer)
+		body bytes.Buffer
 		part io.Writer
 	)
 
-	w := multipart.NewWriter(body)
+	w := multipart.NewWriter(&body)
 	if part, err = w.CreateFormFile(fileField, fileName); err != nil {
 		goo_log.Error(err.Error())
 		return
 	}
-	defer w.Close()
 
 	if _, err = io.Copy(part, f); err != nil {
 		goo_log.Error(err.Error())
@@ -149,6 +148,8 @@ func (r *Request) Upload(url, fileField, fileName string, f io.Reader, data map[
 		w.WriteField(k, v)
 	}
 
+	w.Close()
+
 	r.SetHearder("Content-Type", w.FormDataContentType())
-	return r.Do("POST", url, body)
+	return r.Do("POST", url, &body)
 }
