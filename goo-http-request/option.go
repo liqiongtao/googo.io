@@ -27,8 +27,7 @@ func ContentTypeFormOption() Option {
 
 func HeaderOption(field, value string) Option {
 	return Option{Name: "header", Value: map[string]string{
-		"field": field,
-		"value": value,
+		field: value,
 	}}
 }
 
