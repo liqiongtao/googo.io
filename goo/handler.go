@@ -3,6 +3,7 @@ package goo
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
+	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	"time"
 )
 
@@ -14,6 +15,8 @@ type iController interface {
 // 定义控制器调用实现
 func Handler(controller iController) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
+		defer goo_utils.Recover()
+
 		rsp := controller.DoHandle(&Context{Context: ctx})
 
 		start, _ := ctx.Get("__timestamp")
