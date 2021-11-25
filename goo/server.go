@@ -176,13 +176,24 @@ func (*server) logger(noAccessLogPathMap map[string]struct{}) gin.HandlerFunc {
 			l := goo_log.WithField("request-id", ctx.GetInt("__request_id")).
 				WithField("request-method", ctx.Request.Method).
 				WithField("request-uri", ctx.Request.RequestURI).
-				WithField("request-body", body).
-				WithField("client-ip", clientIp).
-				WithField("authorization", ctx.GetHeader("Authorization")).
 				WithField("content-type", ctx.GetHeader("Content-Type")).
-				WithField("x-request-id", ctx.GetHeader("X-Request-Id")).
-				WithField("x-request-sign", ctx.GetHeader("X-Request-Sign")).
 				WithField("request-time", fmt.Sprintf("%dms", time.Since(start.(time.Time))/1e6))
+
+			if body != "" {
+				l.WithField("request-body", body)
+			}
+			if clientIp != "" {
+				l.WithField("client-ip", clientIp)
+			}
+			if v := ctx.GetHeader("Authorization"); v != "" {
+				l.WithField("authorization", v)
+			}
+			if v := ctx.GetHeader("X-Request-Id"); v != "" {
+				l.WithField("x-request-id", v)
+			}
+			if v := ctx.GetHeader("X-Request-Sign"); v != "" {
+				l.WithField("x-request-sign", v)
+			}
 
 			if rsp, _ := ctx.Get("__response"); rsp != nil {
 				l.WithField("response", rsp)
