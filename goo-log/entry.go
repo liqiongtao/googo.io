@@ -84,6 +84,7 @@ func (entry *Entry) trace() (arr []string) {
 			strings.Index(file, "runtime/") > 0 ||
 			strings.Index(file, "src/") > 0 ||
 			strings.Index(file, "pkg/mod/") > 0 ||
+			strings.Index(file, ".pb.go") > 0 ||
 			strings.Index(file, "vendor/") > 0 {
 			continue
 		}
@@ -92,7 +93,7 @@ func (entry *Entry) trace() (arr []string) {
 				file = strings.Replace(file, trimPath, "", -1)
 			}
 		}
-		arr = append([]string{fmt.Sprintf("%s %dL", file, line)}, arr...)
+		arr = append(arr, fmt.Sprintf("%s %dL", file, line))
 	}
 	return
 }
