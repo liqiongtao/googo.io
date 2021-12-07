@@ -12,16 +12,19 @@ const (
 	EL = "\n"
 )
 
+// 文件名
 func FILE() string {
 	_, file, _, _ := runtime.Caller(1)
 	return file
 }
 
+// 行号
 func LINE() int {
 	_, _, line, _ := runtime.Caller(1)
 	return line
 }
 
+// 目录名称
 func DIR() string {
 	_, file, _, _ := runtime.Caller(1)
 	return path.Dir(file) + "/"
@@ -46,7 +49,12 @@ func Trace(skip int) []string {
 	return trace
 }
 
+// 写文件，支持路径创建
 func WriteToFile(filename string, b []byte) error {
+	dirname := path.Dir(filename)
+	if _, err := os.Stat(dirname); err != nil {
+		os.MkdirAll(dirname, 0755)
+	}
 	f, err := os.Create(filename)
 	if err != nil {
 		return err
