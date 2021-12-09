@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 )
 
 // 控制台日志适配器
@@ -22,6 +23,10 @@ func (ca ConsoleAdapter) Write(msg *Message) {
 	buf.WriteString(" ")
 	buf.WriteString(colors[msg.Level](fmt.Sprintf("%-5s", LevelText[msg.Level])))
 	buf.WriteString(" ")
+	if l := len(msg.Tags); l > 0 {
+		buf.WriteString("[" + strings.Join(msg.Tags, "][") + "]")
+		buf.WriteString(" ")
+	}
 	buf.WriteString(msg.Content)
 	buf.WriteString(" ")
 	if l := len(msg.Data); l > 0 {
