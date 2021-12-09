@@ -12,6 +12,7 @@ func NewEntry(l *Logger) *Entry {
 	return &Entry{
 		l: l,
 		msg: &Message{
+			Tags: []string{},
 			Data: map[string]interface{}{},
 		},
 	}
