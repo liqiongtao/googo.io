@@ -32,6 +32,10 @@ func (l *Logger) SetTrimPath(trimPaths ...string) {
 	l.trimPaths = append(l.trimPaths, trimPaths...)
 }
 
+func (l *Logger) WithTag(tags ...string) *Entry {
+	return NewEntry(l).WithTag(tags...)
+}
+
 func (l *Logger) WithField(field string, value interface{}) *Entry {
 	return NewEntry(l).WithField(field, value)
 }

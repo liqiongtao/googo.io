@@ -13,7 +13,7 @@ type Message struct {
 	Data    map[string]interface{}
 }
 
-func (msg *Message) Tag(tags ...string) {
+func (msg *Message) WithTag(tags ...string) {
 	msg.Tags = append(msg.Tags, tags...)
 }
 

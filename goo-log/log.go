@@ -28,6 +28,10 @@ func AddHook(fn func(msg Message)) {
 	__log.AddHook(fn)
 }
 
+func WithTag(tags ...string) *Entry {
+	return __log.WithTag(tags...)
+}
+
 func WithField(field string, value interface{}) *Entry {
 	return __log.WithField(field, value)
 }

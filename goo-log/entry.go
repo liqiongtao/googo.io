@@ -22,6 +22,11 @@ type Entry struct {
 	msg *Message
 }
 
+func (entry *Entry) WithTag(tags ...string) *Entry {
+	entry.msg.WithTag(tags...)
+	return entry
+}
+
 func (entry *Entry) WithField(field string, value interface{}) *Entry {
 	entry.msg.WithField(field, value)
 	return entry
