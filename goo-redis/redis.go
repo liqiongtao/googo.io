@@ -39,7 +39,7 @@ func (r *Redis) ping() {
 			return
 		case <-ti.C:
 			if err := r.Client.Ping().Err(); err != nil {
-				goo_log.Error("[redis-ping]", err.Error())
+				goo_log.WithTag("goo-redis").Error(err)
 			}
 			ti.Reset(dur)
 		}

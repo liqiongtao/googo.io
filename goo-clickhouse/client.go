@@ -41,7 +41,7 @@ func (cli *client) connect() (err error) {
 		cli.config.ReadTimeout, cli.config.WriteTimeout, cli.config.AltHosts, cli.config.Debug)
 	cli.db, err = sql.Open(cli.config.Driver, dns)
 	if err != nil {
-		goo_log.Error(err.Error())
+		goo_log.WithTag("goo-clickhouse").Error(err)
 	}
 	return
 }
@@ -57,9 +57,9 @@ func (cli *client) ping() {
 	}
 
 	if exception, ok := err.(*clickhouse.Exception); ok {
-		goo_log.WithField("err_code", exception.Code).WithField("stack_trace", exception.StackTrace).Error(exception.Message)
+		goo_log.WithTag("goo-clickhouse").WithField("err_code", exception.Code).WithField("stack_trace", exception.StackTrace).Error(exception.Message)
 		return
 	}
 
-	goo_log.Error(err.Error())
+	goo_log.WithTag("goo-clickhouse").Error(err)
 }

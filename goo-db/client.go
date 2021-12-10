@@ -16,7 +16,7 @@ func Init(ctx context.Context, configs ...Config) {
 		}
 		__clients[name] = NewXOrmAdapter(ctx, config)
 		if err := __clients[name].connect(); err != nil {
-			panic(err.Error())
+			goo_log.WithTag("goo-db").Panic(err)
 		}
 		if config.AutoPing {
 			goo_utils.AsyncFunc(__clients[name].ping)
@@ -37,7 +37,7 @@ func Client(names ...string) DB {
 			return client
 		}
 	}
-	goo_log.Error("no default db client")
+	goo_log.WithTag("goo-db").Error("no default db client")
 	return nil
 }
 

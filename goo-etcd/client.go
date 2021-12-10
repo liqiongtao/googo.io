@@ -22,7 +22,7 @@ func (cli *Client) Set(key, val string, ttl int64) (err error) {
 
 		lease, err = cli.Client.Grant(cli.ctx, ttl)
 		if err != nil {
-			goo_log.WithField("key", key).WithField("val", val).WithField("ttl", ttl).Error(err.Error())
+			goo_log.WithTag("goo-etcd").WithField("key", key).WithField("val", val).WithField("ttl", ttl).Error(err)
 			return
 		}
 
@@ -31,7 +31,7 @@ func (cli *Client) Set(key, val string, ttl int64) (err error) {
 
 	_, err = cli.Client.Put(cli.ctx, key, val, options...)
 	if err != nil {
-		goo_log.WithField("key", key).WithField("val", val).WithField("ttl", ttl).Error(err.Error())
+		goo_log.WithTag("goo-etcd").WithField("key", key).WithField("val", val).WithField("ttl", ttl).Error(err)
 	}
 	return
 }
@@ -48,7 +48,7 @@ func (cli *Client) SetWithKeepAlive(key, val string, ttl int64) (err error) {
 
 	leaseGrantRsp, err = cli.Client.Grant(cli.ctx, ttl)
 	if err != nil {
-		goo_log.WithField("key", key).WithField("val", val).WithField("ttl", ttl).Error(err.Error())
+		goo_log.WithTag("goo-etcd").WithField("key", key).WithField("val", val).WithField("ttl", ttl).Error(err)
 		return
 	}
 
@@ -56,7 +56,7 @@ func (cli *Client) SetWithKeepAlive(key, val string, ttl int64) (err error) {
 
 	_, err = cli.Client.Put(cli.ctx, key, val, clientv3.WithLease(leaseId))
 	if err != nil {
-		goo_log.WithField("key", key).WithField("val", val).WithField("ttl", ttl).Error(err.Error())
+		goo_log.WithTag("goo-etcd").WithField("key", key).WithField("val", val).WithField("ttl", ttl).Error(err)
 		return
 	}
 
@@ -64,7 +64,7 @@ func (cli *Client) SetWithKeepAlive(key, val string, ttl int64) (err error) {
 
 	leaseKeepAliveRsp, err = cli.Client.KeepAlive(cli.ctx, leaseId)
 	if err != nil {
-		goo_log.WithField("key", key).WithField("val", val).WithField("ttl", ttl).Error(err.Error())
+		goo_log.WithTag("goo-etcd").WithField("key", key).WithField("val", val).WithField("ttl", ttl).Error(err)
 		return
 	}
 
@@ -78,7 +78,7 @@ func (cli *Client) SetWithKeepAlive(key, val string, ttl int64) (err error) {
 				if rst == nil {
 					continue
 				}
-				goo_log.WithField("result", rst).Debug("keep-alive")
+				goo_log.WithTag("goo-etcd").WithField("result", rst).Debug("keep-alive")
 			}
 		}
 	})
@@ -89,7 +89,7 @@ func (cli *Client) SetWithKeepAlive(key, val string, ttl int64) (err error) {
 func (cli *Client) Get(key string) string {
 	rsp, err := cli.Client.Get(cli.ctx, key)
 	if err != nil {
-		goo_log.WithField("key", key).Error(err.Error())
+		goo_log.WithTag("goo-etcd").WithField("key", key).Error(err)
 		return ""
 	}
 	if rsp.Count == 0 {
@@ -102,7 +102,7 @@ func (cli *Client) GetMap(key string) (data map[string]string) {
 	data = map[string]string{}
 	rsp, err := cli.Client.Get(cli.ctx, key, clientv3.WithPrefix())
 	if err != nil {
-		goo_log.WithField("key", key).Error(err.Error())
+		goo_log.WithTag("goo-etcd").WithField("key", key).Error(err)
 		return
 	}
 	if rsp.Count == 0 {
@@ -118,7 +118,7 @@ func (cli *Client) GetArray(key string) (data []string) {
 	data = []string{}
 	rsp, err := cli.Client.Get(cli.ctx, key, clientv3.WithPrefix())
 	if err != nil {
-		goo_log.WithField("key", key).Error(err.Error())
+		goo_log.WithTag("goo-etcd").WithField("key", key).Error(err)
 		return
 	}
 	if rsp.Count == 0 {
@@ -170,7 +170,7 @@ func (cli *Client) Watch(key string, fn func([]string)) {
 func (cli *Client) Del(key string) (err error) {
 	_, err = cli.Client.Delete(cli.ctx, key)
 	if err != nil {
-		goo_log.WithField("key", key).Error(err.Error())
+		goo_log.WithTag("goo-etcd").WithField("key", key).Error(err)
 	}
 	return
 }

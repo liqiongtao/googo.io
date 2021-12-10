@@ -61,7 +61,7 @@ func (db *XOrm) ping() {
 			return
 		case <-ti.C:
 			if err := db.EngineGroup.Ping(); err != nil {
-				goo_log.Error("[db-ping]", err.Error())
+				goo_log.WithTag("goo-db").Error(err)
 			}
 			ti.Reset(dur)
 		}

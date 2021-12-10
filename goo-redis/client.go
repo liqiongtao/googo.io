@@ -16,7 +16,7 @@ func Init(ctx context.Context, configs ...Config) {
 		}
 		__clients[name] = NewRedis(ctx, config)
 		if err := __clients[name].connect(); err != nil {
-			panic(err.Error())
+			goo_log.WithTag("goo-redis").Panic(err)
 		}
 		if config.AutoPing {
 			goo_utils.AsyncFunc(__clients[name].ping)
@@ -37,6 +37,6 @@ func Client(names ...string) *Redis {
 			return client
 		}
 	}
-	goo_log.Error("no default redis client")
+	goo_log.WithTag("goo-redis").Error("no default redis client")
 	return nil
 }

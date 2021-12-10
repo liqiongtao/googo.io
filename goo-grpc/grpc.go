@@ -52,7 +52,7 @@ func GRPCInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServe
 	if info.FullMethod == "/grpc.health.v1.Health/Check" {
 		return
 	}
-	lg := goo_log.WithField("grpc-method", info.FullMethod).WithField("grpc-request", req)
+	lg := goo_log.WithTag("goo-grpc").WithField("method", info.FullMethod).WithField("request", req)
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
 		for key, val := range md {
 			lg.WithField(key, val)
@@ -64,11 +64,11 @@ func GRPCInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServe
 		}
 	}()
 	rsp, err = handler(ctx, req)
-	lg.WithField("grpc-response", rsp)
+	lg.WithField("response", rsp)
 	if err == nil {
 		lg.Info()
 		return
 	}
-	lg.Error(err.Error())
+	lg.Error(err)
 	return
 }

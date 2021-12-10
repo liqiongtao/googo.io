@@ -65,7 +65,7 @@ func (r *Request) getClient() *http.Client {
 }
 
 func (r *Request) Do(method, url string, body []byte) ([]byte, error) {
-	l := goo_log.WithTag("http-request")
+	l := goo_log.WithTag("goo-http-request")
 
 	if r.debug {
 		l.WithField("method", method)

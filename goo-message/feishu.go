@@ -20,12 +20,12 @@ func (*feishu) Text(hookUrl string, text string) {
 
 	buf, err := goo_http_request.PostJson(hookUrl, params.JSON())
 	if err != nil {
-		goo_log.Error(err.Error())
+		goo_log.WithTag("goo-message-feishu").Error(err)
 		return
 	}
 
 	rst, _ := goo_utils.Byte(buf).Params()
 	if rst.Get("StatusMessage").String() != "success" {
-		goo_log.Error(rst)
+		goo_log.WithTag("goo-message-feishu").Error(rst)
 	}
 }

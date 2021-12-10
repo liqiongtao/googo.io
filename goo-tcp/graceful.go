@@ -46,7 +46,7 @@ func (g *Graceful) Serve() {
 	for {
 		conn, err := l.Accept()
 		if err != nil {
-			goo_log.Error(err.Error())
+			goo_log.WithTag("goo-tcp").Error(err)
 			if strings.Contains(err.Error(), "use of closed network connection") {
 				break
 			}
@@ -78,7 +78,7 @@ func (g *Graceful) handleSignal(l *net.TCPListener, quit chan struct{}) func() {
 				return
 			case syscall.SIGUSR1, syscall.SIGUSR2:
 				if _, err := g.net.StartProcess(); err != nil {
-					goo_log.Error(err.Error())
+					goo_log.WithTag("goo-tcp").Error(err)
 				}
 			}
 		}
