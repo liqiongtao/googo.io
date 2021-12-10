@@ -24,18 +24,18 @@ func (r *Request) Debug() *Request {
 	return r
 }
 
-func (r *Request) SetHearder(name, value string) *Request {
+func (r *Request) SetHeader(name, value string) *Request {
 	r.Headers[name] = value
 	return r
 }
 
 func (r *Request) SetContentType(contentType string) *Request {
-	r.SetHearder("Content-Type", contentType)
+	r.SetHeader("Content-Type", contentType)
 	return r
 }
 
 func (r *Request) JsonContentType() *Request {
-	r.SetHearder("Content-Type", CONTENT_TYPE_JSON)
+	r.SetHeader("Content-Type", CONTENT_TYPE_JSON)
 	return r
 }
 

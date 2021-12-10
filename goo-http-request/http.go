@@ -5,7 +5,7 @@ import (
 )
 
 func New(opts ...Option) *Request {
-	req := &Request{
+	r := &Request{
 		Headers: map[string]string{
 			"Content-Type": CONTENT_TYPE_FORM,
 		},
@@ -14,21 +14,21 @@ func New(opts ...Option) *Request {
 		switch opt.Name {
 		case "tls":
 			v := opt.Value.(map[string]string)
-			req.Tls = &Tls{
+			r.Tls = &Tls{
 				CaCrtFile:     v["caCrtFile"],
 				ClientCrtFile: v["clientCrtFile"],
 				ClientKeyFile: v["clientKeyFile"],
 			}
 		case "content-type-xml", "content-type-json", "content-type-form":
-			req.Headers["Content-Type"] = opt.Value.(string)
+			r.SetHeader("Content-Type", opt.Value.(string))
 		case "header":
 			v := opt.Value.(map[string]string)
 			for field, value := range v {
-				req.Headers[field] = value
+				r.SetHeader(field, value)
 			}
 		}
 	}
-	return req
+	return r
 }
 
 func Get(url string) ([]byte, error) {
@@ -49,4 +49,12 @@ func Put(url string, data []byte) ([]byte, error) {
 
 func Upload(url, fileField, fileName string, f io.Reader, data map[string]string) (b []byte, err error) {
 	return New().Upload(url, fileField, fileName, f, data)
+}
+
+func SetHeader(name, value string) *Request {
+	return New().SetHeader(name, value)
+}
+
+func Debug() *Request {
+	return New().Debug()
 }
