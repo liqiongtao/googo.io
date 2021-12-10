@@ -154,6 +154,6 @@ func (r *Request) Upload(url, fileField, fileName string, f io.Reader, data map[
 
 	w.Close()
 
-	r.SetHearder("Content-Type", w.FormDataContentType())
+	r.SetHeader("Content-Type", w.FormDataContentType())
 	return r.Do("POST", url, &body)
 }
