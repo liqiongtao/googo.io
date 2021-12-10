@@ -64,18 +64,18 @@ func (r *Request) getClient() *http.Client {
 	return client
 }
 
-func (r *Request) Do(method, url string, body io.Reader) ([]byte, error) {
-	var l *goo_log.Entry
+func (r *Request) Do(method, url string, body []byte) ([]byte, error) {
+	l := goo_log.WithTag("http-request")
+
 	if r.debug {
-		l = goo_log.WithField("method", method).WithField("url", url)
+		l.WithField("method", method)
+		l.WithField("url", url)
+		l.WithField("data", string(body))
 	}
 
-	req, err := http.NewRequest(method, url, body)
+	req, err := http.NewRequest(method, url, bytes.NewReader(body))
 	if err != nil {
-		if r.debug {
-			l.Debug("[http-request]")
-		}
-		goo_log.Error(err.Error())
+		l.Error(err)
 		return nil, err
 	}
 
@@ -89,10 +89,7 @@ func (r *Request) Do(method, url string, body io.Reader) ([]byte, error) {
 
 	rsp, err := r.getClient().Do(req)
 	if err != nil {
-		if r.debug {
-			l.Debug("[http-request]")
-		}
-		goo_log.Error(err.Error())
+		l.Error(err)
 		return nil, err
 	}
 
@@ -100,16 +97,13 @@ func (r *Request) Do(method, url string, body io.Reader) ([]byte, error) {
 
 	buf, err := ioutil.ReadAll(rsp.Body)
 	if err != nil {
-		if r.debug {
-			l.Debug("[http-request]")
-		}
-		goo_log.Error(err.Error())
+		l.Error(err)
 		return nil, err
 	}
 
 	if r.debug {
 		l.WithField("response", string(buf))
-		l.Debug("[http-request]")
+		l.Debug()
 	}
 
 	return buf, nil
@@ -120,15 +114,15 @@ func (r *Request) Get(url string) ([]byte, error) {
 }
 
 func (r *Request) Post(url string, data []byte) ([]byte, error) {
-	return r.Do("POST", url, bytes.NewReader(data))
+	return r.Do("POST", url, data)
 }
 
 func (r *Request) PostJson(url string, data []byte) ([]byte, error) {
-	return r.JsonContentType().Do("POST", url, bytes.NewReader(data))
+	return r.JsonContentType().Do("POST", url, data)
 }
 
 func (r *Request) Put(url string, data []byte) ([]byte, error) {
-	return r.Do("PUT", url, bytes.NewReader(data))
+	return r.Do("PUT", url, data)
 }
 
 func (r *Request) Upload(url, fileField, fileName string, f io.Reader, data map[string]string) (b []byte, err error) {
@@ -139,12 +133,12 @@ func (r *Request) Upload(url, fileField, fileName string, f io.Reader, data map[
 
 	w := multipart.NewWriter(&body)
 	if part, err = w.CreateFormFile(fileField, fileName); err != nil {
-		goo_log.Error(err.Error())
+		goo_log.WithTag("[http-request-upload]").Error(err.Error())
 		return
 	}
 
 	if _, err = io.Copy(part, f); err != nil {
-		goo_log.Error(err.Error())
+		goo_log.WithTag("[http-request-upload]").Error(err.Error())
 		return
 	}
 
@@ -155,5 +149,5 @@ func (r *Request) Upload(url, fileField, fileName string, f io.Reader, data map[
 	w.Close()
 
 	r.SetHeader("Content-Type", w.FormDataContentType())
-	return r.Do("POST", url, &body)
+	return r.Do("POST", url, body.Bytes())
 }
