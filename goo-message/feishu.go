@@ -12,9 +12,9 @@ type feishu struct {
 }
 
 func (*feishu) Text(hookUrl string, text string) {
-	content := new(goo_utils.Params).Set("text", text)
+	content := goo_utils.NewParams().Set("text", text)
 
-	params := new(goo_utils.Params).
+	params := goo_utils.NewParams().
 		Set("msg_type", "text").
 		Set("content", content.Data())
 
