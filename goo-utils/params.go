@@ -165,11 +165,22 @@ func (p Params) Map() (rst map[string]Params) {
 	return
 }
 
-func (p Params) Data() map[string]interface{} {
+func (p Params) Data() interface{} {
+	return p.data
+}
+
+func (p Params) MapData() map[string]interface{} {
 	if data, ok := (p.data).(map[string]interface{}); ok {
 		return data
 	}
-	return nil
+	return map[string]interface{}{}
+}
+
+func (p Params) ArrayData() []interface{} {
+	if data, ok := (p.data).([]interface{}); ok {
+		return data
+	}
+	return []interface{}{}
 }
 
 func (p Params) JSON() []byte {
