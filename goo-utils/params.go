@@ -12,7 +12,7 @@ import (
 type Byte []byte
 
 func (b Byte) Params() (Params, error) {
-	params := Params{}
+	params := NewParams()
 	if err := json.Unmarshal(b, &params.data); err != nil {
 		goo_log.WithField("data", string(b)).Error(err.Error())
 		return params, err
@@ -25,7 +25,11 @@ type Params struct {
 	mu   sync.RWMutex
 }
 
-func (p *Params) Set(key string, val interface{}) Params {
+func NewParams() Params {
+	return Params{data: map[string]interface{}{}}
+}
+
+func (p Params) Set(key string, val interface{}) Params {
 	p.mu.Lock()
 	if p.data == nil {
 		p.data = map[string]interface{}{}
@@ -34,7 +38,7 @@ func (p *Params) Set(key string, val interface{}) Params {
 		v[key] = val
 	}
 	p.mu.Unlock()
-	return *p
+	return p
 }
 
 func (p Params) Get(key string) Params {
