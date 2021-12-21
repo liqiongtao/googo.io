@@ -3,7 +3,7 @@ module github.com/liqiongtao/googo.io
 go 1.16
 
 require (
-	github.com/ClickHouse/clickhouse-go v1.5.1 // indirect
+	github.com/ClickHouse/clickhouse-go v1.5.1
 	github.com/facebookgo/ensure v0.0.0-20200202191622-63f1cf65ac4c // indirect
 	github.com/facebookgo/freeport v0.0.0-20150612182905-d4adf43b75b9 // indirect
 	github.com/facebookgo/grace v0.0.0-20180706040059-75cf19382434
