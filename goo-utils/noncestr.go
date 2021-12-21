@@ -11,3 +11,9 @@ func NonceStr() string {
 	io.ReadFull(rand.Reader, bf)
 	return hex.EncodeToString(bf)
 }
+
+func NonceStr8() string {
+	bf := make([]byte, 4)
+	io.ReadFull(rand.Reader, bf)
+	return hex.EncodeToString(bf)
+}

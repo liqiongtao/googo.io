@@ -35,6 +35,10 @@ func Get(url string) ([]byte, error) {
 	return New().Get(url)
 }
 
+func GetWithQuery(url string, data []byte) ([]byte, error) {
+	return New().GetWithQuery(url, data)
+}
+
 func Post(url string, data []byte) ([]byte, error) {
 	return New().Post(url, data)
 }

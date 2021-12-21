@@ -113,6 +113,10 @@ func (r *Request) Get(url string) ([]byte, error) {
 	return r.Do("GET", url, nil)
 }
 
+func (r *Request) GetWithQuery(url string, data []byte) ([]byte, error) {
+	return r.Do("GET", url, data)
+}
+
 func (r *Request) Post(url string, data []byte) ([]byte, error) {
 	return r.Do("POST", url, data)
 }
