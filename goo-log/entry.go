@@ -37,16 +37,32 @@ func (entry *Entry) Debug(v ...interface{}) {
 	entry.output(DEBUG, v...)
 }
 
+func (entry *Entry) DebugF(format string, v ...interface{}) {
+	entry.output(DEBUG, fmt.Sprintf(format, v...))
+}
+
 func (entry *Entry) Info(v ...interface{}) {
 	entry.output(INFO, v...)
+}
+
+func (entry *Entry) InfoF(format string, v ...interface{}) {
+	entry.output(INFO, fmt.Sprintf(format, v...))
 }
 
 func (entry *Entry) Warn(v ...interface{}) {
 	entry.output(WARN, v...)
 }
 
+func (entry *Entry) WarnF(format string, v ...interface{}) {
+	entry.output(WARN, fmt.Sprintf(format, v...))
+}
+
 func (entry *Entry) Error(v ...interface{}) {
 	entry.output(ERROR, v...)
+}
+
+func (entry *Entry) ErrorF(format string, v ...interface{}) {
+	entry.output(ERROR, fmt.Sprintf(format, v...))
 }
 
 func (entry *Entry) Panic(v ...interface{}) {
@@ -54,15 +70,30 @@ func (entry *Entry) Panic(v ...interface{}) {
 	panic(fmt.Sprint(v...))
 }
 
+func (entry *Entry) PanicF(format string, v ...interface{}) {
+	entry.output(PANIC, fmt.Sprintf(format, v...))
+	panic(fmt.Sprintf(format, v...))
+}
+
 func (entry *Entry) Fatal(v ...interface{}) {
 	entry.output(FATAL, v...)
+	os.Exit(1)
+}
+
+func (entry *Entry) FatalF(format string, v ...interface{}) {
+	entry.output(FATAL, fmt.Sprintf(format, v...))
 	os.Exit(1)
 }
 
 func (entry *Entry) output(level Level, v ...interface{}) {
 	entry.msg.Level = level
 	entry.msg.Time = time.Now()
-	entry.msg.Content = fmt.Sprint(v...)
+
+	var arr []string
+	for _, i := range v {
+		arr = append(arr, fmt.Sprint(i))
+	}
+	entry.msg.Content = strings.Join(arr, " ")
 
 	for _, trimPath := range entry.l.trimPaths {
 		entry.msg.Content = strings.Replace(entry.msg.Content, trimPath, "", -1)
