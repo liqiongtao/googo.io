@@ -17,11 +17,14 @@ require (
 	github.com/go-xorm/xorm v0.7.9
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/mojocn/base64Captcha v1.3.5
+	github.com/xuri/excelize/v2 v2.5.0
 	go.etcd.io/etcd/api/v3 v3.5.1
 	go.etcd.io/etcd/client/pkg/v3 v3.5.1
 	go.etcd.io/etcd/client/v3 v3.5.1
 	go.uber.org/zap v1.17.0
-	golang.org/x/text v0.3.6
+	golang.org/x/crypto v0.0.0-20211215153901-e495a2d5b3d3 // indirect
+	golang.org/x/net v0.0.0-20220105145211-5b0dc2dfae98 // indirect
+	golang.org/x/text v0.3.7
 	google.golang.org/grpc v1.38.0
 	gopkg.in/yaml.v2 v2.3.0
 	xorm.io/core v0.7.2-0.20190928055935-90aeac8d08eb
