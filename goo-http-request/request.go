@@ -50,6 +50,9 @@ func (r *Request) getClient() *http.Client {
 	}
 	client := &http.Client{
 		Timeout: r.timeout,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
 	}
 	if r.Tls != nil {
 		pool := x509.NewCertPool()
