@@ -15,14 +15,18 @@ type client struct {
 func (cli *client) init() (err error) {
 	config := sarama.NewConfig()
 
+	// 等所有follower都成功后再返回
 	config.Producer.RequiredAcks = sarama.WaitForAll
-	config.Producer.Partitioner = sarama.NewRandomPartitioner
+	// 分区策略为Hash，解决相同key的消息落在一个分区
+	config.Producer.Partitioner = sarama.NewHashPartitioner
 	config.Producer.Return.Successes = true
 	config.Producer.Return.Errors = true
 
 	config.Consumer.Return.Errors = true
-	config.Consumer.Offsets.Initial = sarama.OffsetOldest
-
+	config.Consumer.Offsets.AutoCommit.Enable = true              // 自动提交
+	config.Consumer.Offsets.AutoCommit.Interval = 1 * time.Second // 间隔
+	config.Consumer.Offsets.Retry.Max = 3
+	config.Consumer.Offsets.Initial = sarama.OffsetNewest
 	config.Consumer.Group.Rebalance.Strategy = sarama.BalanceStrategySticky
 
 	config.ChannelBufferSize = 1000

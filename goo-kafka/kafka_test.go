@@ -17,7 +17,7 @@ func TestClient(t *testing.T) {
 func TestProducer_SendMessage(t *testing.T) {
 	Init("122.228.113.230:19092")
 
-	partition, offset, err := Producer().SendMessage("A101", []byte("ok"))
+	partition, offset, err := Producer().SendMessage("1", "A101", []byte("ok"))
 	if err != nil {
 		goo_log.Error(err)
 		return
@@ -28,7 +28,7 @@ func TestProducer_SendMessage(t *testing.T) {
 func TestProducer_SendAsyncMessage(t *testing.T) {
 	Init("122.228.113.230:19092")
 
-	partition, offset, err := Producer().SendAsyncMessage("A101", []byte("ok"))
+	partition, offset, err := Producer().SendAsyncMessage("1", "A101", []byte("ok"))
 	if err != nil {
 		goo_log.Error(err)
 		return

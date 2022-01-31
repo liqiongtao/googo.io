@@ -7,10 +7,10 @@ type iProducer interface {
 	Close()
 
 	// 发送消息 - 同步
-	SendMessage(topic string, message []byte) (partition int32, offset int64, err error)
+	SendMessage(key, topic string, message []byte) (partition int32, offset int64, err error)
 
 	// 发送消息 - 异步
-	SendAsyncMessage(topic string, message []byte) (partition int32, offset int64, err error)
+	SendAsyncMessage(key, topic string, message []byte) (partition int32, offset int64, err error)
 }
 
 // 消费者

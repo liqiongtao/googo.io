@@ -3,8 +3,6 @@ package goo_kafka
 import (
 	"github.com/Shopify/sarama"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
-	"strconv"
-	"time"
 )
 
 type producer struct {
@@ -12,7 +10,7 @@ type producer struct {
 }
 
 // 发送消息 - 同步
-func (p *producer) SendMessage(topic string, message []byte) (partition int32, offset int64, err error) {
+func (p *producer) SendMessage(key, topic string, message []byte) (partition int32, offset int64, err error) {
 	var producer sarama.SyncProducer
 
 	producer, err = sarama.NewSyncProducerFromClient(p.Client)
@@ -25,14 +23,14 @@ func (p *producer) SendMessage(topic string, message []byte) (partition int32, o
 	msg := &sarama.ProducerMessage{
 		Topic: topic,
 		Value: sarama.ByteEncoder(message),
-		Key:   sarama.StringEncoder(strconv.FormatInt(time.Now().UnixNano(), 10)),
+		Key:   sarama.StringEncoder(key),
 	}
 
 	return producer.SendMessage(msg)
 }
 
 // 发送消息 - 异步
-func (p *producer) SendAsyncMessage(topic string, message []byte) (partition int32, offset int64, err error) {
+func (p *producer) SendAsyncMessage(key, topic string, message []byte) (partition int32, offset int64, err error) {
 	var producer sarama.AsyncProducer
 
 	producer, err = sarama.NewAsyncProducerFromClient(p.Client)
@@ -45,7 +43,7 @@ func (p *producer) SendAsyncMessage(topic string, message []byte) (partition int
 	msg := &sarama.ProducerMessage{
 		Topic: topic,
 		Value: sarama.ByteEncoder(message),
-		Key:   sarama.StringEncoder(strconv.FormatInt(time.Now().UnixNano(), 10)),
+		Key:   sarama.StringEncoder(key),
 	}
 
 	producer.Input() <- msg
