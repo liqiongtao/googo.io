@@ -9,7 +9,7 @@ import (
 type client struct {
 	addrs   []string
 	timeout time.Duration
-	c       sarama.Client
+	sarama.Client
 }
 
 func (cli *client) init() (err error) {
@@ -23,13 +23,16 @@ func (cli *client) init() (err error) {
 	config.Consumer.Return.Errors = true
 	config.Consumer.Offsets.Initial = sarama.OffsetOldest
 
+	config.Consumer.Group.Rebalance.Strategy = sarama.BalanceStrategySticky
+
+	config.ChannelBufferSize = 1000
 	config.Version = sarama.V0_10_2_0
 
 	if cli.timeout > 0 {
 		config.Producer.Timeout = cli.timeout
 	}
 
-	cli.c, err = sarama.NewClient(cli.addrs, config)
+	cli.Client, err = sarama.NewClient(cli.addrs, config)
 	if err != nil {
 		goo_log.Error(err)
 	}
@@ -38,7 +41,7 @@ func (cli *client) init() (err error) {
 }
 
 func (cli *client) Close() {
-	if !cli.c.Closed() {
-		cli.c.Close()
+	if !cli.Client.Closed() {
+		cli.Client.Close()
 	}
 }

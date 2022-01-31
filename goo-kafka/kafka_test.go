@@ -2,11 +2,19 @@ package goo_kafka
 
 import (
 	"encoding/json"
+	goo_context "github.com/liqiongtao/googo.io/goo-context"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	"testing"
 )
 
-func TestKafkaProducer_SendMessage(t *testing.T) {
+func TestClient(t *testing.T) {
+	Init("122.228.113.230:19092")
+
+	goo_log.Debug(Client().Topics())
+	goo_log.Debug(Client().Partitions("A101"))
+}
+
+func TestProducer_SendMessage(t *testing.T) {
 	Init("122.228.113.230:19092")
 
 	partition, offset, err := Producer().SendMessage("A101", []byte("ok"))
@@ -14,11 +22,10 @@ func TestKafkaProducer_SendMessage(t *testing.T) {
 		goo_log.Error(err)
 		return
 	}
-
 	goo_log.Debug(partition, offset)
 }
 
-func TestKafkaProducer_SendAsyncMessage(t *testing.T) {
+func TestProducer_SendAsyncMessage(t *testing.T) {
 	Init("122.228.113.230:19092")
 
 	partition, offset, err := Producer().SendAsyncMessage("A101", []byte("ok"))
@@ -26,86 +33,78 @@ func TestKafkaProducer_SendAsyncMessage(t *testing.T) {
 		goo_log.Error(err)
 		return
 	}
-
 	goo_log.Debug(partition, offset)
 }
 
-func TestKafkaConsumer_PartitionConsume(t *testing.T) {
+func TestConsumer_PartitionConsume(t *testing.T) {
 	Init("122.228.113.230:19092")
 
-	pc, err := Consumer().PartitionConsume("A101", 0, 0)
-	if err != nil {
-		goo_log.Error(err)
-		return
-	}
-
-	for {
-		select {
-		case msg := <-pc.Messages():
-			b, _ := json.Marshal(&msg)
-			goo_log.Debug(string(b), string(msg.Value))
-		case err := <-pc.Errors():
-			goo_log.Error(err)
+	Consumer().PartitionConsume("A101", 0, 0, func(msg *ConsumerMessage, err *ConsumerError) error {
+		if err != nil {
+			return err.Err
 		}
-	}
+		b, _ := json.Marshal(&msg)
+		goo_log.Debug(string(b), string(msg.Value))
+		return nil
+	})
 }
 
-func TestKafkaConsumer_Consume(t *testing.T) {
+func TestConsumer_Consume(t *testing.T) {
 	Init("122.228.113.230:19092")
 
-	pc, err := Consumer().Consume("A101", 3)
-	if err != nil {
-		goo_log.Error(err)
-		return
-	}
-
-	for {
-		select {
-		case msg := <-pc.Messages():
-			b, _ := json.Marshal(&msg)
-			goo_log.Debug(string(b))
-		case err := <-pc.Errors():
-			goo_log.Error(err)
+	Consumer().Consume("A101", 3, func(msg *ConsumerMessage, err *ConsumerError) error {
+		if err != nil {
+			return err.Err
 		}
-	}
+		b, _ := json.Marshal(&msg)
+		goo_log.Debug(string(b), string(msg.Value))
+		return nil
+	})
 }
 
-func TestKafkaConsumer_ConsumeNewest(t *testing.T) {
+func TestConsumer_ConsumeNewest(t *testing.T) {
 	Init("122.228.113.230:19092")
 
-	pc, err := Consumer().ConsumeNewest("A101")
-	if err != nil {
-		goo_log.Error(err)
-		return
-	}
-
-	for {
-		select {
-		case msg := <-pc.Messages():
-			b, _ := json.Marshal(&msg)
-			goo_log.Debug(string(b))
-		case err := <-pc.Errors():
-			goo_log.Error(err)
+	Consumer().ConsumeNewest("A101", func(msg *ConsumerMessage, err *ConsumerError) error {
+		if err != nil {
+			return err.Err
 		}
-	}
+		b, _ := json.Marshal(&msg)
+		goo_log.Debug(string(b), string(msg.Value))
+		return nil
+	})
 }
 
-func TestKafkaConsumer_ConsumeOldest(t *testing.T) {
+func TestConsumer_ConsumeOldest(t *testing.T) {
 	Init("122.228.113.230:19092")
 
-	pc, err := Consumer().ConsumeOldest("A101", )
-	if err != nil {
-		goo_log.Error(err)
-		return
-	}
-
-	for {
-		select {
-		case msg := <-pc.Messages():
-			b, _ := json.Marshal(&msg)
-			goo_log.Debug(string(b))
-		case err := <-pc.Errors():
-			goo_log.Error(err)
+	Consumer().ConsumeOldest("A101", func(msg *ConsumerMessage, err *ConsumerError) error {
+		if err != nil {
+			return err.Err
 		}
+		b, _ := json.Marshal(&msg)
+		goo_log.Debug(string(b), string(msg.Value))
+		return nil
+	})
+}
+
+func TestConsumer_PartitionConsumeGroup(t *testing.T) {
+	Init("122.228.113.230:19092")
+
+	go Consumer().ConsumeGroup("101", []string{"A101"}, func(msg *ConsumerMessage, _ *ConsumerError) error {
+		b, _ := json.Marshal(msg)
+		goo_log.Debug("--1--", string(b))
+		return nil
+	})
+
+	go Consumer().ConsumeGroup("102", []string{"A101"}, func(msg *ConsumerMessage, _ *ConsumerError) error {
+		b, _ := json.Marshal(msg)
+		goo_log.Debug("--2--", string(b))
+		return nil
+	})
+
+	select {
+	case <-goo_context.Cancel().Done():
+		return
 	}
 }

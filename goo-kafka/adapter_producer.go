@@ -11,11 +11,11 @@ type producer struct {
 	*client
 }
 
-// 发送消息 - 异步
+// 发送消息 - 同步
 func (p *producer) SendMessage(topic string, message []byte) (partition int32, offset int64, err error) {
 	var producer sarama.SyncProducer
 
-	producer, err = sarama.NewSyncProducerFromClient(p.c)
+	producer, err = sarama.NewSyncProducerFromClient(p.Client)
 	if err != nil {
 		goo_log.Error(err)
 		return
@@ -31,11 +31,11 @@ func (p *producer) SendMessage(topic string, message []byte) (partition int32, o
 	return producer.SendMessage(msg)
 }
 
-// 发送消息 - 同步
+// 发送消息 - 异步
 func (p *producer) SendAsyncMessage(topic string, message []byte) (partition int32, offset int64, err error) {
 	var producer sarama.AsyncProducer
 
-	producer, err = sarama.NewAsyncProducerFromClient(p.c)
+	producer, err = sarama.NewAsyncProducerFromClient(p.Client)
 	if err != nil {
 		goo_log.Error(err)
 		return

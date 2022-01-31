@@ -5,9 +5,7 @@ import (
 )
 
 var (
-	__client   *client
-	__producer iProducer
-	__consumer iConsumer
+	__client *client
 )
 
 func Init(addrs ...string) error {
@@ -23,15 +21,9 @@ func Client() *client {
 }
 
 func Producer() iProducer {
-	if __producer == nil {
-		__producer = &producer{client: __client}
-	}
-	return __producer
+	return &producer{client: __client}
 }
 
 func Consumer() iConsumer {
-	if __consumer == nil {
-		__consumer = &consumer{client: __client}
-	}
-	return __consumer
+	return &consumer{client: __client}
 }
