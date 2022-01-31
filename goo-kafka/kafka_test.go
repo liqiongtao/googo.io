@@ -2,7 +2,6 @@ package goo_kafka
 
 import (
 	"encoding/json"
-	goo_context "github.com/liqiongtao/googo.io/goo-context"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	"testing"
 )
@@ -88,23 +87,24 @@ func TestConsumer_ConsumeOldest(t *testing.T) {
 	})
 }
 
+// 分组1
 func TestConsumer_PartitionConsumeGroup(t *testing.T) {
 	Init("122.228.113.230:19092")
 
-	go Consumer().ConsumeGroup("101", []string{"A101"}, func(msg *ConsumerMessage, _ *ConsumerError) error {
+	Consumer().ConsumeGroup("101", []string{"A101"}, func(msg *ConsumerMessage, _ *ConsumerError) error {
 		b, _ := json.Marshal(msg)
 		goo_log.Debug("--1--", string(b))
 		return nil
 	})
+}
 
-	go Consumer().ConsumeGroup("102", []string{"A101"}, func(msg *ConsumerMessage, _ *ConsumerError) error {
+// 分组2
+func TestConsumer_PartitionConsumeGroup2(t *testing.T) {
+	Init("122.228.113.230:19092")
+
+	Consumer().ConsumeGroup("101", []string{"A101"}, func(msg *ConsumerMessage, _ *ConsumerError) error {
 		b, _ := json.Marshal(msg)
 		goo_log.Debug("--2--", string(b))
 		return nil
 	})
-
-	select {
-	case <-goo_context.Cancel().Done():
-		return
-	}
 }
