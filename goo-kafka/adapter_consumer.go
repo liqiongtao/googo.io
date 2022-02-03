@@ -1,7 +1,6 @@
 package goo_kafka
 
 import (
-	"context"
 	"github.com/Shopify/sarama"
 	goo_context "github.com/liqiongtao/googo.io/goo-context"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
@@ -68,16 +67,23 @@ func (c *consumer) ConsumeGroup(groupId string, topics []string, handler Consume
 	defer cg.Close()
 
 	g := group{handler: handler}
-	ctx := context.Background()
+	ctx := goo_context.Cancel()
 
 	for {
-		if err = cg.Consume(ctx, topics, g); err != nil {
-			goo_log.Error(err)
+		select {
+		case <-ctx.Done():
 			return
-		}
-		if err := ctx.Err(); err != nil {
-			goo_log.Error(err)
-			return
+
+		default:
+			if err = cg.Consume(ctx, topics, g); err != nil {
+				goo_log.Error(err)
+				return
+			}
+
+			if err := ctx.Err(); err != nil {
+				goo_log.Error(err)
+				return
+			}
 		}
 	}
 
