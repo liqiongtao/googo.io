@@ -7,14 +7,14 @@ import (
 )
 
 func TestClient(t *testing.T) {
-	Init("122.228.113.230:19092")
+	Init("", "", "122.228.113.230:19092")
 
 	goo_log.Debug(Client().Topics())
 	goo_log.Debug(Client().Partitions("A101"))
 }
 
 func TestProducer_SendMessage(t *testing.T) {
-	Init("122.228.113.230:19092")
+	Init("", "", "122.228.113.230:19092")
 
 	partition, offset, err := Producer().SendMessage("1", "A101", []byte("ok"))
 	if err != nil {
@@ -25,7 +25,7 @@ func TestProducer_SendMessage(t *testing.T) {
 }
 
 func TestProducer_SendAsyncMessage(t *testing.T) {
-	Init("122.228.113.230:19092")
+	Init("", "", "122.228.113.230:19092")
 
 	partition, offset, err := Producer().SendAsyncMessage("1", "A101", []byte("ok"))
 	if err != nil {
@@ -36,7 +36,7 @@ func TestProducer_SendAsyncMessage(t *testing.T) {
 }
 
 func TestConsumer_PartitionConsume(t *testing.T) {
-	Init("122.228.113.230:19092")
+	Init("", "", "122.228.113.230:19092")
 
 	Consumer().PartitionConsume("A101", 0, 0, func(msg *ConsumerMessage, err *ConsumerError) error {
 		if err != nil {
@@ -49,7 +49,7 @@ func TestConsumer_PartitionConsume(t *testing.T) {
 }
 
 func TestConsumer_Consume(t *testing.T) {
-	Init("122.228.113.230:19092")
+	Init("", "", "122.228.113.230:19092")
 
 	Consumer().Consume("A101", 3, func(msg *ConsumerMessage, err *ConsumerError) error {
 		if err != nil {
@@ -62,7 +62,7 @@ func TestConsumer_Consume(t *testing.T) {
 }
 
 func TestConsumer_ConsumeNewest(t *testing.T) {
-	Init("122.228.113.230:19092")
+	Init("", "", "122.228.113.230:19092")
 
 	Consumer().ConsumeNewest("A101", func(msg *ConsumerMessage, err *ConsumerError) error {
 		if err != nil {
@@ -75,7 +75,7 @@ func TestConsumer_ConsumeNewest(t *testing.T) {
 }
 
 func TestConsumer_ConsumeOldest(t *testing.T) {
-	Init("122.228.113.230:19092")
+	Init("", "", "122.228.113.230:19092")
 
 	Consumer().ConsumeOldest("A101", func(msg *ConsumerMessage, err *ConsumerError) error {
 		if err != nil {
@@ -89,7 +89,7 @@ func TestConsumer_ConsumeOldest(t *testing.T) {
 
 // 分组1
 func TestConsumer_PartitionConsumeGroup(t *testing.T) {
-	Init("122.228.113.230:19092")
+	Init("", "", "122.228.113.230:19092")
 
 	Consumer().ConsumeGroup("101", []string{"A101"}, func(msg *ConsumerMessage, _ *ConsumerError) error {
 		b, _ := json.Marshal(msg)
@@ -100,7 +100,7 @@ func TestConsumer_PartitionConsumeGroup(t *testing.T) {
 
 // 分组2
 func TestConsumer_PartitionConsumeGroup2(t *testing.T) {
-	Init("122.228.113.230:19092")
+	Init("", "", "122.228.113.230:19092")
 
 	Consumer().ConsumeGroup("101", []string{"A101"}, func(msg *ConsumerMessage, _ *ConsumerError) error {
 		b, _ := json.Marshal(msg)

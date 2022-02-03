@@ -8,10 +8,12 @@ var (
 	__client *client
 )
 
-func Init(addrs ...string) error {
+func Init(user, password string, addrs ...string) error {
 	__client = &client{
-		addrs:   addrs,
-		timeout: 5 * time.Second,
+		user:     user,
+		password: password,
+		addrs:    addrs,
+		timeout:  5 * time.Second,
 	}
 	return __client.init()
 }

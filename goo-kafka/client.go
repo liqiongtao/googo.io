@@ -7,13 +7,21 @@ import (
 )
 
 type client struct {
-	addrs   []string
-	timeout time.Duration
+	user     string
+	password string
+	addrs    []string
+	timeout  time.Duration
 	sarama.Client
 }
 
 func (cli *client) init() (err error) {
 	config := sarama.NewConfig()
+
+	if cli.user != "" {
+		config.Net.SASL.Enable = true
+		config.Net.SASL.User = cli.user
+		config.Net.SASL.Password = cli.password
+	}
 
 	// 等所有follower都成功后再返回
 	config.Producer.RequiredAcks = sarama.WaitForAll
