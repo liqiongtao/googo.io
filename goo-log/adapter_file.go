@@ -31,7 +31,7 @@ func NewFileAdapter(opts ...Option) *FileAdapter {
 	}
 
 	if fa.maxSize == 0 {
-		fa.maxSize = (1 << 20) * 21 // 100M
+		fa.maxSize = 1 << 28 // 256M
 	}
 
 	fa.SetOptions(opts...)
