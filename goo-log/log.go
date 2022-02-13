@@ -40,22 +40,46 @@ func Debug(v ...interface{}) {
 	__log.Debug(v...)
 }
 
+func DebugF(format string, v ...interface{}) {
+	__log.DebugF(format, v...)
+}
+
 func Info(v ...interface{}) {
 	__log.Info(v...)
+}
+
+func InfoF(format string, v ...interface{}) {
+	__log.InfoF(format, v...)
 }
 
 func Warn(v ...interface{}) {
 	__log.Warn(v...)
 }
 
+func WarnF(format string, v ...interface{}) {
+	__log.WarnF(format, v...)
+}
+
 func Error(v ...interface{}) {
 	__log.Error(v...)
+}
+
+func ErrorF(format string, v ...interface{}) {
+	__log.ErrorF(format, v...)
 }
 
 func Panic(v ...interface{}) {
 	__log.Panic(v...)
 }
 
+func PanicF(format string, v ...interface{}) {
+	__log.PanicF(format, v...)
+}
+
 func Fatal(v ...interface{}) {
 	__log.Fatal(v...)
+}
+
+func FatalF(format string, v ...interface{}) {
+	__log.FatalF(format, v...)
 }
