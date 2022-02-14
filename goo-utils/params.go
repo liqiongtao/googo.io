@@ -78,29 +78,6 @@ func (p Params) String() string {
 	return string(p.JSON())
 }
 
-func (p Params) Int() int {
-	switch reflect.ValueOf(p.data).Kind() {
-	case reflect.Float64:
-		return int((p.data).(float64))
-	case reflect.Float32:
-		return int((p.data).(float32))
-	case reflect.Int:
-		return (p.data).(int)
-	case reflect.Int32:
-		return int((p.data).(int32))
-	case reflect.Int64:
-		return int((p.data).(int64))
-	case reflect.Bool:
-		if (p.data).(bool) {
-			return 1
-		}
-	case reflect.String:
-		v, _ := strconv.ParseInt((p.data).(string), 10, 64)
-		return int(v)
-	}
-	return 0
-}
-
 func (p Params) Int64() int64 {
 	switch reflect.ValueOf(p.data).Kind() {
 	case reflect.Float64:
@@ -122,6 +99,14 @@ func (p Params) Int64() int64 {
 		return v
 	}
 	return 0
+}
+
+func (p Params) Int32() int32 {
+	return int32(p.Int64())
+}
+
+func (p Params) Int() int {
+	return int(p.Int64())
 }
 
 func (p Params) Float64() float64 {
