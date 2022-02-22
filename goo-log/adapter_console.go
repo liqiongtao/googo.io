@@ -27,8 +27,10 @@ func (ca ConsoleAdapter) Write(msg *Message) {
 		buf.WriteString("[" + strings.Join(msg.Tags, "][") + "]")
 		buf.WriteString(" ")
 	}
-	buf.WriteString(msg.Content)
-	buf.WriteString(" ")
+	if msg.Content != "" {
+		buf.WriteString(msg.Content)
+		buf.WriteString(" ")
+	}
 	if l := len(msg.Data); l > 0 {
 		if b, err := json.Marshal(&msg.Data); err == nil {
 			buf.Write(b)

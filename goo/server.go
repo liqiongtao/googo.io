@@ -7,15 +7,17 @@ import (
 	"github.com/fvbock/endless"
 	"github.com/gin-gonic/gin"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	"io/ioutil"
 	"os"
 	"strings"
 	"time"
 )
 
+type HandlerFunc func(ctx *Context)
+
 type Context struct {
 	*gin.Context
+	*Response
 }
 
 // 定义web服务
@@ -65,13 +67,13 @@ func NewServer(opts ...Option) *server {
 		}
 	}
 
-	s.Use(s.ts())
-	s.Use(s.cors(headFields))
-	s.Use(s.noAccess(noAccessPathMap))
-	s.Use(s.logger(noLogPathMap))
-	s.Use(s.recovery())
+	s.Engine.NoRoute(s.noRoute())
+	s.Engine.NoMethod(s.noMethod())
 
-	s.NoRoute(s.noRoute())
+	s.Engine.Use(s.cors(headFields))
+	s.Engine.Use(s.noAccess(noAccessPathMap))
+	s.Engine.Use(s.logger(noLogPathMap))
+	s.Engine.Use(s.recovery())
 
 	return s
 }
@@ -86,11 +88,20 @@ func (s *server) Run(addr string) {
 	endless.NewServer(addr, s.Engine).ListenAndServe()
 }
 
-// 执行时间
-func (*server) ts() gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		ctx.Set("__timestamp", time.Now())
-	}
+// 中间件
+func (s *server) Use(handlers ...HandlerFunc) {
+	s.Engine.Use(func(c *gin.Context) {
+		for _, handler := range handlers {
+			ctx := &Context{Context: c, Response: &Response{}}
+			handler(ctx)
+			if code := ctx.Response.Code; code > 0 {
+				ctx.Set("__response", ctx.Response)
+				ctx.JSON(int(code), ctx.Response)
+				ctx.Abort()
+				return
+			}
+		}
+	})
 }
 
 // 跨域
@@ -122,89 +133,89 @@ func (*server) noAccess(noAccessPathMap map[string]struct{}) gin.HandlerFunc {
 
 // 日志
 func (*server) logger(noAccessLogPathMap map[string]struct{}) gin.HandlerFunc {
-	var requestId = 0
-
 	return func(ctx *gin.Context) {
-		requestId++
+		beginT := time.Now()
+
+		requestId := (func() string {
+			if v := ctx.GetHeader("X-Request-Id"); v != "" {
+				return v
+			} else if v := ctx.Query("request_id"); v != "" {
+				return v
+			} else if v := ctx.PostForm("request_id"); v != "" {
+				return v
+			}
+			return ""
+		})()
+
+		clientIp := (func() (ip string) {
+			if ip = ctx.GetHeader("X-Real-IP"); ip != "" {
+				return
+			}
+			if ip = ctx.GetHeader("X-Forwarded-For"); ip != "" {
+				return
+			}
+			if ip = ctx.ClientIP(); ip == "::1" {
+				return "127.0.0.1"
+			}
+			return
+		})()
+
 		ctx.Set("__request_id", requestId)
 
-		if _, ok := noAccessLogPathMap["*"]; ok {
-			ctx.Next()
-			return
-		}
-		if _, ok := noAccessLogPathMap[ctx.Request.URL.Path]; ok {
-			ctx.Next()
-			return
+		request := map[string]interface{}{
+			"method":    ctx.Request.Method,
+			"uri":       ctx.Request.RequestURI,
+			"client-ip": clientIp,
 		}
 
-		var body interface{}
-
-		switch ctx.ContentType() {
-		case "application/x-www-form-urlencoded", "text/xml":
-			buf, _ := ioutil.ReadAll(ctx.Request.Body)
-			ctx.Request.Body = ioutil.NopCloser(bytes.NewBuffer(buf))
-			ctx.Set("__request_body", string(buf))
-			body = string(buf)
-		case "application/json":
-			buf, _ := ioutil.ReadAll(ctx.Request.Body)
-			ctx.Request.Body = ioutil.NopCloser(bytes.NewBuffer(buf))
-			ctx.Set("__request_body", string(buf))
-			json.Unmarshal(buf, &body)
-		default:
-			body = ""
-		}
-
-		ctx.Next()
-
-		goo_utils.AsyncFunc(func() {
-			start, _ := ctx.Get("__timestamp")
-
-			clientIp := func(ctx *gin.Context) string {
-				if ip := ctx.GetHeader("X-Real-IP"); ip != "" {
-					return ip
-				}
-				if ip := ctx.GetHeader("X-Forwarded-For"); ip != "" {
-					return ip
-				}
-				ip := ctx.ClientIP()
-				if ip == "::1" {
-					return "127.0.0.1"
-				}
-				return ip
-			}(ctx)
-
-			l := goo_log.WithField("request-id", ctx.GetInt("__request_id")).
-				WithField("request-method", ctx.Request.Method).
-				WithField("request-uri", ctx.Request.RequestURI).
-				WithField("content-type", ctx.GetHeader("Content-Type")).
-				WithField("request-time", fmt.Sprintf("%dms", time.Since(start.(time.Time))/1e6))
-
-			if body != "" {
-				l.WithField("request-body", body)
+		defer func() {
+			if _, ok := noAccessLogPathMap["*"]; ok {
+				return
 			}
-			if clientIp != "" {
-				l.WithField("client-ip", clientIp)
+			if _, ok := noAccessLogPathMap[ctx.Request.URL.Path]; ok {
+				return
 			}
+
 			if v := ctx.GetHeader("Authorization"); v != "" {
-				l.WithField("authorization", v)
+				request["authorization"] = v
 			}
-			if v := ctx.GetHeader("X-Request-Id"); v != "" {
-				l.WithField("x-request-id", v)
+			if v := ctx.GetHeader("Content-Type"); v != "" {
+				request["content-type"] = v
 			}
-			if v := ctx.GetHeader("X-Request-Sign"); v != "" {
-				l.WithField("x-request-sign", v)
+			if requestId != "" {
+				request["x-request-id"] = requestId
 			}
 
-			if rsp, _ := ctx.Get("__response"); rsp != nil {
-				l.WithField("response", rsp)
-				if errMsg := rsp.(*Response).ErrMsg; len(errMsg) > 0 {
-					l.Error(errMsg...)
+			switch ctx.ContentType() {
+			case "application/x-www-form-urlencoded", "text/xml":
+				buf, _ := ioutil.ReadAll(ctx.Request.Body)
+				ctx.Request.Body = ioutil.NopCloser(bytes.NewBuffer(buf))
+				ctx.Set("__request_body", string(buf))
+				request["body"] = string(buf)
+			case "application/json":
+				buf, _ := ioutil.ReadAll(ctx.Request.Body)
+				ctx.Request.Body = ioutil.NopCloser(bytes.NewBuffer(buf))
+				ctx.Set("__request_body", string(buf))
+				var body interface{}
+				json.Unmarshal(buf, &body)
+				request["body"] = body
+			}
+
+			l := goo_log.WithField("request", request).
+				WithField("execute_time", fmt.Sprintf("%dms", time.Since(beginT)/1e6))
+
+			if v, ok := ctx.Get("__response"); ok {
+				l.WithField("response", v)
+				if errs := v.(*Response).Errors; len(errs) > 0 {
+					l.Error(errs...)
 					return
 				}
 			}
 
 			l.Debug()
-		})
+		}()
+
+		ctx.Next()
 	}
 }
 
@@ -213,9 +224,10 @@ func (*server) recovery() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		defer func() {
 			if err := recover(); err != nil {
-				rsp := Error(500, "请求异常", err, goo_utils.Trace(2))
-				ctx.Set("__response", rsp)
-				ctx.AbortWithStatusJSON(200, rsp)
+				ctx.Set("__response", Error(500, "请求异常", err))
+				ctx.JSON(200, ctx.MustGet("__response"))
+				ctx.Abort()
+				return
 			}
 		}()
 
@@ -226,6 +238,17 @@ func (*server) recovery() gin.HandlerFunc {
 // 找不到路由
 func (*server) noRoute() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		ctx.AbortWithStatusJSON(200, Error(404, "Page Not Found"))
+		ctx.Set("__response", Error(404, "Page Not Found"))
+		ctx.JSON(200, ctx.MustGet("__response"))
+		ctx.Abort()
+	}
+}
+
+// 找不到方法
+func (*server) noMethod() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		ctx.Set("__response", Error(405, "Method not allowed"))
+		ctx.JSON(200, ctx.MustGet("__response"))
+		ctx.Abort()
 	}
 }
