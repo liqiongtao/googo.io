@@ -202,8 +202,11 @@ func (*Server) logger(noAccessLogPathMap map[string]struct{}) gin.HandlerFunc {
 				ctx.Request.Body = ioutil.NopCloser(bytes.NewBuffer(buf))
 				ctx.Set("__request_body", string(buf))
 				var body interface{}
-				json.Unmarshal(buf, &body)
-				request["body"] = body
+				if err := json.Unmarshal(buf, &body); err != nil {
+					request["body"] = string(buf)
+				} else {
+					request["body"] = body
+				}
 			}
 
 			l := goo_log.WithField("request", request).
