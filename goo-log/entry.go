@@ -121,6 +121,7 @@ func (entry *Entry) trace(n int) (arr []string) {
 		if file == "" {
 			continue
 		}
+		fmt.Println(file, line)
 		if index := strings.Index(file, "googo.io"); index != -1 {
 			file = file[index:]
 		}
