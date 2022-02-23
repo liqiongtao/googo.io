@@ -117,12 +117,14 @@ func (entry *Entry) trace() (arr []string) {
 	ll := len(entry.l.trimPaths)
 	for i := 3; i < 16; i++ {
 		_, file, line, _ := runtime.Caller(i)
-		if file == "" ||
-			strings.Index(file, "runtime/") > 0 ||
-			strings.Index(file, "src/") > 0 ||
-			strings.Index(file, "pkg/mod/") > 0 ||
-			strings.Index(file, ".pb.go") > 0 ||
-			strings.Index(file, "vendor/") > 0 {
+		if file == "" {
+			continue
+		}
+		if strings.Contains(file, "runtime/") ||
+			strings.Contains(file, "src/") ||
+			strings.Contains(file, ".pb.go") ||
+			strings.Contains(file, "vendor/") ||
+			(strings.Contains(file, "pkg/mod/") && !strings.Contains(file, "googo.io")) {
 			continue
 		}
 		if ll > 0 {
