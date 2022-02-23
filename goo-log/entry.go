@@ -99,8 +99,9 @@ func (entry *Entry) output(level Level, v ...interface{}) {
 		entry.msg.Content = strings.Replace(entry.msg.Content, trimPath, "", -1)
 	}
 
-	if level >= ERROR {
-		entry.msg.WithField("trace", entry.trace())
+	switch level {
+	case ERROR, PANIC, FATAL:
+		entry.msg.WithField("trace", entry.trace(16))
 	}
 
 	for _, hook := range entry.l.hooks {
@@ -112,26 +113,23 @@ func (entry *Entry) output(level Level, v ...interface{}) {
 	}
 }
 
-func (entry *Entry) trace() (arr []string) {
+func (entry *Entry) trace(n int) (arr []string) {
 	arr = []string{}
 	ll := len(entry.l.trimPaths)
-	for i := 3; i < 36; i++ {
+	for i := 3; i < n; i++ {
 		_, file, line, _ := runtime.Caller(i)
 		if file == "" {
 			break
 		}
+		if index := strings.Index(file, "googo.io"); index != -1 {
+			file = file[index:]
+		}
 		if strings.Contains(file, "runtime/") ||
 			strings.Contains(file, "src/") ||
 			strings.Contains(file, ".pb.go") ||
+			strings.Contains(file, "pkg/mod/") ||
 			strings.Contains(file, "vendor/") {
 			continue
-		}
-		if strings.Contains(file, "pkg/mod/") {
-			var index int
-			if index = strings.Index(file, "googo.io"); index == -1 {
-				continue
-			}
-			file = file[index:]
 		}
 		if ll > 0 {
 			for _, trimPath := range entry.l.trimPaths {
