@@ -104,6 +104,11 @@ func (s *Server) Use(handlers ...HandlerFunc) {
 	})
 }
 
+// 路由
+func (s *Server) Router(fn func(s *Server)) {
+	fn(s)
+}
+
 // 跨域
 func (*Server) cors(headFields []string) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
