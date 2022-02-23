@@ -34,35 +34,35 @@ func (entry *Entry) WithField(field string, value interface{}) *Entry {
 }
 
 func (entry *Entry) Debug(v ...interface{}) {
-	entry.output(DEBUG, v...)
+	go entry.output(DEBUG, v...)
 }
 
 func (entry *Entry) DebugF(format string, v ...interface{}) {
-	entry.output(DEBUG, fmt.Sprintf(format, v...))
+	go entry.output(DEBUG, fmt.Sprintf(format, v...))
 }
 
 func (entry *Entry) Info(v ...interface{}) {
-	entry.output(INFO, v...)
+	go entry.output(INFO, v...)
 }
 
 func (entry *Entry) InfoF(format string, v ...interface{}) {
-	entry.output(INFO, fmt.Sprintf(format, v...))
+	go entry.output(INFO, fmt.Sprintf(format, v...))
 }
 
 func (entry *Entry) Warn(v ...interface{}) {
-	entry.output(WARN, v...)
+	go entry.output(WARN, v...)
 }
 
 func (entry *Entry) WarnF(format string, v ...interface{}) {
-	entry.output(WARN, fmt.Sprintf(format, v...))
+	go entry.output(WARN, fmt.Sprintf(format, v...))
 }
 
 func (entry *Entry) Error(v ...interface{}) {
-	entry.output(ERROR, v...)
+	go entry.output(ERROR, v...)
 }
 
 func (entry *Entry) ErrorF(format string, v ...interface{}) {
-	entry.output(ERROR, fmt.Sprintf(format, v...))
+	go entry.output(ERROR, fmt.Sprintf(format, v...))
 }
 
 func (entry *Entry) Panic(v ...interface{}) {
@@ -115,17 +115,23 @@ func (entry *Entry) output(level Level, v ...interface{}) {
 func (entry *Entry) trace() (arr []string) {
 	arr = []string{}
 	ll := len(entry.l.trimPaths)
-	for i := 3; i < 16; i++ {
+	for i := 3; i < 36; i++ {
 		_, file, line, _ := runtime.Caller(i)
 		if file == "" {
-			continue
+			break
 		}
 		if strings.Contains(file, "runtime/") ||
 			strings.Contains(file, "src/") ||
 			strings.Contains(file, ".pb.go") ||
-			strings.Contains(file, "vendor/") ||
-			(strings.Contains(file, "pkg/mod/") && !strings.Contains(file, "googo.io")) {
+			strings.Contains(file, "vendor/") {
 			continue
+		}
+		if strings.Contains(file, "pkg/mod/") {
+			var index int
+			if index = strings.Index(file, "googo.io"); index == -1 {
+				continue
+			}
+			file = file[index:]
 		}
 		if ll > 0 {
 			for _, trimPath := range entry.l.trimPaths {
