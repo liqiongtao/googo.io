@@ -119,7 +119,7 @@ func (entry *Entry) trace(n int) (arr []string) {
 	for i := 3; i < n; i++ {
 		_, file, line, _ := runtime.Caller(i)
 		if file == "" {
-			break
+			continue
 		}
 		fmt.Println(file, line)
 		if index := strings.Index(file, "googo.io"); index != -1 {
