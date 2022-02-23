@@ -173,40 +173,40 @@ func (*Server) logger(noAccessLogPathMap map[string]struct{}) gin.HandlerFunc {
 			"client-ip": clientIp,
 		}
 
+		if v := ctx.GetHeader("Authorization"); v != "" {
+			request["authorization"] = v
+		}
+		if v := ctx.GetHeader("Content-Type"); v != "" {
+			request["content-type"] = v
+		}
+		if requestId != "" {
+			request["x-request-id"] = requestId
+		}
+
+		switch ctx.ContentType() {
+		case "application/x-www-form-urlencoded", "text/xml":
+			buf, _ := ioutil.ReadAll(ctx.Request.Body)
+			ctx.Request.Body = ioutil.NopCloser(bytes.NewBuffer(buf))
+			ctx.Set("__request_body", string(buf))
+			request["body"] = string(buf)
+		case "application/json":
+			buf, _ := ioutil.ReadAll(ctx.Request.Body)
+			ctx.Request.Body = ioutil.NopCloser(bytes.NewBuffer(buf))
+			ctx.Set("__request_body", string(buf))
+			var body interface{}
+			if err := json.Unmarshal(buf, &body); err != nil {
+				request["body"] = string(buf)
+			} else {
+				request["body"] = body
+			}
+		}
+
 		defer func() {
 			if _, ok := noAccessLogPathMap["*"]; ok {
 				return
 			}
 			if _, ok := noAccessLogPathMap[ctx.Request.URL.Path]; ok {
 				return
-			}
-
-			if v := ctx.GetHeader("Authorization"); v != "" {
-				request["authorization"] = v
-			}
-			if v := ctx.GetHeader("Content-Type"); v != "" {
-				request["content-type"] = v
-			}
-			if requestId != "" {
-				request["x-request-id"] = requestId
-			}
-
-			switch ctx.ContentType() {
-			case "application/x-www-form-urlencoded", "text/xml":
-				buf, _ := ioutil.ReadAll(ctx.Request.Body)
-				ctx.Request.Body = ioutil.NopCloser(bytes.NewBuffer(buf))
-				ctx.Set("__request_body", string(buf))
-				request["body"] = string(buf)
-			case "application/json":
-				buf, _ := ioutil.ReadAll(ctx.Request.Body)
-				ctx.Request.Body = ioutil.NopCloser(bytes.NewBuffer(buf))
-				ctx.Set("__request_body", string(buf))
-				var body interface{}
-				if err := json.Unmarshal(buf, &body); err != nil {
-					request["body"] = string(buf)
-				} else {
-					request["body"] = body
-				}
 			}
 
 			l := goo_log.WithField("request", request).
