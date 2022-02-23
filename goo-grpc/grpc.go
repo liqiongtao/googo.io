@@ -2,7 +2,6 @@ package goo_grpc
 
 import (
 	"context"
-	"fmt"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	goo_etcd "github.com/liqiongtao/googo.io/goo-etcd"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
@@ -52,23 +51,36 @@ func GRPCInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServe
 	if info.FullMethod == "/grpc.health.v1.Health/Check" {
 		return
 	}
-	lg := goo_log.WithTag("goo-grpc").WithField("method", info.FullMethod).WithField("request", req)
+
+	lg := goo_log.WithTag("goo-grpc").
+		WithField("method", info.FullMethod).
+		WithField("request", req)
+
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
 		for key, val := range md {
 			lg.WithField(key, val)
 		}
 	}
+
 	defer func() {
-		if e := recover(); e != nil {
-			lg.Error(fmt.Sprintf("%v", e))
+		if rsp != nil {
+			lg.WithField("response", rsp)
 		}
+
+		if e := recover(); e != nil {
+			lg.ErrorF("%v", e)
+			return
+		}
+
+		if err != nil {
+			lg.Error(err)
+			return
+		}
+
+		lg.Debug()
 	}()
+
 	rsp, err = handler(ctx, req)
-	lg.WithField("response", rsp)
-	if err == nil {
-		lg.Info()
-		return
-	}
-	lg.Error(err)
+
 	return
 }
