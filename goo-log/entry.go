@@ -101,7 +101,7 @@ func (entry *Entry) output(level Level, v ...interface{}) {
 
 	switch level {
 	case ERROR, PANIC, FATAL:
-		entry.msg.WithField("trace", entry.trace(16))
+		entry.msg.WithField("trace", entry.trace(36))
 	}
 
 	for _, hook := range entry.l.hooks {
@@ -121,6 +121,7 @@ func (entry *Entry) trace(n int) (arr []string) {
 		if file == "" {
 			break
 		}
+		fmt.Println(file, line)
 		if index := strings.Index(file, "googo.io"); index != -1 {
 			file = file[index:]
 		}
