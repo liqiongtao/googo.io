@@ -58,11 +58,11 @@ func (entry *Entry) WarnF(format string, v ...interface{}) {
 }
 
 func (entry *Entry) Error(v ...interface{}) {
-	go entry.output(ERROR, v...)
+	entry.output(ERROR, v...)
 }
 
 func (entry *Entry) ErrorF(format string, v ...interface{}) {
-	go entry.output(ERROR, fmt.Sprintf(format, v...))
+	entry.output(ERROR, fmt.Sprintf(format, v...))
 }
 
 func (entry *Entry) Panic(v ...interface{}) {
