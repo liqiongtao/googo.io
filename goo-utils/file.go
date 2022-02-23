@@ -35,8 +35,9 @@ func Trace(skip int) []string {
 	if skip == 0 {
 		skip = 2
 	}
-	for i := skip; i < 12; i++ {
+	for i := skip; i < 16; i++ {
 		_, file, line, _ := runtime.Caller(i)
+		fmt.Println("--1--", file, line)
 		if file == "" ||
 			strings.Index(file, "runtime") > 0 ||
 			strings.Index(file, "src/testing") > 0 ||

@@ -7,6 +7,7 @@ import (
 	"github.com/fvbock/endless"
 	"github.com/gin-gonic/gin"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -232,6 +233,7 @@ func (*Server) recovery() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		defer func() {
 			if err := recover(); err != nil {
+				fmt.Println(goo_utils.Trace(0))
 				ctx.Set("__response", Error(500, "请求异常", err))
 				ctx.JSON(200, ctx.MustGet("__response"))
 				ctx.Abort()
