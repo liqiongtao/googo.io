@@ -21,12 +21,12 @@ type Context struct {
 }
 
 // 定义web服务
-type server struct {
+type Server struct {
 	*gin.Engine
 }
 
-func NewServer(opts ...Option) *server {
-	s := &server{
+func NewServer(opts ...Option) *Server {
+	s := &Server{
 		Engine: gin.New(),
 	}
 
@@ -80,7 +80,7 @@ func NewServer(opts ...Option) *server {
 
 // 启动服务
 // 生成.pid文件
-func (s *server) Run(addr string) {
+func (s *Server) Run(addr string) {
 	pid := fmt.Sprintf("%d", os.Getpid())
 	if err := ioutil.WriteFile(".pid", []byte(pid), 0644); err != nil {
 		goo_log.Panic(err.Error())
@@ -89,7 +89,7 @@ func (s *server) Run(addr string) {
 }
 
 // 中间件
-func (s *server) Use(handlers ...HandlerFunc) {
+func (s *Server) Use(handlers ...HandlerFunc) {
 	s.Engine.Use(func(c *gin.Context) {
 		for _, handler := range handlers {
 			ctx := &Context{Context: c, Response: &Response{}}
@@ -105,7 +105,7 @@ func (s *server) Use(handlers ...HandlerFunc) {
 }
 
 // 跨域
-func (*server) cors(headFields []string) gin.HandlerFunc {
+func (*Server) cors(headFields []string) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		ctx.Header("Access-Control-Allow-Origin", "*")
 		ctx.Header("Access-Control-Allow-Methods", "PUT, POST, GET, DELETE, OPTIONS")
@@ -115,7 +115,7 @@ func (*server) cors(headFields []string) gin.HandlerFunc {
 }
 
 // 禁止访问
-func (*server) noAccess(noAccessPathMap map[string]struct{}) gin.HandlerFunc {
+func (*Server) noAccess(noAccessPathMap map[string]struct{}) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		if ctx.Request.Method == "OPTIONS" {
 			ctx.AbortWithStatus(200)
@@ -132,7 +132,7 @@ func (*server) noAccess(noAccessPathMap map[string]struct{}) gin.HandlerFunc {
 }
 
 // 日志
-func (*server) logger(noAccessLogPathMap map[string]struct{}) gin.HandlerFunc {
+func (*Server) logger(noAccessLogPathMap map[string]struct{}) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		beginT := time.Now()
 
@@ -220,7 +220,7 @@ func (*server) logger(noAccessLogPathMap map[string]struct{}) gin.HandlerFunc {
 }
 
 // 捕获panic信息
-func (*server) recovery() gin.HandlerFunc {
+func (*Server) recovery() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		defer func() {
 			if err := recover(); err != nil {
@@ -236,7 +236,7 @@ func (*server) recovery() gin.HandlerFunc {
 }
 
 // 找不到路由
-func (*server) noRoute() gin.HandlerFunc {
+func (*Server) noRoute() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		ctx.Set("__response", Error(404, "Page Not Found"))
 		ctx.JSON(200, ctx.MustGet("__response"))
@@ -245,7 +245,7 @@ func (*server) noRoute() gin.HandlerFunc {
 }
 
 // 找不到方法
-func (*server) noMethod() gin.HandlerFunc {
+func (*Server) noMethod() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		ctx.Set("__response", Error(405, "Method not allowed"))
 		ctx.JSON(200, ctx.MustGet("__response"))
