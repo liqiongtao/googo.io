@@ -141,7 +141,6 @@ func (*Server) logger(noAccessLogPathMap map[string]struct{}) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		beginT := time.Now()
 
-		fmt.Println("---1---")
 		requestId := (func() string {
 			if v := ctx.GetHeader("X-Request-Id"); v != "" {
 				return v
@@ -165,7 +164,7 @@ func (*Server) logger(noAccessLogPathMap map[string]struct{}) gin.HandlerFunc {
 			}
 			return
 		})()
-		fmt.Println("---2---")
+
 		ctx.Set("__request_id", requestId)
 
 		request := map[string]interface{}{
@@ -183,7 +182,7 @@ func (*Server) logger(noAccessLogPathMap map[string]struct{}) gin.HandlerFunc {
 		if requestId != "" {
 			request["x-request-id"] = requestId
 		}
-		fmt.Println("---3---")
+
 		switch ctx.ContentType() {
 		case "application/x-www-form-urlencoded", "text/xml":
 			buf, _ := ioutil.ReadAll(ctx.Request.Body)
@@ -201,7 +200,7 @@ func (*Server) logger(noAccessLogPathMap map[string]struct{}) gin.HandlerFunc {
 				request["body"] = body
 			}
 		}
-		fmt.Println("---4---")
+
 		defer func() {
 			if _, ok := noAccessLogPathMap["*"]; ok {
 				return
@@ -209,52 +208,38 @@ func (*Server) logger(noAccessLogPathMap map[string]struct{}) gin.HandlerFunc {
 			if _, ok := noAccessLogPathMap[ctx.Request.URL.Path]; ok {
 				return
 			}
-			fmt.Println("---5---")
+
 			l := goo_log.WithField("request", request).
 				WithField("execute_time", fmt.Sprintf("%dms", time.Since(beginT)/1e6))
-			fmt.Println("---6---")
+
 			if v, ok := ctx.Get("__response"); ok {
 				l.WithField("response", v)
-				fmt.Println("---7---")
 				if errs := v.(*Response).Errors; len(errs) > 0 {
-					fmt.Println("---8---")
 					l.Error(errs...)
 					return
 				}
 			}
-			fmt.Println("---9---")
+
 			l.Debug()
 		}()
-		fmt.Println("---10---")
+
 		ctx.Next()
-		fmt.Println("---11---")
 	}
 }
 
 // 捕获panic信息
 func (*Server) recovery() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-
-		fmt.Println("---12---")
 		defer func() {
-
-			fmt.Println("---13---")
 			if err := recover(); err != nil {
-
-				fmt.Println("---14---")
 				ctx.Set("__response", Error(500, "请求异常", err))
 				ctx.JSON(200, ctx.MustGet("__response"))
 				ctx.Abort()
-
-				fmt.Println("---15---")
 				return
 			}
 		}()
 
-		fmt.Println("---16---")
 		ctx.Next()
-
-		fmt.Println("---17---")
 	}
 }
 

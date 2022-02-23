@@ -116,7 +116,7 @@ func (entry *Entry) output(level Level, v ...interface{}) {
 func (entry *Entry) trace(n int) (arr []string) {
 	arr = []string{}
 	ll := len(entry.l.trimPaths)
-	for i := 3; i < n; i++ {
+	for i := 0; i < n; i++ {
 		_, file, line, _ := runtime.Caller(i)
 		if file == "" {
 			continue
