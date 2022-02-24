@@ -2,6 +2,10 @@ package goo
 
 import (
 	"encoding/json"
+	"fmt"
+	"github.com/go-playground/validator/v10"
+	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
+	"strings"
 )
 
 type Response struct {
@@ -37,4 +41,23 @@ func Error(code int32, message string, v ...interface{}) *Response {
 		Data:    map[string]string{},
 		Errors:  v,
 	}
+}
+
+func ErrorWithValidate(err error, messages map[string]string) *Response {
+	if v, ok := err.(*json.UnmarshalTypeError); ok {
+		return Error(7001, fmt.Sprintf("请求参数 %s 的类型是 %s, 不是 %s", v.Field, v.Type, v.Value))
+	}
+
+	if v, ok := err.(validator.ValidationErrors); ok {
+		for _, i := range v {
+			field := goo_utils.Camel2Case(i.Field())
+			key := fmt.Sprintf("%s_%s", field, strings.ToLower(i.Tag()))
+			if msg, ok := messages[key]; ok {
+				return Error(7002, msg)
+			}
+			return Error(7003, fmt.Sprintf("%s %s", field, i.Tag()))
+		}
+	}
+
+	return Error(7004, "参数错误", err)
 }

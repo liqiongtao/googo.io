@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func ValidationMessage(err error, msgs map[string]string) string {
+func ValidationMessage(err error, messages map[string]string) string {
 	if v, ok := err.(*json.UnmarshalTypeError); ok {
 		return fmt.Sprintf("请求参数 %s 的类型是 %s, 不是 %s", v.Field, v.Type, v.Value)
 	}
@@ -17,11 +17,10 @@ func ValidationMessage(err error, msgs map[string]string) string {
 		for _, i := range v {
 			field := goo_utils.Camel2Case(i.Field())
 			key := fmt.Sprintf("%s_%s", field, strings.ToLower(i.Tag()))
-			if msg, ok := msgs[key]; ok {
+			if msg, ok := messages[key]; ok {
 				return msg
 			}
-			msg := fmt.Sprintf("%s %s", field, i.Tag())
-			return msg
+			return fmt.Sprintf("%s %s", field, i.Tag())
 		}
 	}
 
