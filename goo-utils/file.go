@@ -30,26 +30,6 @@ func DIR() string {
 	return path.Dir(file) + "/"
 }
 
-func Trace(skip int) []string {
-	trace := []string{}
-	if skip == 0 {
-		skip = 2
-	}
-	for i := skip; i < 16; i++ {
-		_, file, line, _ := runtime.Caller(i)
-		fmt.Println("--1--", file, line)
-		if file == "" ||
-			strings.Index(file, "runtime") > 0 ||
-			strings.Index(file, "src/testing") > 0 ||
-			strings.Index(file, "pkg/mod") > 0 ||
-			strings.Index(file, "vendor") > 0 {
-			continue
-		}
-		trace = append(trace, fmt.Sprintf("%s %dL", file, line))
-	}
-	return trace
-}
-
 // 写文件，支持路径创建
 func WriteToFile(filename string, b []byte) error {
 	dirname := path.Dir(filename)
@@ -65,4 +45,33 @@ func WriteToFile(filename string, b []byte) error {
 		return err
 	}
 	return nil
+}
+
+// 追踪信息
+func Trace(skip int, trimPaths ...string) (arr []string) {
+	arr = []string{}
+	l := len(trimPaths)
+	if skip == 0 {
+		skip = 1
+	}
+	for i := skip; i < 16; i++ {
+		_, file, line, _ := runtime.Caller(i)
+		if file == "" {
+			continue
+		}
+		if strings.Contains(file, ".pb.go") ||
+			strings.Contains(file, "runtime/") ||
+			strings.Contains(file, "src/testing") ||
+			strings.Contains(file, "pkg/mod/") ||
+			strings.Contains(file, "vendor/") {
+			continue
+		}
+		if l > 0 {
+			for _, trimPath := range trimPaths {
+				file = strings.Replace(file, trimPath, "", -1)
+			}
+		}
+		arr = append(arr, fmt.Sprintf("%s %dL", file, line))
+	}
+	return
 }

@@ -11,13 +11,13 @@ import (
 
 type Byte []byte
 
-func (b Byte) Params() (Params, error) {
-	params := NewParams()
-	if err := json.Unmarshal(b, &params.data); err != nil {
-		goo_log.WithField("data", string(b)).Error(err.Error())
-		return params, err
+func (b Byte) Params() (p Params, err error) {
+	p = NewParams()
+	if err = json.Unmarshal(b, &p.data); err != nil {
+		goo_log.WithField("params", string(b)).WithTrace().Error(err)
+		return
 	}
-	return params, nil
+	return
 }
 
 type Params struct {

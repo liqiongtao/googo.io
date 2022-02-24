@@ -99,11 +99,6 @@ func (entry *Entry) output(level Level, v ...interface{}) {
 		entry.msg.Content = strings.Replace(entry.msg.Content, trimPath, "", -1)
 	}
 
-	switch level {
-	case ERROR, PANIC, FATAL:
-		entry.msg.WithField("trace", entry.trace(16))
-	}
-
 	for _, hook := range entry.l.hooks {
 		go hook(*entry.msg)
 	}
@@ -113,30 +108,30 @@ func (entry *Entry) output(level Level, v ...interface{}) {
 	}
 }
 
-func (entry *Entry) trace(n int) (arr []string) {
-	arr = []string{}
-	ll := len(entry.l.trimPaths)
-	for i := 0; i < n; i++ {
+func (entry *Entry) WithTrace() *Entry {
+	var arr []string
+	l := len(entry.l.trimPaths)
+	for i := 2; i < 16; i++ {
 		_, file, line, _ := runtime.Caller(i)
 		if file == "" {
 			continue
 		}
-		if index := strings.Index(file, "googo.io"); index != -1 {
-			file = file[index:]
-		}
-		if strings.Contains(file, "runtime/") ||
-			strings.Contains(file, "src/") ||
-			strings.Contains(file, ".pb.go") ||
+		if strings.Contains(file, ".pb.go") ||
+			strings.Contains(file, "runtime/") ||
+			strings.Contains(file, "src/testing") ||
 			strings.Contains(file, "pkg/mod/") ||
 			strings.Contains(file, "vendor/") {
 			continue
 		}
-		if ll > 0 {
+		if l > 0 {
 			for _, trimPath := range entry.l.trimPaths {
 				file = strings.Replace(file, trimPath, "", -1)
 			}
 		}
 		arr = append(arr, fmt.Sprintf("%s %dL", file, line))
 	}
-	return
+	if l := len(arr); l > 0 {
+		entry.WithField("trace", arr)
+	}
+	return entry
 }

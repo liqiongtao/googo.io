@@ -36,6 +36,10 @@ func WithField(field string, value interface{}) *Entry {
 	return __log.WithField(field, value)
 }
 
+func WithTrace() *Entry {
+	return __log.WithTrace()
+}
+
 func Debug(v ...interface{}) {
 	__log.Debug(v...)
 }

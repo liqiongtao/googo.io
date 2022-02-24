@@ -19,3 +19,5 @@ logs/
 *.log
 .idea/
 .DS_Store
+*.pid
+*.s

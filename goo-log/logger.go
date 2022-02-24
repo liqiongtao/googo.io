@@ -40,6 +40,10 @@ func (l *Logger) WithField(field string, value interface{}) *Entry {
 	return NewEntry(l).WithField(field, value)
 }
 
+func (l *Logger) WithTrace() *Entry {
+	return NewEntry(l).WithTrace()
+}
+
 func (l *Logger) Debug(v ...interface{}) {
 	NewEntry(l).Debug(v...)
 }

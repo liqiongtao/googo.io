@@ -52,32 +52,32 @@ func GRPCInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServe
 		return
 	}
 
-	lg := goo_log.WithTag("goo-grpc").
+	l := goo_log.WithTag("goo-grpc").
 		WithField("method", info.FullMethod).
 		WithField("request", req)
 
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
 		for key, val := range md {
-			lg.WithField(key, val)
+			l.WithField(key, val)
 		}
 	}
 
 	defer func() {
 		if rsp != nil {
-			lg.WithField("response", rsp)
+			l.WithField("response", rsp)
 		}
 
 		if e := recover(); e != nil {
-			lg.ErrorF("%v", e)
+			l.WithTrace().ErrorF("%v", e)
 			return
 		}
 
 		if err != nil {
-			lg.Error(err)
+			l.WithTrace().Error(err)
 			return
 		}
 
-		lg.Debug()
+		l.Debug()
 	}()
 
 	rsp, err = handler(ctx, req)
