@@ -14,6 +14,7 @@ import (
 
 type Context struct {
 	*gin.Context
+	s         *Server
 	request   map[string]interface{}
 	beginTime time.Time
 }

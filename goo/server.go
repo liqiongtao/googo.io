@@ -54,7 +54,7 @@ func NewServer(opts ...Option) *Server {
 	s.Engine.NoRoute(s.noRoute)
 	s.Engine.NoMethod(s.noMethod)
 
-	s.Use(s.cors, s.noAccess, s.recovery)
+	s.Engine.Use(s.cors, s.noAccess, s.recovery)
 
 	return s
 }
@@ -114,6 +114,7 @@ func (s *Server) Use(handlers ...HandlerFunc) *Server {
 		ctx.Set("__request_id", ctx.requestId())
 		ctx.Set("__base_dir", s.baseDir)
 		ctx.Set("__server_name", s.serverName)
+		ctx.Set("__server", s)
 
 		defer func() {
 			if err := recover(); err != nil {
@@ -133,7 +134,7 @@ func (s *Server) Use(handlers ...HandlerFunc) *Server {
 }
 
 // 跨域
-func (s *Server) cors(ctx *Context) {
+func (s *Server) cors(ctx *gin.Context) {
 	ctx.Header("Access-Control-Allow-Origin", "*")
 	ctx.Header("Access-Control-Allow-Methods", "PUT, POST, GET, DELETE, OPTIONS")
 	ctx.Header("Access-Control-Allow-Headers", strings.Join(s.corsHeaders, ","))
@@ -141,7 +142,7 @@ func (s *Server) cors(ctx *Context) {
 }
 
 // 禁止访问
-func (s *Server) noAccess(ctx *Context) {
+func (s *Server) noAccess(ctx *gin.Context) {
 	if ctx.Request.Method == "OPTIONS" {
 		ctx.AbortWithStatus(200)
 		return
@@ -156,7 +157,9 @@ func (s *Server) noAccess(ctx *Context) {
 }
 
 // 捕获panic信息
-func (s *Server) recovery(ctx *Context) {
+func (s *Server) recovery(c *gin.Context) {
+	ctx := NewContext(c)
+
 	defer func() {
 		if err := recover(); err != nil {
 			rsp := Error(500, "请求异常")
