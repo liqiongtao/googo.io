@@ -5,17 +5,16 @@ import (
 	"syscall"
 )
 
-type Lock interface {
-	Lock() (err error)
-	UnLock() (err error)
-}
-
 type FileLock struct {
 	Filename string
 	fh       *os.File
 }
 
-func (fl FileLock) Lock() (err error) {
+func (fl *FileLock) Lock() (err error) {
+	if fl.Filename == "" {
+		fl.Filename = ".lock"
+	}
+
 	fl.fh, err = os.Create(fl.Filename)
 	if err != nil {
 		return
@@ -29,7 +28,7 @@ func (fl FileLock) Lock() (err error) {
 	return
 }
 
-func (fl FileLock) UnLock() (err error) {
+func (fl *FileLock) UnLock() (err error) {
 	defer fl.release()
 
 	if err = syscall.Flock(int(fl.fh.Fd()), syscall.LOCK_UN); err != nil {
@@ -39,8 +38,9 @@ func (fl FileLock) UnLock() (err error) {
 	return
 }
 
-func (fl FileLock) release() {
+func (fl *FileLock) release() {
 	if fl.fh != nil {
 		fl.fh.Close()
+		os.Remove(fl.Filename)
 	}
 }
