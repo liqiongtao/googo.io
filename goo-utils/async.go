@@ -28,7 +28,7 @@ func AsyncFuncGroup(fns ...func()) {
 		wg.Add(1)
 		func(fn func()) {
 			AsyncFunc(func() {
-				wg.Done()
+				defer wg.Done()
 				fn()
 			})
 		}(fn)
