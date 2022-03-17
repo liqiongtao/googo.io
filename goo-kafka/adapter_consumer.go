@@ -14,14 +14,14 @@ type consumer struct {
 func (c *consumer) PartitionConsume(topic string, partition int32, offset int64, handler ConsumerHandler) {
 	consumer, err := sarama.NewConsumerFromClient(c.Client)
 	if err != nil {
-		goo_log.Error(err)
+		goo_log.WithTrace().Error(err)
 		return
 	}
 	defer consumer.Close()
 
 	pc, err := consumer.ConsumePartition(topic, partition, offset)
 	if err != nil {
-		goo_log.Error(err)
+		goo_log.WithTrace().Error(err)
 		return
 	}
 	defer pc.Close()
@@ -61,27 +61,24 @@ func (c *consumer) ConsumeOldest(topic string, handler ConsumerHandler) {
 func (c *consumer) ConsumeGroup(groupId string, topics []string, handler ConsumerHandler) {
 	cg, err := sarama.NewConsumerGroupFromClient(groupId, c.Client)
 	if err != nil {
-		goo_log.Error(err)
+		goo_log.WithTrace().Error(err)
 		return
 	}
 	defer cg.Close()
 
 	g := group{handler: handler}
-	ctx := goo_context.Cancel()
 
 	for {
 		select {
-		case <-ctx.Done():
+		case <-goo_context.Cancel().Done():
 			return
 
-		default:
-			if err = cg.Consume(ctx, topics, g); err != nil {
-				goo_log.Error(err)
-				return
-			}
+		case err := <-cg.Errors():
+			goo_log.WithTrace().Error(err)
 
-			if err := ctx.Err(); err != nil {
-				goo_log.Error(err)
+		default:
+			if err := cg.Consume(goo_context.Cancel(), topics, g); err != nil {
+				goo_log.WithTrace().Error(err)
 				return
 			}
 		}

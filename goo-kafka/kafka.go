@@ -18,12 +18,10 @@ func Init(user, password string, addrs ...string) error {
 		timeout:  5 * time.Second,
 	}
 	goo_utils.AsyncFunc(func() {
-		for {
-			select {
-			case <-goo_context.Cancel().Done():
-				__client.Close()
-				return
-			}
+		select {
+		case <-goo_context.Cancel().Done():
+			__client.Close()
+			return
 		}
 	})
 	return __client.init()

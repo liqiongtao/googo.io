@@ -54,7 +54,7 @@ func New(cfg Config) (cli *Client, err error) {
 		var clientConfig *tls.Config
 		clientConfig, err = tlsInfo.ClientConfig()
 		if err != nil {
-			goo_log.Error(err.Error())
+			goo_log.WithTrace().Error(err.Error())
 			return
 		}
 		config.TLS = clientConfig
@@ -62,7 +62,7 @@ func New(cfg Config) (cli *Client, err error) {
 
 	cli.Client, err = clientv3.New(config)
 	if err != nil {
-		goo_log.Error(err.Error())
+		goo_log.WithTrace().Error(err.Error())
 	}
 	return
 }

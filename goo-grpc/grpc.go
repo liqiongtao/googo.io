@@ -7,14 +7,19 @@ import (
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health/grpc_health_v1"
+	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/metadata"
 	"strings"
+	"time"
 )
 
 func New(cfg Config) *Server {
 	s := &Server{
-		cfg:    cfg,
-		Server: grpc.NewServer(grpc_middleware.WithUnaryServerChain(GRPCInterceptor)),
+		cfg: cfg,
+		Server: grpc.NewServer(
+			grpc_middleware.WithUnaryServerChain(GRPCInterceptor),
+			grpc.KeepaliveParams(keepalive.ServerParameters{MaxConnectionIdle: 5 * time.Minute}),
+		),
 	}
 	return s
 }
