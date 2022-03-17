@@ -1,6 +1,8 @@
 package goo_kafka
 
 import (
+	goo_context "github.com/liqiongtao/googo.io/goo-context"
+	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	"time"
 )
 
@@ -15,6 +17,15 @@ func Init(user, password string, addrs ...string) error {
 		addrs:    addrs,
 		timeout:  5 * time.Second,
 	}
+	goo_utils.AsyncFunc(func() {
+		for {
+			select {
+			case <-goo_context.Cancel().Done():
+				__client.Close()
+				return
+			}
+		}
+	})
 	return __client.init()
 }
 
