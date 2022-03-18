@@ -51,8 +51,8 @@ func Put(url string, data []byte) ([]byte, error) {
 	return New().Put(url, data)
 }
 
-func Upload(url, fileField, fileName string, f io.Reader, data map[string]string) (b []byte, err error) {
-	return New().Upload(url, fileField, fileName, f, data)
+func Upload(url, fileField, fileName string, fh io.Reader, data map[string]string) (b []byte, err error) {
+	return New().Upload(url, fileField, fileName, fh, data)
 }
 
 func SetHeader(name, value string) *Request {

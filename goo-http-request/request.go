@@ -67,94 +67,90 @@ func (r *Request) getClient() *http.Client {
 	return client
 }
 
-func (r *Request) Do(method, url string, body []byte) ([]byte, error) {
-	l := goo_log.WithTag("goo-http-request")
+func (r *Request) Do(method, url string, reader io.Reader) (rst []byte, err error) {
+	var (
+		req *http.Request
+		rsp *http.Response
+	)
 
-	if r.debug {
-		l.WithField("method", method)
-		l.WithField("url", url)
-		l.WithField("data", string(body))
-	}
-
-	req, err := http.NewRequest(method, url, bytes.NewReader(body))
+	req, err = http.NewRequest(method, url, reader)
 	if err != nil {
-		l.Error(err)
-		return nil, err
+		return
 	}
 
 	for k, v := range r.Headers {
 		req.Header.Set(k, v)
 	}
 
-	if r.debug {
-		l.WithField("header", r.Headers)
-	}
-
-	rsp, err := r.getClient().Do(req)
+	rsp, err = r.getClient().Do(req)
 	if err != nil {
-		l.Error(err)
-		return nil, err
+		return
 	}
 
 	defer rsp.Body.Close()
 
-	buf, err := ioutil.ReadAll(rsp.Body)
+	rst, err = ioutil.ReadAll(rsp.Body)
 	if err != nil {
-		l.Error(err)
-		return nil, err
+		return
 	}
 
+	return
+}
+
+func (r *Request) handle(method, url string, data []byte) (rsp []byte, err error) {
+	rsp, err = r.Do(method, url, bytes.NewReader(data))
 	if r.debug {
-		l.WithField("response", string(buf))
-		l.Debug()
+		l := goo_log.WithTag(TAG).
+			WithField("method", method).
+			WithField("url", url).
+			WithField("header", r.Headers)
+		if err != nil {
+			l.Error()
+		} else {
+			l.WithField("response", string(rsp)).Debug()
+		}
 	}
-
-	return buf, nil
+	return
 }
 
 func (r *Request) Get(url string) ([]byte, error) {
-	return r.Do("GET", url, nil)
+	return r.handle("GET", url, nil)
 }
 
 func (r *Request) GetWithQuery(url string, data []byte) ([]byte, error) {
-	return r.Do("GET", url, data)
+	return r.handle("GET", url, data)
 }
 
 func (r *Request) Post(url string, data []byte) ([]byte, error) {
-	return r.Do("POST", url, data)
+	return r.handle("POST", url, data)
 }
 
 func (r *Request) PostJson(url string, data []byte) ([]byte, error) {
-	return r.JsonContentType().Do("POST", url, data)
+	return r.JsonContentType().handle("POST", url, data)
 }
 
 func (r *Request) Put(url string, data []byte) ([]byte, error) {
-	return r.Do("PUT", url, data)
+	return r.handle("PUT", url, data)
 }
 
-func (r *Request) Upload(url, fileField, fileName string, f io.Reader, data map[string]string) (b []byte, err error) {
-	var (
-		body bytes.Buffer
-		part io.Writer
-	)
+func (r *Request) Upload(url, fileField, fileName string, fh io.Reader, data map[string]string) ([]byte, error) {
+	pr, pw := io.Pipe()
+	w := multipart.NewWriter(pw)
 
-	w := multipart.NewWriter(&body)
-	if part, err = w.CreateFormFile(fileField, fileName); err != nil {
-		goo_log.WithTag("[http-request-upload]").Error(err.Error())
-		return
-	}
+	go func() {
+		for k, v := range data {
+			w.WriteField(k, v)
+		}
 
-	if _, err = io.Copy(part, f); err != nil {
-		goo_log.WithTag("[http-request-upload]").Error(err.Error())
-		return
-	}
+		part, _ := w.CreateFormFile(fileField, fileName)
 
-	for k, v := range data {
-		w.WriteField(k, v)
-	}
+		io.CopyBuffer(part, fh, nil)
 
-	w.Close()
+		w.Close()
+		pw.Close()
+	}()
 
 	r.SetHeader("Content-Type", w.FormDataContentType())
-	return r.Do("POST", url, body.Bytes())
+
+	return r.Do("POST", url, pr)
 }
