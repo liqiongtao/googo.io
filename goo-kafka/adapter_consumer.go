@@ -4,6 +4,7 @@ import (
 	"github.com/Shopify/sarama"
 	goo_context "github.com/liqiongtao/googo.io/goo-context"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 )
 
 type consumer struct {
@@ -64,25 +65,25 @@ func (c *consumer) ConsumeGroup(groupId string, topics []string, handler Consume
 		goo_log.WithTrace().Error(err)
 		return
 	}
-	defer cg.Close()
 
 	g := group{handler: handler}
 
-	for {
-		select {
-		case <-goo_context.Cancel().Done():
-			return
+	goo_utils.AsyncFunc(func() {
+		defer cg.Close()
 
-		case err := <-cg.Errors():
-			goo_log.WithTrace().Error(err)
-
-		default:
-			if err := cg.Consume(goo_context.Cancel(), topics, g); err != nil {
-				goo_log.WithTrace().Error(err)
+		for {
+			select {
+			case <-goo_context.Cancel().Done():
 				return
+
+			case err := <-cg.Errors():
+				goo_log.WithTrace().Error(err)
 			}
 		}
-	}
+	})
 
-	return
+	if err := cg.Consume(goo_context.Cancel(), topics, g); err != nil {
+		goo_log.WithTrace().Error(err)
+		return
+	}
 }

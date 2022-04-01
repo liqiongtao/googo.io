@@ -3,6 +3,7 @@ package goo
 import (
 	"fmt"
 	"github.com/fvbock/endless"
+	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	"io/ioutil"
@@ -48,6 +49,9 @@ func NewServer(opts ...Option) *Server {
 			"X-Request-AppId", "X-Request-Source", "X-Request-Token",
 		},
 	}
+
+	// 性能分析
+	pprof.Register(s.Engine, "/goo/debug")
 
 	s.apply(opts...)
 
