@@ -2,8 +2,6 @@ package goo_grpc
 
 import (
 	"context"
-	"github.com/gin-contrib/pprof"
-	"github.com/gin-gonic/gin"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	goo_etcd "github.com/liqiongtao/googo.io/goo-etcd"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
@@ -19,11 +17,7 @@ import (
 func New(cfg Config) *Server {
 	// 性能分析
 	if cfg.DebugAddr != "" {
-		goo_utils.AsyncFunc(func() {
-			r := gin.Default()
-			pprof.Register(r, "/goo-grpc/pprof")
-			r.Run(cfg.DebugAddr)
-		})
+		goo_utils.PProf(cfg.DebugAddr, "/goo-grpc/pprof")
 	}
 
 	s := &Server{
