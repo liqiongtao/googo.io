@@ -51,7 +51,7 @@ func NewServer(opts ...Option) *Server {
 	}
 
 	// 性能分析
-	pprof.Register(s.Engine, "/goo/debug")
+	pprof.Register(s.Engine, "/goo/pprof")
 
 	s.apply(opts...)
 

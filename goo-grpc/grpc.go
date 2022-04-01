@@ -2,9 +2,12 @@ package goo_grpc
 
 import (
 	"context"
+	"github.com/gin-contrib/pprof"
+	"github.com/gin-gonic/gin"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	goo_etcd "github.com/liqiongtao/googo.io/goo-etcd"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/keepalive"
@@ -14,6 +17,15 @@ import (
 )
 
 func New(cfg Config) *Server {
+	// 性能分析
+	if cfg.DebugAddr != "" {
+		goo_utils.AsyncFunc(func() {
+			r := gin.Default()
+			pprof.Register(r, "/goo-grpc/pprof")
+			r.Run(cfg.DebugAddr)
+		})
+	}
+
 	s := &Server{
 		cfg: cfg,
 		Server: grpc.NewServer(
