@@ -1,7 +1,6 @@
 package goo_pprof
 
 import (
-	"fmt"
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
 	goo_context "github.com/liqiongtao/googo.io/goo-context"
@@ -18,12 +17,12 @@ import (
 // go tool pprof http://localhost:53404/goo/pprof/mutex
 // go tool pprof http://localhost:53404/goo/pprof/goroutine
 func Register(addr string, prefixArgs ...string) {
-	prefix := "/goo/pprof"
-
+	prefix := DEFAULT_PREFIX
 	if l := len(prefixArgs); l > 0 {
 		prefix = prefixArgs[0]
 	}
 
+	// 随机端口
 	if addr == "" {
 		addr = ":0"
 	}
@@ -32,6 +31,7 @@ func Register(addr string, prefixArgs ...string) {
 		listener net.Listener
 	)
 
+	// 监听信号，kill -1 时，关闭链接
 	goo_utils.AsyncFunc(func() {
 		select {
 		case <-goo_context.Cancel().Done():
@@ -42,6 +42,7 @@ func Register(addr string, prefixArgs ...string) {
 	goo_utils.AsyncFunc(func() {
 		var err error
 
+		// 启动监听
 		if listener, err = net.Listen("tcp", addr); err != nil {
 			log.Println("Listen error:", err)
 			return
@@ -52,11 +53,10 @@ func Register(addr string, prefixArgs ...string) {
 
 		engine := gin.Default()
 
+		// 注册
 		pprof.Register(engine, prefix)
 
-		l := listener.Addr().(*net.TCPAddr)
-		log.Println(fmt.Sprintf("pprof http address=%s", l.String()))
-
+		// 启动服务
 		http.Serve(listener, engine)
 	})
 }

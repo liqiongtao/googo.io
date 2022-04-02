@@ -27,8 +27,7 @@ import (
 // go tool pprof goroutine.pprof.gz
 
 func RegisterUnix(prefixArgs ...string) {
-	prefix := "/goo/pprof"
-
+	prefix := DEFAULT_PREFIX
 	if l := len(prefixArgs); l > 0 {
 		prefix = prefixArgs[0]
 	}
@@ -38,10 +37,12 @@ func RegisterUnix(prefixArgs ...string) {
 		listener net.Listener
 	)
 
+	// 如果套接字文件存在，删除；否则，监听失败
 	if _, err := os.Stat(file); err == nil {
 		os.Remove(file)
 	}
 
+	// 监听信号，kill -1 时，关闭链接、删除套接字
 	goo_utils.AsyncFunc(func() {
 		select {
 		case <-goo_context.Cancel().Done():
@@ -53,6 +54,7 @@ func RegisterUnix(prefixArgs ...string) {
 	goo_utils.AsyncFunc(func() {
 		var err error
 
+		// 启动监听
 		if listener, err = net.Listen("unix", file); err != nil {
 			log.Println("Listen error:", err)
 			return
@@ -64,8 +66,10 @@ func RegisterUnix(prefixArgs ...string) {
 
 		engine := gin.Default()
 
+		// 注册
 		pprof.Register(engine, prefix)
 
+		// 启动服务
 		http.Serve(listener, engine)
 	})
 }
