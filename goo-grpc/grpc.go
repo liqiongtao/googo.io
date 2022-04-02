@@ -5,7 +5,7 @@ import (
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	goo_etcd "github.com/liqiongtao/googo.io/goo-etcd"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
+	goo_pprof "github.com/liqiongtao/googo.io/goo-pprof"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/keepalive"
@@ -15,9 +15,9 @@ import (
 )
 
 func New(cfg Config) *Server {
-	// 性能分析
-	if cfg.DebugAddr != "" {
-		goo_utils.PProf(cfg.DebugAddr, "/goo-grpc/pprof")
+	// 启用性能分析
+	if cfg.PProfEnable {
+		goo_pprof.Register(cfg.PProfAddr)
 	}
 
 	s := &Server{

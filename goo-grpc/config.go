@@ -5,5 +5,6 @@ type Config struct {
 	ServiceName string
 	Version     string
 	Addr        string
-	DebugAddr   string
+	PProfEnable bool
+	PProfAddr   string
 }

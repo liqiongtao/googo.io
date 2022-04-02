@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 )
 
 type GRPCGraceful struct {
@@ -39,8 +40,9 @@ func (g *GRPCGraceful) Serve() error {
 	goo_utils.AsyncFunc(func() {
 		errs <- g.s.Serve(lis)
 	})
-	goo_utils.AsyncFunc(g.killPPID)
-	goo_utils.AsyncFunc(g.storePID)
+
+	g.killPPID()
+	g.storePID()
 
 	quit := g.handleSignal(errs)
 
@@ -48,6 +50,7 @@ func (g *GRPCGraceful) Serve() error {
 	case err := <-errs:
 		return err
 	case <-quit:
+		g.s.GracefulStop()
 		return nil
 	}
 }
@@ -63,7 +66,7 @@ func (g *GRPCGraceful) handleSignal(errs chan error) <-chan struct{} {
 			switch sig {
 			case syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
 				signal.Stop(ch)
-				g.s.GracefulStop()
+				close(ch)
 				close(quit)
 				return
 
@@ -89,9 +92,23 @@ func (g *GRPCGraceful) killPPID() {
 	if !inherit {
 		return
 	}
+
 	ppid := os.Getppid()
 	if ppid == 1 {
 		return
 	}
-	syscall.Kill(ppid, syscall.SIGTERM)
+
+	for i := 0; i < 3; i++ {
+		err := syscall.Kill(ppid, syscall.SIGTERM)
+		if err == nil {
+			return
+		}
+
+		if i+1 != 3 {
+			time.Sleep(time.Second)
+			continue
+		}
+
+		log.Println(fmt.Sprintf("kill %d fail: %s", ppid, err))
+	}
 }
