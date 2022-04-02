@@ -17,6 +17,9 @@ type HandlerFunc func(ctx *Context)
 type Server struct {
 	*gin.Engine
 
+	// 性能分析
+	pprofEnable bool
+
 	// 根路径
 	baseDir string
 
@@ -50,9 +53,6 @@ func NewServer(opts ...Option) *Server {
 		},
 	}
 
-	// 性能分析
-	pprof.Register(s.Engine, "/goo/pprof")
-
 	s.apply(opts...)
 
 	s.Engine.NoRoute(s.noRoute)
@@ -71,6 +71,9 @@ func (s *Server) apply(opts ...Option) {
 
 	for _, opt := range opts {
 		switch opt.Name {
+		case pprofEnable:
+			s.pprofEnable = opt.Value.(bool)
+
 		case baseDir:
 			s.baseDir = opt.Value.(string)
 
@@ -100,6 +103,10 @@ func (s *Server) Run(addr string) {
 	pid := fmt.Sprintf("%d", os.Getpid())
 	if err := ioutil.WriteFile(".pid", []byte(pid), 0644); err != nil {
 		goo_log.Panic(err.Error())
+	}
+	// 性能分析
+	if s.pprofEnable {
+		pprof.Register(s.Engine, "/goo/pprof")
 	}
 	endless.NewServer(addr, s.Engine).ListenAndServe()
 }

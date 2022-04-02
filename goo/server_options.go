@@ -10,12 +10,18 @@ func NewOption(name string, value interface{}) Option {
 }
 
 const (
+	pprofEnable   = "pprof-enable"
 	baseDir       = "base-dir"
 	serverName    = "server-name"
 	corsHeaders   = "cors-headers"
 	noAccessPaths = "no-access-paths"
 	noLogPaths    = "no-log-paths"
 )
+
+// 性能分析
+func PProfEnable(flag bool) Option {
+	return NewOption(pprofEnable, flag)
+}
 
 // 根路径
 func BaseDirOption(v string) Option {
