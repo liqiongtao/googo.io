@@ -108,10 +108,18 @@ func (entry *Entry) output(level Level, v ...interface{}) {
 	}
 }
 
-func (entry *Entry) WithTrace() *Entry {
-	var arr []string
+func (entry *Entry) WithTrace(args ...int) *Entry {
+	var (
+		n   int
+		arr []string
+	)
+
+	if l := len(args); l > 0 {
+		n = args[0]
+	}
+
 	l := len(entry.l.trimPaths)
-	for i := 2; i < 16; i++ {
+	for i := n; i < 16; i++ {
 		_, file, line, _ := runtime.Caller(i)
 		if file == "" {
 			continue
@@ -130,8 +138,10 @@ func (entry *Entry) WithTrace() *Entry {
 		}
 		arr = append(arr, fmt.Sprintf("%s %dL", file, line))
 	}
+
 	if l := len(arr); l > 0 {
 		entry.WithField("trace", arr)
 	}
+
 	return entry
 }
