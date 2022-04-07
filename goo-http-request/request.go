@@ -103,11 +103,13 @@ func (r *Request) handle(method, url string, data []byte) (rsp []byte, err error
 		l := goo_log.WithTag(TAG).
 			WithField("method", method).
 			WithField("url", url).
-			WithField("header", r.Headers)
+			WithField("header", r.Headers).
+			WithField("request-data", string(data)).
+			WithField("response", string(rsp))
 		if err != nil {
 			l.Error()
 		} else {
-			l.WithField("response", string(rsp)).Debug()
+			l.Debug()
 		}
 	}
 	return
