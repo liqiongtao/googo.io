@@ -2,6 +2,7 @@ package goo_log
 
 import (
 	"fmt"
+	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	"os"
 	"runtime"
 	"strings"
@@ -100,7 +101,11 @@ func (entry *Entry) output(level Level, v ...interface{}) {
 	}
 
 	for _, hook := range entry.l.hooks {
-		go hook(*entry.msg)
+		(func(hook func(msg Message), msg Message) {
+			goo_utils.AsyncFunc(func() {
+				hook(msg)
+			})
+		})(hook, *entry.msg)
 	}
 
 	if entry.l.adapter != nil {

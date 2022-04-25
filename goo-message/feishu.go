@@ -1,17 +1,24 @@
 package goo_message
 
 import (
+	"errors"
 	goo_http_request "github.com/liqiongtao/googo.io/goo-http-request"
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
+	"runtime"
 )
 
-var FeiShu = new(feishu)
-
-type feishu struct {
+var FeiShu = &feishu{
+	ch: make(chan struct{}, runtime.NumCPU()*2),
 }
 
-func (*feishu) Text(hookUrl string, text string) {
+type feishu struct {
+	ch chan struct{}
+}
+
+func (fs *feishu) Text(hookUrl string, text string) error {
+	fs.ch <- struct{}{}
+	defer func() { <-fs.ch }()
+
 	content := goo_utils.NewParams().Set("text", text)
 
 	params := goo_utils.NewParams().
@@ -20,12 +27,13 @@ func (*feishu) Text(hookUrl string, text string) {
 
 	buf, err := goo_http_request.PostJson(hookUrl, params.JSON())
 	if err != nil {
-		goo_log.WithTag("goo-message-feishu").Error(err)
-		return
+		return err
 	}
 
 	rst, _ := goo_utils.Byte(buf).Params()
-	if rst.Get("StatusMessage").String() != "success" {
-		goo_log.WithTag("goo-message-feishu").Error(rst)
+	if msg := rst.Get("StatusMessage").String(); msg != "success" {
+		return errors.New(msg)
 	}
+
+	return nil
 }

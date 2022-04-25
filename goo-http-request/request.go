@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
@@ -139,7 +140,7 @@ func (r *Request) Upload(url, fileField, fileName string, fh io.Reader, data map
 	pr, pw := io.Pipe()
 	w := multipart.NewWriter(pw)
 
-	go func() {
+	goo_utils.AsyncFunc(func() {
 		for k, v := range data {
 			w.WriteField(k, v)
 		}
@@ -150,7 +151,7 @@ func (r *Request) Upload(url, fileField, fileName string, fh io.Reader, data map
 
 		w.Close()
 		pw.Close()
-	}()
+	})
 
 	r.SetHeader("Content-Type", w.FormDataContentType())
 
