@@ -2,7 +2,7 @@ package goo_log
 
 import (
 	"fmt"
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
+	"log"
 	"os"
 	"runtime"
 	"strings"
@@ -101,16 +101,22 @@ func (entry *Entry) output(level Level, v ...interface{}) {
 	}
 
 	for _, hook := range entry.l.hooks {
-		(func(hook func(msg Message), msg Message) {
-			goo_utils.AsyncFunc(func() {
-				hook(msg)
-			})
-		})(hook, *entry.msg)
+		go entry.hookHandler(hook, *entry.msg)
 	}
 
 	if entry.l.adapter != nil {
 		entry.l.adapter.Write(entry.msg)
 	}
+}
+
+func (entry *Entry) hookHandler(hook func(msg Message), msg Message) {
+	defer func() {
+		if err := recover(); err != nil {
+			log.Println(err)
+		}
+	}()
+
+	hook(msg)
 }
 
 func (entry *Entry) WithTrace(args ...int) *Entry {
@@ -131,9 +137,7 @@ func (entry *Entry) WithTrace(args ...int) *Entry {
 		}
 		if strings.Contains(file, ".pb.go") ||
 			strings.Contains(file, "runtime/") ||
-			strings.Contains(file, "src/testing") ||
-			strings.Contains(file, "pkg/mod/") ||
-			strings.Contains(file, "vendor/") {
+			strings.Contains(file, "src/testing") {
 			continue
 		}
 		if l > 0 {
