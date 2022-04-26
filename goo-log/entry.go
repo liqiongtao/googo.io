@@ -137,7 +137,9 @@ func (entry *Entry) WithTrace(args ...int) *Entry {
 		}
 		if strings.Contains(file, ".pb.go") ||
 			strings.Contains(file, "runtime/") ||
-			strings.Contains(file, "src/testing") {
+			strings.Contains(file, "src/testing") ||
+			strings.Contains(file, "pkg/mod/") ||
+			strings.Contains(file, "vendor/") {
 			continue
 		}
 		if l > 0 {
