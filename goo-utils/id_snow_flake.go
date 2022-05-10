@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// 雪花算法
 type SnowFlakeId struct {
 	dataCenterId int // 机房ID
 	machineId    int // 机器ID
