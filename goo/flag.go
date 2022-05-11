@@ -2,18 +2,11 @@ package goo
 
 import (
 	"flag"
+	"fmt"
+	"os"
 )
 
 /**
-  - flag.go
-
-	func init() {
-		if *goo.VersionFlag {
-			fmt.Println(goo.Version)
-			os.Exit(0)
-		}
-	}
-
   - deploy.sh
 
 	// 定义
@@ -31,4 +24,22 @@ import (
 var (
 	Version     string
 	VersionFlag = flag.Bool("v", false, "version")
+
+	HelpFlag = flag.Bool("h", false, "help")
 )
+
+func init() {
+	if !flag.Parsed() {
+		flag.Parse()
+	}
+
+	if *VersionFlag {
+		fmt.Println(Version)
+		os.Exit(0)
+	}
+
+	if *HelpFlag {
+		flag.PrintDefaults()
+		os.Exit(0)
+	}
+}
