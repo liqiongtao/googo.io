@@ -28,7 +28,7 @@ var (
 	HelpFlag = flag.Bool("h", false, "help")
 )
 
-func init() {
+func FlagInit() {
 	if !flag.Parsed() {
 		flag.Parse()
 	}
