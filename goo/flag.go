@@ -14,7 +14,7 @@ import (
 	buildVersion="${version}.$(date +%Y%m%d).$(date +%H%M)"
 
 	// 编译
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w -X goo.Version=$buildVersion" -o ss
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w -X github.com/liqiongtao/googo.io/goo.Version=$buildVersion" -o ss
 
   - 执行
 
@@ -28,7 +28,7 @@ var (
 	HelpFlag = flag.Bool("h", false, "help")
 )
 
-func FlagInit() {
+func init() {
 	if !flag.Parsed() {
 		flag.Parse()
 	}
