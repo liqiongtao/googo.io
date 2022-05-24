@@ -14,15 +14,18 @@ func Context(c *gin.Context) context.Context {
 	md := metadata.New(map[string]string{})
 	if c != nil {
 		if v, ok := c.Get("__request_id"); ok {
-			md.Set("request_id", v.(string))
+			md.Set("x_trace_id", v.(string))
+		}
+		if v, ok := c.Get("__trace_id"); ok {
+			md.Set("x_trace_id", v.(string))
 		}
 		if v, ok := c.Get("__server_name"); ok {
-			md.Set("server_name", v.(string))
+			md.Set("x_server_name", v.(string))
 		}
 		if v, ok := c.Get("__base_dir"); ok {
 			arr := goo_utils.Trace(2, v.(string))
 			if l := len(arr); l > 0 {
-				md.Set("request_trace", strings.Join(arr, ", "))
+				md.Set("x_trace_info", strings.Join(arr, ", "))
 			}
 		}
 	}
