@@ -27,16 +27,16 @@ func (msg *Message) String() string {
 
 func (msg *Message) JSON() []byte {
 	data := map[string]interface{}{
-		"__level": LevelText[msg.Level],
-		"__time":  msg.Time.Format("2006-01-02 15:04:05"),
+		"level":    LevelText[msg.Level],
+		"datetime": msg.Time.Format("2006-01-02 15:04:05"),
 	}
 
 	if l := len(msg.Tags); l > 0 {
-		data["__tag"] = msg.Tags
+		data["tag"] = msg.Tags
 	}
 
 	if msg.Content != "" {
-		data["__msg"] = msg.Content
+		data["message"] = msg.Content
 	}
 
 	for k, v := range msg.Data {
