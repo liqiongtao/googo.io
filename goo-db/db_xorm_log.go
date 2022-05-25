@@ -12,12 +12,9 @@ type xormLogger struct {
 	l        *goo_log.Logger
 }
 
-func newXormLogger(logFilePath, logFileName string) *xormLogger {
+func newXormLogger(logFilePath string) *xormLogger {
 	return &xormLogger{
-		l: goo_log.New(goo_log.NewFileAdapter(
-			goo_log.FileDirnameOption(logFilePath),
-			goo_log.FileTagOption(logFileName),
-		)),
+		l: goo_log.NewFileLog(goo_log.FilePathOption(logFilePath)),
 	}
 }
 

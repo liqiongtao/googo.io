@@ -11,12 +11,12 @@ func LoadConfig(yamlFile string, conf interface{}) (err error) {
 
 	buf, err = ioutil.ReadFile(yamlFile)
 	if err != nil {
-		goo_log.WithTrace().Error(err.Error())
+		goo_log.Error(err.Error())
 		return
 	}
 
 	if err = yaml.Unmarshal(buf, conf); err != nil {
-		goo_log.WithTrace().Error(err.Error())
+		goo_log.Error(err.Error())
 	}
 	return
 }

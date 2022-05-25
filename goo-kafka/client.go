@@ -46,7 +46,7 @@ func (cli *client) init() (err error) {
 
 	cli.Client, err = sarama.NewClient(cli.addrs, config)
 	if err != nil {
-		goo_log.WithTrace().Error(err)
+		goo_log.Error(err)
 	}
 
 	return

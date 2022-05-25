@@ -14,7 +14,7 @@ type Byte []byte
 func (b Byte) Params() (p Params, err error) {
 	p = NewParams()
 	if err = json.Unmarshal(b, &p.data); err != nil {
-		goo_log.WithField("params", string(b)).WithTrace().Error(err)
+		goo_log.WithField("params", string(b)).Error(err)
 		return
 	}
 	return

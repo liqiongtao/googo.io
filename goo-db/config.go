@@ -9,6 +9,5 @@ type Config struct {
 	MaxIdle     int      `yaml:"max_idle"`
 	MaxOpen     int      `yaml:"max_open"`
 	AutoPing    bool     `yaml:"auto_ping"`
-	LogFilePath string   `yaml:"log_file_path"`
-	LogFileName string   `yaml:"log_file_name"`
+	LogFilepath string   `yaml:"log_filepath"`
 }

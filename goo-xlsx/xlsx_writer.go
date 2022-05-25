@@ -45,19 +45,19 @@ func (x *xlsxWrite) SetSheetName(sheetName string) *xlsxWrite {
 
 func (x *xlsxWrite) Save2File(filename string) (err error) {
 	if err = x.fh.SetSheetRow(x.sheetName, "A1", x.titles); err != nil {
-		goo_log.WithTrace().Error(err)
+		goo_log.Error(err)
 		return
 	}
 
 	for i := 0; i < len(x.rows); i++ {
 		if err = x.fh.SetSheetRow("Sheet1", fmt.Sprintf("A%d", i+2), x.rows[i]); err != nil {
-			goo_log.WithTrace().Error(err)
+			goo_log.Error(err)
 			return
 		}
 	}
 
 	if err = x.fh.SaveAs(filename); err != nil {
-		goo_log.WithTrace().Error(err)
+		goo_log.Error(err)
 		return
 	}
 
@@ -66,13 +66,13 @@ func (x *xlsxWrite) Save2File(filename string) (err error) {
 
 func (x *xlsxWrite) Output(ctx *goo.Context, filename string) (err error) {
 	if err = x.fh.SetSheetRow(x.sheetName, "A1", x.titles); err != nil {
-		goo_log.WithTrace().Error(err)
+		goo_log.Error(err)
 		return
 	}
 
 	for i := 0; i < len(x.rows); i++ {
 		if err = x.fh.SetSheetRow("Sheet1", fmt.Sprintf("A%d", i+2), x.rows[i]); err != nil {
-			goo_log.WithTrace().Error(err)
+			goo_log.Error(err)
 			return
 		}
 	}
@@ -82,7 +82,7 @@ func (x *xlsxWrite) Output(ctx *goo.Context, filename string) (err error) {
 	ctx.Header("Content-Transfer-Encoding", "binary")
 
 	if err = x.fh.Write(ctx.Writer); err != nil {
-		goo_log.WithTrace().Error(err)
+		goo_log.Error(err)
 		return
 	}
 

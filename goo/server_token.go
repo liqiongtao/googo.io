@@ -40,7 +40,7 @@ func CreateToken(appId string, openId int64) (tokenStr string, err error) {
 
 	encBuf, err = goo_utils.AESCBCEncrypt(token.Bytes(), []byte(key), []byte(iv))
 	if err != nil {
-		goo_log.WithTrace().Error(err.Error())
+		goo_log.Error(err.Error())
 		return
 	}
 
@@ -58,13 +58,13 @@ func ParseToken(tokenStr, appId string) (token *Token, err error) {
 
 	decBuf, err = goo_utils.AESCBCDecrypt(tokenBuf, []byte(key), []byte(iv))
 	if err != nil {
-		goo_log.WithTrace().Error(err.Error())
+		goo_log.Error(err.Error())
 		return
 	}
 
 	token = new(Token)
 	if err = json.Unmarshal(decBuf, token); err != nil {
-		goo_log.WithTrace().Error(err.Error())
+		goo_log.Error(err.Error())
 		return
 	}
 	if token.AppId != appId {

@@ -79,12 +79,12 @@ func GRPCInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServe
 		}
 
 		if e := recover(); e != nil {
-			l.WithTrace().ErrorF("%v", e)
+			l.ErrorF("%v", e)
 			return
 		}
 
 		if err != nil {
-			l.WithTrace().Error(err)
+			l.Error(err)
 			return
 		}
 

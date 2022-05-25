@@ -15,7 +15,7 @@ func (p *producer) SendMessage(key, topic string, message []byte) (partition int
 
 	producer, err = sarama.NewSyncProducerFromClient(p.Client)
 	if err != nil {
-		goo_log.WithTrace().Error(err)
+		goo_log.Error(err)
 		return
 	}
 	defer producer.Close()
@@ -35,7 +35,7 @@ func (p *producer) SendAsyncMessage(key, topic string, message []byte) (partitio
 
 	producer, err = sarama.NewAsyncProducerFromClient(p.Client)
 	if err != nil {
-		goo_log.WithTrace().Error(err)
+		goo_log.Error(err)
 		return
 	}
 	defer producer.Close()
@@ -57,7 +57,7 @@ func (p *producer) SendAsyncMessage(key, topic string, message []byte) (partitio
 		partition = pe.Msg.Partition
 		offset = pe.Msg.Offset
 		err = pe.Err
-		goo_log.WithTrace().Error(err.Error())
+		goo_log.Error(err.Error())
 	}
 
 	return

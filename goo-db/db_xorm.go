@@ -33,16 +33,12 @@ func (db *XOrm) connect() (err error) {
 	}
 
 	var (
-		logFilePath = "logs/"
-		logFileName = "sql"
+		logFilepath = "logs/sql/"
 	)
-	if db.config.LogFilePath != "" {
-		logFilePath = db.config.LogFilePath
+	if db.config.LogFilepath != "" {
+		logFilepath = db.config.LogFilepath
 	}
-	if db.config.LogFileName != "" {
-		logFileName = db.config.LogFileName
-	}
-	db.EngineGroup.SetLogger(newXormLogger(logFilePath, logFileName))
+	db.EngineGroup.SetLogger(newXormLogger(logFilepath))
 
 	db.EngineGroup.ShowSQL(db.config.LogModel)
 	db.EngineGroup.SetMaxIdleConns(db.config.MaxIdle)

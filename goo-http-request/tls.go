@@ -18,7 +18,7 @@ func (this *Tls) CaCrt() []byte {
 	}
 	bts, err := ioutil.ReadFile(this.CaCrtFile)
 	if err != nil {
-		goo_log.WithTrace().Error(err.Error())
+		goo_log.Error(err.Error())
 	}
 	return bts
 }
@@ -26,7 +26,7 @@ func (this *Tls) CaCrt() []byte {
 func (this *Tls) ClientCrt() tls.Certificate {
 	crt, err := tls.LoadX509KeyPair(this.ClientCrtFile, this.ClientKeyFile)
 	if err != nil {
-		goo_log.WithTrace().Error(err.Error())
+		goo_log.Error(err.Error())
 	}
 	return crt
 }

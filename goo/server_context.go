@@ -49,7 +49,7 @@ func (ctx *Context) JSON(code int, rsp *Response, v ...interface{}) {
 		WithField("request", ctx.request).
 		WithField("response", rsp)
 	if rsp.Code > 0 {
-		l.WithTrace().Error(v...)
+		l.Error(v...)
 	} else {
 		l.Debug()
 	}
@@ -65,7 +65,6 @@ func (ctx *Context) AbortWithStatusJSON(code int, rsp *Response, v ...interface{
 	goo_log.WithField("request", ctx.request).
 		WithField("response", rsp).
 		WithField("execute_time", executeTime).
-		WithTrace().
 		Error(v...)
 
 	ctx.Context.Header("X-Response-Time", executeTime)
