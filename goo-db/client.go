@@ -2,12 +2,11 @@ package goo_db
 
 import (
 	"context"
-	"github.com/go-xorm/xorm"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 )
 
-var __clients = map[string]*DB{}
+var __clients = map[string]*Orm{}
 
 func Init(ctx context.Context, configs ...Config) {
 	for _, config := range configs {
@@ -25,19 +24,19 @@ func Init(ctx context.Context, configs ...Config) {
 	}
 }
 
-func Client(names ...string) *xorm.EngineGroup {
+func Client(names ...string) *Orm {
 	name := "default"
 	if l := len(names); l > 0 {
 		name = names[0]
 	}
 
 	if client, ok := __clients[name]; ok {
-		return client.EngineGroup
+		return client
 	}
 
 	if l := len(__clients); l == 1 {
 		for _, client := range __clients {
-			return client.EngineGroup
+			return client
 		}
 	}
 

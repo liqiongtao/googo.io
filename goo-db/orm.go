@@ -8,21 +8,21 @@ import (
 	"time"
 )
 
-type DB struct {
+type Orm struct {
 	*xorm.EngineGroup
 
 	config Config
 	ctx    context.Context
 }
 
-func New(ctx context.Context, config Config) *DB {
-	return &DB{
+func New(ctx context.Context, config Config) *Orm {
+	return &Orm{
 		ctx:    ctx,
 		config: config,
 	}
 }
 
-func (db *DB) connect() (err error) {
+func (db *Orm) connect() (err error) {
 	conns := []string{db.config.Master}
 	if n := len(db.config.Slaves); n > 0 {
 		conns = append(conns, db.config.Slaves...)
@@ -40,7 +40,7 @@ func (db *DB) connect() (err error) {
 	if db.config.LogFilepath != "" {
 		logFilepath = db.config.LogFilepath
 	}
-	db.EngineGroup.SetLogger(newXormLogger(logFilepath))
+	db.EngineGroup.SetLogger(newLogger(logFilepath))
 
 	db.EngineGroup.ShowSQL(db.config.LogModel)
 	db.EngineGroup.SetMaxIdleConns(db.config.MaxIdle)
@@ -49,7 +49,7 @@ func (db *DB) connect() (err error) {
 	return
 }
 
-func (db *DB) ping() {
+func (db *Orm) ping() {
 	ti := time.NewTimer(time.Second)
 	defer ti.Stop()
 
