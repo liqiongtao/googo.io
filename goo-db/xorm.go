@@ -8,20 +8,21 @@ import (
 	"time"
 )
 
-func NewXOrmAdapter(ctx context.Context, config Config) *XOrm {
-	return &XOrm{
+type DB struct {
+	*xorm.EngineGroup
+
+	config Config
+	ctx    context.Context
+}
+
+func New(ctx context.Context, config Config) *DB {
+	return &DB{
 		ctx:    ctx,
 		config: config,
 	}
 }
 
-type XOrm struct {
-	ctx    context.Context
-	config Config
-	*xorm.EngineGroup
-}
-
-func (db *XOrm) connect() (err error) {
+func (db *DB) connect() (err error) {
 	conns := []string{db.config.Master}
 	if n := len(db.config.Slaves); n > 0 {
 		conns = append(conns, db.config.Slaves...)
@@ -29,6 +30,7 @@ func (db *XOrm) connect() (err error) {
 
 	db.EngineGroup, err = xorm.NewEngineGroup(db.config.Driver, conns)
 	if err != nil {
+		goo_log.WithTag("goo-db").Error(err)
 		return
 	}
 
@@ -47,19 +49,20 @@ func (db *XOrm) connect() (err error) {
 	return
 }
 
-func (db *XOrm) ping() {
-	dur := 3 * time.Second
-	ti := time.NewTimer(dur)
+func (db *DB) ping() {
+	ti := time.NewTimer(time.Second)
 	defer ti.Stop()
+
 	for {
 		select {
 		case <-db.ctx.Done():
 			return
+
 		case <-ti.C:
 			if err := db.EngineGroup.Ping(); err != nil {
 				goo_log.WithTag("goo-db").Error(err)
 			}
-			ti.Reset(dur)
+			ti.Reset(5 * time.Second)
 		}
 	}
 }
