@@ -1,92 +1,34 @@
-# 日志对象
+# 日志级别
 
-- 默认
+- Fatal 致命的
+- Panic 严重的
+- Error 错误的
+- Warn 告警的
+- Info 信息的
+- Debug 调试的
 
-```
-init() 初始化了默认日志对象 __log
-```
+# 文件说明
 
-- 新建（基于控制台日志）
+- `log.go` 对外开放的方法，默认console适配器，属于第1层级
+- `logger.go` log对象，像 `SetAdapter` `WithHook` 是项目及全局方法，属于第2层级
+- `entry.go` 实体类，每次产生一条log时，都要 `new` 实体类，主要处理消息内容、标签、附加数据等，属于第3层级
+- `message.go` 消息内容对象，包装每条消息包含的字段信息
+- `adapter.go` 适配器
+- `console.go` 控制台适配器
+- `file.go` 文件适配器
+- `file_options.go` 文件适配器 选项
 
-```
-l := goo_log.New(goo_log.NewConsoleAdapter())
-l.Debug("this is debug")
-```
+# 文件适配器
 
-- 新建（基于文件日志）
+- `filepath` 日志保存目录
+- `filename` 日志文件名，使用 `yyyymmdd.log`
+- `maxSize` 文件大小最大值，默认512M，超过后，会切割文件
+- `FilePathOption()` 定义文件路径
+- `FileMaxSizeOption()` 定义文件大小最大值
 
-```
-l := goo_log.New(goo_log.NewFileAdapter(
-    goo_log.FileTagOption("sql"),
-    goo_log.FileDirnameOption("logs-logs/"),
-    goo_log.FileMaxSizeOption(100*1024*1024),
-))
-l.Debug("this is debug")
-```
+# 输出对象
 
-# 设置适配器
-
-## 文件适配器 (默认)
-
-- 默认参数
-
-```
-goo_log.SetAdapter(goo_log.NewFileAdapter())
-```
-
-- 自定义参数
-
-```
-goo_log.SetAdapter(goo_log.NewFileAdapter(
-    goo_log.FileTagOption("sql"),
-    goo_log.FileDirnameOption("logs-logs/"),
-    goo_log.FileMaxSizeOption(100*1024*1024),
-))
-```
-
-## 设置文件适配器参数
-
-```
-goo_log.SetFileAdapterOptions(
-    goo_log.FileTagOption("sql"),
-    goo_log.FileDirnameOption("logs-logs/"),
-    goo_log.FileMaxSizeOption(100*1024*1024),
-)
-```
-
-## 命令行适配器
-
-```
-goo_log.SetAdapter(goo_log.NewConsoleAdapter())
-```
-
-# 设置过滤路径
-
-```
-goo_log.SetTrimPath("/a/b/c")
-```
-
-# 添加钩子函数
-
-```
-goo_log.AddHook(func(msg goo_log.Message) {
-    fmt.Println(msg.Level, msg.String()
-})
-```
-
-# 添加日志字段
-
-```
-goo_log.WithField("name", "hnatao").Debug()
-```
-
-# 日志级别输出
-
-```
-goo_log.Debug("this is debug")
-goo_log.Info("this is info")
-goo_log.Warn("this is warn")
-goo_log.Error("this is error")
-goo_log.Panic("this is panic")
-goo_log.Fatal("this is fatal")
-```
+- console
+- file
+- kafka
+- es

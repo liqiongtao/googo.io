@@ -2,27 +2,17 @@ package goo_log
 
 import (
 	"encoding/json"
+	"fmt"
+	"runtime"
+	"strings"
 	"time"
 )
 
 type Message struct {
 	Level   Level
-	Tags    []string
+	Message []interface{}
 	Time    time.Time
-	Content string
-	Data    map[string]interface{}
-}
-
-func (msg *Message) WithTag(tags ...string) {
-	msg.Tags = append(msg.Tags, tags...)
-}
-
-func (msg *Message) WithField(field string, value interface{}) {
-	msg.Data[field] = value
-}
-
-func (msg *Message) String() string {
-	return string(msg.JSON())
+	Entry   *Entry
 }
 
 func (msg *Message) JSON() []byte {
@@ -31,18 +21,63 @@ func (msg *Message) JSON() []byte {
 		"datetime": msg.Time.Format("2006-01-02 15:04:05"),
 	}
 
-	if l := len(msg.Tags); l > 0 {
-		data["tag"] = msg.Tags
+	if l := len(msg.Entry.Tags); l > 0 {
+		data["tags"] = msg.Entry.Tags
 	}
 
-	if msg.Content != "" {
-		data["message"] = msg.Content
+	if l := len(msg.Message); l > 0 {
+		var arr []string
+		for _, i := range msg.Message {
+			arr = append(arr, fmt.Sprint(i))
+		}
+		data["message"] = arr
 	}
 
-	for k, v := range msg.Data {
-		data[k] = v
+	if l := len(msg.Entry.Data); l > 0 {
+		arr := map[string]interface{}{}
+		for _, i := range msg.Entry.Data {
+			arr[i.Field] = i.Value
+		}
+		data["data"] = arr
+	}
+
+	if msg.Level >= WARN {
+		data["trace"] = msg.trace()
 	}
 
 	buf, _ := json.Marshal(&data)
 	return buf
+}
+
+func (msg *Message) trace() (arr []string) {
+	arr = []string{}
+
+	for i := 2; i < 16; i++ {
+		_, file, line, _ := runtime.Caller(i)
+		if file == "" ||
+			strings.Contains(file, ".pb.go") ||
+			strings.Contains(file, "runtime/") ||
+			strings.Contains(file, "src/testing") ||
+			strings.Contains(file, "pkg/mod/") ||
+			strings.Contains(file, "vendor/") {
+			continue
+		}
+		arr = append(arr, fmt.Sprintf("%s %dL", msg.prettyFile(file), line))
+	}
+
+	return
+}
+
+func (msg *Message) prettyFile(file string) string {
+	index := strings.LastIndex(file, "/")
+	if index < 0 {
+		return file
+	}
+
+	index2 := strings.LastIndex(file[:index], "/")
+	if index2 < 0 {
+		return file[index+1:]
+	}
+
+	return file[index2+1:]
 }

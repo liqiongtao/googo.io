@@ -1,35 +1,22 @@
 package goo_log
 
-func New(adapter Adapter) *Logger {
-	return &Logger{
-		adapter:   adapter,
-		hooks:     []func(msg Message){},
-		trimPaths: []string{},
-	}
+type Logger struct {
+	hooks   []func(msg *Message)
+	adapter Adapter
 }
 
-type Logger struct {
-	adapter   Adapter
-	hooks     []func(msg Message)
-	trimPaths []string
+func New(adapter Adapter) *Logger {
+	return &Logger{
+		adapter: adapter,
+	}
 }
 
 func (l *Logger) SetAdapter(adapter Adapter) {
 	l.adapter = adapter
 }
 
-func (l *Logger) SetFileAdapterOptions(opts ...Option) {
-	if adapter, ok := l.adapter.(*FileAdapter); ok {
-		adapter.SetOptions(opts...)
-	}
-}
-
-func (l *Logger) AddHook(fn func(msg Message)) {
-	l.hooks = append(l.hooks, fn)
-}
-
-func (l *Logger) SetTrimPath(trimPaths ...string) {
-	l.trimPaths = append(l.trimPaths, trimPaths...)
+func (l *Logger) WithHook(fns ...func(msg *Message)) {
+	l.hooks = append(l.hooks, fns...)
 }
 
 func (l *Logger) WithTag(tags ...string) *Entry {
@@ -38,10 +25,6 @@ func (l *Logger) WithTag(tags ...string) *Entry {
 
 func (l *Logger) WithField(field string, value interface{}) *Entry {
 	return NewEntry(l).WithField(field, value)
-}
-
-func (l *Logger) WithTrace() *Entry {
-	return NewEntry(l).WithTrace()
 }
 
 func (l *Logger) Debug(v ...interface{}) {

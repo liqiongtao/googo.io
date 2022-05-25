@@ -1,89 +1,75 @@
 package goo_log
 
-var __log *Logger
+import "sync"
 
-func init() {
-	__log = New(NewConsoleAdapter())
-}
+var (
+	__log  *Logger
+	__once sync.Once
+)
 
 func Default() *Logger {
+	__once.Do(func() {
+		__log = NewConsoleLog()
+	})
 	return __log
 }
 
-func SetAdapter(adapter Adapter) {
-	__log.SetAdapter(adapter)
-}
-
-func SetFileAdapterOptions(opts ...Option) {
-	if adapter, ok := __log.adapter.(*FileAdapter); ok {
-		adapter.SetOptions(opts...)
-	}
-}
-
-func SetTrimPath(trimPaths ...string) {
-	__log.SetTrimPath(trimPaths...)
-}
-
-func AddHook(fn func(msg Message)) {
-	__log.AddHook(fn)
+func WithHook(fns ...func(msg *Message)) {
+	Default().WithHook(fns...)
 }
 
 func WithTag(tags ...string) *Entry {
-	return __log.WithTag(tags...)
+	return Default().WithTag(tags...)
 }
 
 func WithField(field string, value interface{}) *Entry {
-	return __log.WithField(field, value)
-}
-
-func WithTrace() *Entry {
-	return __log.WithTrace()
+	return Default().WithField(field, value)
 }
 
 func Debug(v ...interface{}) {
-	__log.Debug(v...)
+	Default().Debug(v...)
 }
 
 func DebugF(format string, v ...interface{}) {
-	__log.DebugF(format, v...)
+	Default().DebugF(format, v...)
 }
 
 func Info(v ...interface{}) {
-	__log.Info(v...)
+	Default().Info(v...)
 }
 
 func InfoF(format string, v ...interface{}) {
-	__log.InfoF(format, v...)
+	Default().InfoF(format, v...)
 }
 
 func Warn(v ...interface{}) {
-	__log.Warn(v...)
+	Default().Warn(v...)
 }
 
 func WarnF(format string, v ...interface{}) {
-	__log.WarnF(format, v...)
+	Default().WarnF(format, v...)
 }
 
 func Error(v ...interface{}) {
-	__log.Error(v...)
+	Default().Error(v...)
 }
 
 func ErrorF(format string, v ...interface{}) {
-	__log.ErrorF(format, v...)
+	Default().ErrorF(format, v...)
 }
 
 func Panic(v ...interface{}) {
-	__log.Panic(v...)
+	Default().Panic(v...)
 }
 
 func PanicF(format string, v ...interface{}) {
-	__log.PanicF(format, v...)
+	Default().PanicF(format, v...)
 }
 
 func Fatal(v ...interface{}) {
-	__log.Fatal(v...)
+	Default().Fatal(v...)
 }
 
 func FatalF(format string, v ...interface{}) {
-	__log.FatalF(format, v...)
+	Default().FatalF(format, v...)
 }

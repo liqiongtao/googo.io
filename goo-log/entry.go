@@ -4,33 +4,32 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"runtime"
-	"strings"
 	"time"
 )
 
-func NewEntry(l *Logger) *Entry {
-	return &Entry{
-		l: l,
-		msg: &Message{
-			Tags: []string{},
-			Data: map[string]interface{}{},
-		},
-	}
+type Entry struct {
+	Tags []string
+	Data []DataField
+	msg  *Message
+	l    *Logger
 }
 
-type Entry struct {
-	l   *Logger
-	msg *Message
+type DataField struct {
+	Field string
+	Value interface{}
+}
+
+func NewEntry(l *Logger) *Entry {
+	return &Entry{l: l}
 }
 
 func (entry *Entry) WithTag(tags ...string) *Entry {
-	entry.msg.WithTag(tags...)
+	entry.Tags = append(entry.Tags, tags...)
 	return entry
 }
 
 func (entry *Entry) WithField(field string, value interface{}) *Entry {
-	entry.msg.WithField(field, value)
+	entry.Data = append(entry.Data, DataField{Field: field, Value: value})
 	return entry
 }
 
@@ -68,12 +67,10 @@ func (entry *Entry) ErrorF(format string, v ...interface{}) {
 
 func (entry *Entry) Panic(v ...interface{}) {
 	entry.output(PANIC, v...)
-	panic(fmt.Sprint(v...))
 }
 
 func (entry *Entry) PanicF(format string, v ...interface{}) {
 	entry.output(PANIC, fmt.Sprintf(format, v...))
-	panic(fmt.Sprintf(format, v...))
 }
 
 func (entry *Entry) Fatal(v ...interface{}) {
@@ -87,21 +84,15 @@ func (entry *Entry) FatalF(format string, v ...interface{}) {
 }
 
 func (entry *Entry) output(level Level, v ...interface{}) {
-	entry.msg.Level = level
-	entry.msg.Time = time.Now()
-
-	var arr []string
-	for _, i := range v {
-		arr = append(arr, fmt.Sprint(i))
-	}
-	entry.msg.Content = strings.Join(arr, " ")
-
-	for _, trimPath := range entry.l.trimPaths {
-		entry.msg.Content = strings.Replace(entry.msg.Content, trimPath, "", -1)
+	entry.msg = &Message{
+		Level:   level,
+		Message: v,
+		Time:    time.Now(),
+		Entry:   entry,
 	}
 
-	for _, hook := range entry.l.hooks {
-		go entry.hookHandler(hook, *entry.msg)
+	for _, fn := range entry.l.hooks {
+		go entry.hookHandler(fn)
 	}
 
 	if entry.l.adapter != nil {
@@ -109,50 +100,12 @@ func (entry *Entry) output(level Level, v ...interface{}) {
 	}
 }
 
-func (entry *Entry) hookHandler(hook func(msg Message), msg Message) {
+func (entry *Entry) hookHandler(fn func(msg *Message)) {
 	defer func() {
 		if err := recover(); err != nil {
 			log.Println(err)
 		}
 	}()
 
-	hook(msg)
-}
-
-func (entry *Entry) WithTrace(args ...int) *Entry {
-	var (
-		n   int
-		arr []string
-	)
-
-	if l := len(args); l > 0 {
-		n = args[0]
-	}
-
-	l := len(entry.l.trimPaths)
-	for i := n; i < 16; i++ {
-		_, file, line, _ := runtime.Caller(i)
-		if file == "" {
-			continue
-		}
-		if strings.Contains(file, ".pb.go") ||
-			strings.Contains(file, "runtime/") ||
-			strings.Contains(file, "src/testing") ||
-			strings.Contains(file, "pkg/mod/") ||
-			strings.Contains(file, "vendor/") {
-			continue
-		}
-		if l > 0 {
-			for _, trimPath := range entry.l.trimPaths {
-				file = strings.Replace(file, trimPath, "", -1)
-			}
-		}
-		arr = append(arr, fmt.Sprintf("%s %dL", file, line))
-	}
-
-	if l := len(arr); l > 0 {
-		entry.WithField("trace", arr)
-	}
-
-	return entry
+	fn(entry.msg)
 }
