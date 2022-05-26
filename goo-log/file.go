@@ -22,26 +22,20 @@ type FileAdapter struct {
 	mu sync.Mutex
 }
 
-func NewFileLog(opts ...Option) *Logger {
+func NewFileLog(opts ...FileOption) *Logger {
 	return New(NewFileAdapter(opts...))
 }
 
-func NewFileAdapter(opts ...Option) *FileAdapter {
-	fa := &FileAdapter{
-		filepath: "logs/",
-		maxSize:  1 << 29, // 512M
-		ch:       make(chan *Message, runtime.NumCPU()*2),
+func NewFileAdapter(opt ...FileOption) *FileAdapter {
+	opts := defaultFileOptions
+	for _, o := range opt {
+		o.apply(&opts)
 	}
 
-	if l := len(opts); l > 0 {
-		for _, opt := range opts {
-			switch opt.Name {
-			case "filepath":
-				fa.filepath = opt.Value.(string)
-			case "max-size":
-				fa.maxSize = opt.Value.(int64)
-			}
-		}
+	fa := &FileAdapter{
+		filepath: opts.Filepath,
+		maxSize:  opts.MaxSize,
+		ch:       make(chan *Message, runtime.NumCPU()*2),
 	}
 
 	if l := len(fa.filepath); fa.filepath[l-1:] != "/" {

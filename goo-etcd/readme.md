@@ -1,117 +1,20 @@
-# goo-etcd
-
-## set/get
+# `KEY` 命名规范
 
 ```
-var cfg = goo_etcd.Config{
-    User: "test",
-    Password: "123456",
-    Endpoints: []string{"localhost:23791", "localhost:23792", "localhost:23793"},
-}
-
-func init() {
-	goo_etcd.Init(cfg)
-}
-
-func main() {
-	key := "/test/proj.com/grpc-user/v100"
-	val := "hnatao"
-
-	goo_etcd.Set(key, val, 0)
-
-	goo_log.Debug(goo_etcd.Get(key))
-}
+/命名空间/项目名/服务名/节点名
 ```
 
-## GetMap
+# 方法说明
 
-```
-var cfg = goo_etcd.Config{
-    User: "test",
-    Password: "123456",
-    Endpoints: []string{"localhost:23791", "localhost:23792", "localhost:23793"},
-}
-
-func init() {
-	goo_etcd.Init(cfg)
-}
-
-func main() {
-	key := "/test/proj.com/grpc-user"
-
-	key1 := "/test/proj.com/grpc-user/v100"
-	val1 := "hnatao-1"
-
-	key2 := "/test/proj.com/grpc-user/v101"
-	val2 := "hnatao-2"
-
-	goo_etcd.Set(key1, val1, 0)
-	goo_etcd.Set(key2, val2, 0)
-
-	goo_log.Debug(goo_etcd.GetMap(key))
-}
-```
-
-## GetArray
-
-```
-var cfg = goo_etcd.Config{
-    User: "test",
-    Password: "123456",
-    Endpoints: []string{"localhost:23791", "localhost:23792", "localhost:23793"},
-}
-
-func init() {
-	goo_etcd.Init(cfg)
-}
-
-func main() {
-	key := "/test/proj.com/grpc-user"
-
-	key1 := "/test/proj.com/grpc-user/v100"
-	val1 := "hnatao-1"
-
-	key2 := "/test/proj.com/grpc-user/v101"
-	val2 := "hnatao-2"
-
-	goo_etcd.Set(key1, val1, 0)
-	goo_etcd.Set(key2, val2, 0)
-
-	goo_log.Debug(goo_etcd.GetArray(key))
-}
-```
-
-## SetWithKeepAlive
-
-```
-var cfg = goo_etcd.Config{
-    User: "test",
-    Password: "123456",
-    Endpoints: []string{"localhost:23791", "localhost:23792", "localhost:23793"},
-}
-
-func init() {
-	goo_etcd.Init(cfg)
-}
-
-func main() {
-	key := "/test/proj.com/grpc-user/v100"
-	val := "hnatao-1"
-
-	goo_etcd.SetWithKeepAlive(key, val, 15)
-
-	goo_utils.AsyncFunc(func() {
-		for {
-			select {
-			case <-goo_context.Cancel().Done():
-				return
-			default:
-				goo_log.Debug(goo_etcd.Get(key))
-				time.Sleep(time.Second)
-			}
-		}
-	})
-
-	<-goo_context.Timeout(20 * time.Second).Done()
-}
-```
+- `Set` 设置 key-value
+- `SetWithPrevKV` 设置 key-value 并且返回修改之前的 key-value
+- `SetTTL` 设置有有效期的 key-value
+- `SetTTLWithPrevKV` 设置有有效期的 key-value 并且返回修改之前的 key-value
+- `Get` 返回 response 信息
+- `GetString` 根据 key 前缀，返回 string-value
+- `GetArray` 根据 key 前缀，返回 array-value
+- `GetMap` 根据 key 前缀，返回 map-value
+- `Del` 删除 key 并且返回删除之前的 key-value
+- `DelWithPrefix` 根据 key 前缀删除， 并且返回删除之前的 key-value
+- `RegisterService` 注册一个服务，并保持活跃
+- `Watch` 根据 key 前缀观察，并返回 array-value

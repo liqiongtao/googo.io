@@ -2,11 +2,12 @@ package goo_etcd
 
 import (
 	"context"
-	goo_context "github.com/liqiongtao/googo.io/goo-context"
+	"crypto/tls"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
-	"go.etcd.io/etcd/api/v3/mvccpb"
+	"go.etcd.io/etcd/client/pkg/v3/transport"
 	clientv3 "go.etcd.io/etcd/client/v3"
+	"runtime"
+	"time"
 )
 
 type Client struct {
@@ -14,163 +15,222 @@ type Client struct {
 	ctx context.Context
 }
 
-func (cli *Client) Set(key, val string, ttl int64) (err error) {
-	var options []clientv3.OpOption
+func New(conf Config) (cli *Client, err error) {
+	cli = &Client{ctx: context.TODO()}
 
-	if ttl > 0 {
-		var lease *clientv3.LeaseGrantResponse
+	config := clientv3.Config{
+		Endpoints:   conf.Endpoints,
+		DialTimeout: 5 * time.Second,
+	}
 
-		lease, err = cli.Client.Grant(cli.ctx, ttl)
+	if conf.Username != "" {
+		config.Username = conf.Username
+	}
+	if conf.Password != "" {
+		config.Password = conf.Password
+	}
+
+	if conf.TLS != nil {
+		tlsInfo := &transport.TLSInfo{
+			CertFile:      conf.TLS.CertFile,
+			KeyFile:       conf.TLS.KeyFile,
+			TrustedCAFile: conf.TLS.CAFile,
+		}
+		var clientConfig *tls.Config
+		clientConfig, err = tlsInfo.ClientConfig()
 		if err != nil {
-			goo_log.WithTag("goo-etcd").WithField("key", key).WithField("val", val).WithField("ttl", ttl).Error(err)
+			goo_log.WithTag("goo-etcd").Error(err.Error())
 			return
 		}
-
-		options = append(options, clientv3.WithLease(lease.ID))
+		config.TLS = clientConfig
 	}
 
-	_, err = cli.Client.Put(cli.ctx, key, val, options...)
+	cli.Client, err = clientv3.New(config)
 	if err != nil {
-		goo_log.WithTag("goo-etcd").WithField("key", key).WithField("val", val).WithField("ttl", ttl).Error(err)
+		goo_log.WithTag("goo-etcd").Error(err.Error())
 	}
 	return
 }
 
-func (cli *Client) SetWithKeepAlive(key, val string, ttl int64) (err error) {
+// set key-value
+func (cli *Client) Set(key, val string, opts ...clientv3.OpOption) (resp *clientv3.PutResponse, err error) {
+	resp, err = cli.Client.Put(cli.ctx, key, val, opts...)
+	if err != nil {
+		goo_log.WithTag("goo-etcd").WithField("key", key).WithField("val", val).Error(err)
+	}
+	return
+}
+
+// set key-value and return previous key-value
+func (cli *Client) SetWithPrevKV(key, val string) (resp *clientv3.PutResponse, err error) {
+	return cli.Set(key, val, clientv3.WithPrevKV())
+}
+
+// set key-value-ttl
+func (cli *Client) SetTTL(key, val string, ttl int64, opts ...clientv3.OpOption) (resp *clientv3.PutResponse, err error) {
 	if ttl == 0 {
-		return
+		return cli.Set(key, val, opts...)
 	}
 
-	var (
-		leaseGrantRsp     *clientv3.LeaseGrantResponse
-		leaseKeepAliveRsp <-chan *clientv3.LeaseKeepAliveResponse
-	)
+	var lease *clientv3.LeaseGrantResponse
 
-	leaseGrantRsp, err = cli.Client.Grant(cli.ctx, ttl)
+	lease, err = cli.Client.Grant(cli.ctx, ttl)
 	if err != nil {
 		goo_log.WithTag("goo-etcd").WithField("key", key).WithField("val", val).WithField("ttl", ttl).Error(err)
 		return
 	}
 
-	leaseId := leaseGrantRsp.ID
-
-	_, err = cli.Client.Put(cli.ctx, key, val, clientv3.WithLease(leaseId))
+	_, err = cli.Client.Put(cli.ctx, key, val, clientv3.WithLease(lease.ID))
 	if err != nil {
 		goo_log.WithTag("goo-etcd").WithField("key", key).WithField("val", val).WithField("ttl", ttl).Error(err)
 		return
 	}
-
-	goo_log.WithField("key", key).WithField("val", val).WithField("ttl", ttl).Debug("注册成功")
-
-	leaseKeepAliveRsp, err = cli.Client.KeepAlive(cli.ctx, leaseId)
-	if err != nil {
-		goo_log.WithTag("goo-etcd").WithField("key", key).WithField("val", val).WithField("ttl", ttl).Error(err)
-		return
-	}
-
-	goo_utils.AsyncFunc(func() {
-		for {
-			select {
-			case <-goo_context.Cancel().Done():
-				return
-
-			case rst := <-leaseKeepAliveRsp:
-				if rst == nil {
-					continue
-				}
-				goo_log.WithTag("goo-etcd").WithField("result", rst).Debug("keep-alive")
-			}
-		}
-	})
 
 	return
 }
 
-func (cli *Client) Get(key string) string {
-	rsp, err := cli.Client.Get(cli.ctx, key)
-	if err != nil {
-		goo_log.WithTag("goo-etcd").WithField("key", key).Error(err)
-		return ""
-	}
-	if rsp.Count == 0 {
-		return ""
-	}
-	return string(rsp.Kvs[0].Value)
+// set key-value-ttl and return previous key-value
+func (cli *Client) SetTTLWithPrevKV(key, val string, ttl int64) (resp *clientv3.PutResponse, err error) {
+	return cli.SetTTL(key, val, ttl, clientv3.WithPrevKV())
 }
 
-func (cli *Client) GetMap(key string) (data map[string]string) {
-	data = map[string]string{}
-	rsp, err := cli.Client.Get(cli.ctx, key, clientv3.WithPrefix())
+// get value by key
+func (cli *Client) Get(key string, opts ...clientv3.OpOption) (resp *clientv3.GetResponse, err error) {
+	resp, err = cli.Client.Get(cli.ctx, key, opts...)
 	if err != nil {
 		goo_log.WithTag("goo-etcd").WithField("key", key).Error(err)
-		return
-	}
-	if rsp.Count == 0 {
-		return
-	}
-	for _, kv := range rsp.Kvs {
-		data[string(kv.Key)] = string(kv.Value)
 	}
 	return
 }
 
+// get string value by prefix key
+func (cli *Client) GetString(key string) string {
+	resp, err := cli.Get(key, clientv3.WithPrefix())
+	if err != nil {
+		return ""
+	}
+	return string(resp.Kvs[0].Value)
+}
+
+// get array value by prefix key
 func (cli *Client) GetArray(key string) (data []string) {
 	data = []string{}
-	rsp, err := cli.Client.Get(cli.ctx, key, clientv3.WithPrefix())
+
+	resp, err := cli.Get(key, clientv3.WithPrefix())
 	if err != nil {
 		goo_log.WithTag("goo-etcd").WithField("key", key).Error(err)
 		return
 	}
-	if rsp.Count == 0 {
+
+	for _, i := range resp.Kvs {
+		data = append(data, string(i.Value))
+	}
+
+	return
+}
+
+// get map value by prefix key
+func (cli *Client) GetMap(key string) (data map[string]string) {
+	data = map[string]string{}
+
+	resp, err := cli.Get(key, clientv3.WithPrefix())
+	if err != nil {
+		goo_log.WithTag("goo-etcd").WithField("key", key).Error(err)
 		return
 	}
-	for _, kv := range rsp.Kvs {
-		data = append(data, string(kv.Value))
+
+	for _, i := range resp.Kvs {
+		key := string(i.Key)
+		data[key] = string(i.Value)
+	}
+
+	return
+}
+
+// del key and return previous key-value
+func (cli *Client) Del(key string, opts ...clientv3.OpOption) (resp *clientv3.DeleteResponse, err error) {
+	opts = append(opts, clientv3.WithPrevKV())
+	resp, err = cli.Client.Delete(cli.ctx, key, opts...)
+	if err != nil {
+		goo_log.WithTag("goo-etcd").WithField("key", key).Error(err)
 	}
 	return
 }
 
-func (cli *Client) Watch(key string, fn func([]string)) {
-	ch := make(chan []string)
+// del prefix key and return previous key-value
+func (cli *Client) DelWithPrefix(key string) (resp *clientv3.DeleteResponse, err error) {
+	return cli.Del(key, clientv3.WithPrefix())
+}
 
-	goo_utils.AsyncFunc(func() {
+// set key and keep alive
+func (cli *Client) RegisterService(key, val string) (err error) {
+	var (
+		ttl   int64 = 1
+		lease *clientv3.LeaseGrantResponse
+		ch    <-chan *clientv3.LeaseKeepAliveResponse
+	)
+
+	lease, err = cli.Client.Grant(cli.ctx, ttl)
+	if err != nil {
+		goo_log.WithTag("goo-etcd").WithField("key", key).WithField("val", val).Error(err)
+		return
+	}
+
+	leaseID := lease.ID
+
+	_, err = cli.Client.Put(cli.ctx, key, val, clientv3.WithLease(leaseID))
+	if err != nil {
+		goo_log.WithTag("goo-etcd").WithField("key", key).WithField("val", val).Error(err)
+		return
+	}
+
+	ch, err = cli.Client.KeepAlive(cli.ctx, leaseID)
+	if err != nil {
+		goo_log.WithTag("goo-etcd").WithField("key", key).WithField("val", val).Error(err)
+		return
+	}
+
+	go func() {
 		for {
 			select {
-			case <-goo_context.Cancel().Done():
+			case <-ch:
 				return
-			case arr := <-ch:
-				fn(arr)
-			}
-		}
-	})
 
-	ch <- cli.GetArray(key)
-
-	goo_utils.AsyncFunc(func() {
-		wch := cli.Client.Watch(cli.ctx, key, clientv3.WithPrefix())
-		for rst := range wch {
-			if rst.Canceled {
-				close(ch)
+			case <-cli.ctx.Done():
 				return
 			}
-
-			var arr []string
-			for _, evt := range rst.Events {
-				switch evt.Type {
-				case mvccpb.PUT:
-					arr = append(arr, string(evt.Kv.Value))
-				}
-			}
-
-			ch <- arr
 		}
-	})
+	}()
+
+	return
 }
 
-func (cli *Client) Del(key string) (err error) {
-	_, err = cli.Client.Delete(cli.ctx, key)
-	if err != nil {
-		goo_log.WithTag("goo-etcd").WithField("key", key).Error(err)
-	}
-	return
+// watch the key
+func (cli *Client) Watch(key string) <-chan []string {
+	ch := make(chan []string, runtime.NumCPU()*2)
+
+	go func() {
+		defer func() {
+			if err := recover(); err != nil {
+				goo_log.WithTag("goo-etcd").WithField("key", key).Error(err)
+			}
+		}()
+
+		ch <- cli.GetArray(key)
+	}()
+
+	go func() {
+		defer func() {
+			if err := recover(); err != nil {
+				goo_log.WithTag("goo-etcd").WithField("key", key).Error(err)
+			}
+		}()
+
+		wc := cli.Client.Watch(cli.ctx, key, clientv3.WithPrefix())
+		for range wc {
+			ch <- cli.GetArray(key)
+		}
+	}()
+
+	return ch
 }

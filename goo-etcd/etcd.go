@@ -1,96 +1,57 @@
 package goo_etcd
 
-import (
-	"context"
-	"crypto/tls"
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
-	"go.etcd.io/etcd/client/pkg/v3/transport"
-	clientv3 "go.etcd.io/etcd/client/v3"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
-	"time"
-)
+import clientv3 "go.etcd.io/etcd/client/v3"
 
-var __cli *Client
+var __client *Client
 
-func CLI() *Client {
-	return __cli
+func Init(conf Config) {
+	__client, _ = New(conf)
 }
 
-func Init(cfg Config) {
-	var err error
-	__cli, err = New(cfg)
-	if err != nil {
-		goo_log.Panic(err.Error())
-	}
+func Set(key, val string) (resp *clientv3.PutResponse, err error) {
+	return __client.Set(key, val)
 }
 
-func New(cfg Config) (cli *Client, err error) {
-	cli = &Client{ctx: context.Background()}
-
-	config := clientv3.Config{
-		Endpoints:   cfg.Endpoints,
-		DialTimeout: 5 * time.Second,
-		// 该日志配置，用于屏蔽原生日志输出
-		LogConfig: &zap.Config{
-			Level:    zap.NewAtomicLevelAt(zapcore.ErrorLevel),
-			Encoding: "json",
-		},
-	}
-
-	if cfg.User != "" {
-		config.Username = cfg.User
-	}
-	if cfg.Password != "" {
-		config.Password = cfg.Password
-	}
-
-	if cfg.TLS != nil {
-		tlsInfo := &transport.TLSInfo{
-			CertFile:      cfg.TLS.CertFile,
-			KeyFile:       cfg.TLS.KeyFile,
-			TrustedCAFile: cfg.TLS.CAFile,
-		}
-		var clientConfig *tls.Config
-		clientConfig, err = tlsInfo.ClientConfig()
-		if err != nil {
-			goo_log.Error(err.Error())
-			return
-		}
-		config.TLS = clientConfig
-	}
-
-	cli.Client, err = clientv3.New(config)
-	if err != nil {
-		goo_log.Error(err.Error())
-	}
-	return
+func SetWithPrevKV(key, val string) (resp *clientv3.PutResponse, err error) {
+	return __client.SetWithPrevKV(key, val)
 }
 
-func Set(key, val string, ttl int64) (err error) {
-	return __cli.Set(key, val, ttl)
+func SetTTL(key, val string, ttl int64) (resp *clientv3.PutResponse, err error) {
+	return __client.SetTTL(key, val, ttl)
 }
 
-func SetWithKeepAlive(key, val string, ttl int64) (err error) {
-	return __cli.SetWithKeepAlive(key, val, ttl)
+func SetTTLWithPrevKV(key, val string, ttl int64) (resp *clientv3.PutResponse, err error) {
+	return __client.SetTTLWithPrevKV(key, val, ttl)
 }
 
-func Get(key string) string {
-	return __cli.Get(key)
+func Get(key string, opts ...clientv3.OpOption) (rsp *clientv3.GetResponse, err error) {
+	return __client.Get(key)
 }
 
-func GetMap(key string) (data map[string]string) {
-	return __cli.GetMap(key)
+func GetString(key string) string {
+	return __client.GetString(key)
 }
 
 func GetArray(key string) (data []string) {
-	return __cli.GetArray(key)
+	return __client.GetArray(key)
 }
 
-func Watch(key string, fn func(arr []string)) {
-	__cli.Watch(key, fn)
+func GetMap(key string) (data map[string]string) {
+	return __client.GetMap(key)
 }
 
-func Del(key string) error {
-	return __cli.Del(key)
+func Del(key string) (resp *clientv3.DeleteResponse, err error) {
+	return __client.Del(key)
+}
+
+func DelWithPrefix(key string) (resp *clientv3.DeleteResponse, err error) {
+	return __client.DelWithPrefix(key)
+}
+
+func RegisterService(key, val string) (err error) {
+	return __client.RegisterService(key, val)
+}
+
+func Watch(key string) <-chan []string {
+	return __client.Watch(key)
 }
