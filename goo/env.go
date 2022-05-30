@@ -8,3 +8,7 @@ const (
 	TEST        Env = "test"
 	DEVELOPMENT Env = "development"
 )
+
+func (env Env) String() string {
+	return string(env)
+}
