@@ -9,37 +9,37 @@ import (
 )
 
 type client struct {
-	config Config
-	db     *sql.DB
+	conf Config
+	db   *sql.DB
 }
 
-func New(config Config) (cli *client, err error) {
-	if config.ReadTimeout == 0 {
-		config.ReadTimeout = 10
+func New(conf Config) (cli *client, err error) {
+	if conf.ReadTimeout == 0 {
+		conf.ReadTimeout = 10
 	}
-	if config.WriteTimeout == 0 {
-		config.WriteTimeout = 20
+	if conf.WriteTimeout == 0 {
+		conf.WriteTimeout = 20
 	}
 
-	cli = &client{config: config}
+	cli = &client{conf: conf}
 
 	if err = cli.connect(); err != nil {
 		return
 	}
 
-	if !config.AutoPing || config.PingDuration == 0 {
+	if !conf.AutoPing || conf.PingDuration == 0 {
 		return
 	}
 
-	goo.Crond(config.PingDuration, __client.ping)
+	goo.Crond(conf.PingDuration, __client.ping)
 	return
 }
 
 func (cli *client) connect() (err error) {
 	dns := fmt.Sprintf("tcp://%s?username=%s&password=%s&database=%s&read_timeout=%d&write_timeout=%d&alt_hosts=%s&debug=%v",
-		cli.config.Addr, cli.config.User, cli.config.Password, cli.config.Database,
-		cli.config.ReadTimeout, cli.config.WriteTimeout, cli.config.AltHosts, cli.config.Debug)
-	cli.db, err = sql.Open(cli.config.Driver, dns)
+		cli.conf.Addr, cli.conf.User, cli.conf.Password, cli.conf.Database,
+		cli.conf.ReadTimeout, cli.conf.WriteTimeout, cli.conf.AltHosts, cli.conf.Debug)
+	cli.db, err = sql.Open(cli.conf.Driver, dns)
 	if err != nil {
 		goo_log.WithTag("goo-clickhouse").Error(err)
 	}

@@ -7,11 +7,11 @@ import (
 
 var __client *client
 
-func Init(config Config) {
+func Init(conf Config) {
 	var err error
-	if __client, err = New(config); err != nil {
+	if __client, err = New(conf); err != nil {
 		time.Sleep(10 * time.Second)
-		Init(config)
+		Init(conf)
 	}
 }
 

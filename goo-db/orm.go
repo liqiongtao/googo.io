@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/go-xorm/xorm"
+	goo_context "github.com/liqiongtao/googo.io/goo-context"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	"time"
 )
@@ -11,24 +12,24 @@ import (
 type Orm struct {
 	*xorm.EngineGroup
 
-	config Config
-	ctx    context.Context
+	conf Config
+	ctx  context.Context
 }
 
-func New(ctx context.Context, config Config) *Orm {
+func New(conf Config) *Orm {
 	return &Orm{
-		ctx:    ctx,
-		config: config,
+		ctx:  goo_context.Cancel(),
+		conf: conf,
 	}
 }
 
 func (db *Orm) connect() (err error) {
-	conns := []string{db.config.Master}
-	if n := len(db.config.Slaves); n > 0 {
-		conns = append(conns, db.config.Slaves...)
+	conns := []string{db.conf.Master}
+	if n := len(db.conf.Slaves); n > 0 {
+		conns = append(conns, db.conf.Slaves...)
 	}
 
-	db.EngineGroup, err = xorm.NewEngineGroup(db.config.Driver, conns)
+	db.EngineGroup, err = xorm.NewEngineGroup(db.conf.Driver, conns)
 	if err != nil {
 		goo_log.WithTag("goo-db").Error(err)
 		return
@@ -37,14 +38,14 @@ func (db *Orm) connect() (err error) {
 	var (
 		logFilepath = "logs/sql/"
 	)
-	if db.config.LogFilepath != "" {
-		logFilepath = db.config.LogFilepath
+	if db.conf.LogFilepath != "" {
+		logFilepath = db.conf.LogFilepath
 	}
 	db.EngineGroup.SetLogger(newLogger(logFilepath))
 
-	db.EngineGroup.ShowSQL(db.config.LogModel)
-	db.EngineGroup.SetMaxIdleConns(db.config.MaxIdle)
-	db.EngineGroup.SetMaxOpenConns(db.config.MaxOpen)
+	db.EngineGroup.ShowSQL(db.conf.LogModel)
+	db.EngineGroup.SetMaxIdleConns(db.conf.MaxIdle)
+	db.EngineGroup.SetMaxOpenConns(db.conf.MaxOpen)
 
 	return
 }

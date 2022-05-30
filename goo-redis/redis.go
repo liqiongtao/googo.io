@@ -3,28 +3,29 @@ package goo_redis
 import (
 	"context"
 	"github.com/go-redis/redis"
+	goo_context "github.com/liqiongtao/googo.io/goo-context"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	"time"
 )
 
-func NewRedis(ctx context.Context, config Config) *Redis {
+func NewRedis(conf Config) *Redis {
 	return &Redis{
-		ctx:    ctx,
-		config: config,
+		ctx:  goo_context.Cancel(),
+		conf: conf,
 	}
 }
 
 type Redis struct {
-	ctx    context.Context
-	config Config
+	ctx  context.Context
+	conf Config
 	*redis.Client
 }
 
 func (r *Redis) connect() (err error) {
 	r.Client = redis.NewClient(&redis.Options{
-		Addr:     r.config.Addr,
-		Password: r.config.Password,
-		DB:       r.config.DB,
+		Addr:     r.conf.Addr,
+		Password: r.conf.Password,
+		DB:       r.conf.DB,
 	})
 	return r.Client.Ping().Err()
 }

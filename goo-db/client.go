@@ -1,24 +1,23 @@
 package goo_db
 
 import (
-	"context"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 )
 
 var __clients = map[string]*Orm{}
 
-func Init(ctx context.Context, configs ...Config) {
-	for _, config := range configs {
-		name := config.Name
+func Init(configs ...Config) {
+	for _, conf := range configs {
+		name := conf.Name
 		if name == "" {
 			name = "default"
 		}
-		__clients[name] = New(ctx, config)
+		__clients[name] = New(conf)
 		if err := __clients[name].connect(); err != nil {
 			continue
 		}
-		if config.AutoPing {
+		if conf.AutoPing {
 			goo_utils.AsyncFunc(__clients[name].ping)
 		}
 	}
