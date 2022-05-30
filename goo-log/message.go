@@ -16,13 +16,19 @@ type Message struct {
 }
 
 func (msg *Message) JSON() []byte {
-	data := map[string]interface{}{
-		"level":    LevelText[msg.Level],
-		"datetime": msg.Time.Format("2006-01-02 15:04:05"),
+	data := map[string]interface{}{}
+
+	if l := len(msg.Entry.Data); l > 0 {
+		for _, i := range msg.Entry.Data {
+			data[i.Field] = i.Value
+		}
 	}
 
+	data["log_level"] = LevelText[msg.Level]
+	data["log_datetime"] = msg.Time.Format("2006-01-02 15:04:05")
+
 	if l := len(msg.Entry.Tags); l > 0 {
-		data["tags"] = msg.Entry.Tags
+		data["log_tags"] = msg.Entry.Tags
 	}
 
 	if l := len(msg.Message); l > 0 {
@@ -30,19 +36,11 @@ func (msg *Message) JSON() []byte {
 		for _, i := range msg.Message {
 			arr = append(arr, fmt.Sprint(i))
 		}
-		data["message"] = arr
-	}
-
-	if l := len(msg.Entry.Data); l > 0 {
-		arr := map[string]interface{}{}
-		for _, i := range msg.Entry.Data {
-			arr[i.Field] = i.Value
-		}
-		data["data"] = arr
+		data["log_content"] = arr
 	}
 
 	if msg.Level >= WARN {
-		data["trace"] = msg.trace()
+		data["log_trace"] = msg.trace()
 	}
 
 	buf, _ := json.Marshal(&data)

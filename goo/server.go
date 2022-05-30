@@ -161,9 +161,9 @@ func (s *Server) noAccess(ctx *Context) {
 // 捕获panic信息
 func (s *Server) recovery(ctx *Context) {
 	defer func() {
-		if err := recover(); err != nil {
+		if r := recover(); r != nil {
 			rsp := Error(500, "请求异常")
-			ctx.AbortWithStatusJSON(200, rsp, err)
+			ctx.AbortWithStatusJSON(200, rsp, r)
 		}
 	}()
 

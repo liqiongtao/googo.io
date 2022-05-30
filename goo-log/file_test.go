@@ -9,8 +9,8 @@ import (
 
 func TestNewFileLog(t *testing.T) {
 	l := NewFileLog(
-		FilePathOption("logs/logs/"),
-		FileMaxSizeOption(1<<10),
+		FilePathOption("logs/"),
+		FileMaxSizeOption(1<<20),
 	)
 
 	l.WithHook(func(msg *Message) {
@@ -21,8 +21,9 @@ func TestNewFileLog(t *testing.T) {
 
 	for i := 0; i < 10000; i++ {
 		wg.Add(1)
+
 		go func() {
-			wg.Done()
+			defer wg.Done()
 
 			l.Debug("hi hnatao", "aa", 100)
 			l.DebugF("hi %s", "hnatao")
@@ -30,7 +31,7 @@ func TestNewFileLog(t *testing.T) {
 			l.WithTag("u1", "u-1").Warn("hi hnatao")
 			l.WithTag("u1").WithField("name", "hnatao").Error("hi hnatao")
 			l.WithTag("u1").WithField("id", 101).Panic("hi hnatao")
-			l.WithTag("u1").WithField("id", 101).Fatal("hi hnatao")
+			//l.WithTag("u1").WithField("id", 101).Fatal("hi hnatao")
 		}()
 	}
 

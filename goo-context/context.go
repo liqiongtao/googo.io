@@ -2,58 +2,47 @@ package goo_context
 
 import (
 	"context"
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
-	"sync"
+	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	"os"
+	"os/signal"
 	"syscall"
-	"time"
 )
 
 var (
-	cancelContext     context.Context
-	cancelFunc        context.CancelFunc
-	cancelContextOnce sync.Once
+	__signal chan os.Signal
+	__ctx    context.Context
+	__cancel context.CancelFunc
 )
 
-func Cancel() context.Context {
-	cancelContextOnce.Do(func() {
-		cancelContext, cancelFunc = context.WithCancel(context.Background())
-		goo_utils.AsyncFunc(func() {
-			for sig := range signalCH {
-				switch sig {
-				case syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
-					cancelFunc()
-					return
-				case syscall.SIGUSR1:
-				case syscall.SIGUSR2:
-				}
+func init() {
+	__signal = make(chan os.Signal)
+	__ctx, __cancel = context.WithCancel(context.TODO())
+
+	signal.Notify(__signal, syscall.SIGHUP, syscall.SIGUSR1, syscall.SIGUSR2,
+		syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT, syscall.SIGKILL)
+
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				goo_log.Error(r)
 			}
-		})
-	})
-	return cancelContext
+		}()
+
+		for ch := range __signal {
+			switch ch {
+			case syscall.SIGUSR1: // kill -USR1
+
+			case syscall.SIGUSR2: // kill -USR2
+
+			case syscall.SIGHUP: // kill -1
+
+			case syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT, syscall.SIGKILL: // kill -9 or ctrl+c
+				__cancel()
+			}
+		}
+	}()
 }
 
-func Timeout(d time.Duration, v ...map[string]interface{}) context.Context {
-	var parent = context.Background()
-
-	if l := len(v); l > 0 {
-		for key, value := range v[0] {
-			parent = context.WithValue(parent, key, value)
-		}
-	}
-
-	ctx, cancelFunc := context.WithTimeout(parent, d)
-
-	goo_utils.AsyncFunc(func() {
-		for sig := range signalCH {
-			switch sig {
-			case syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
-				cancelFunc()
-				return
-			case syscall.SIGUSR1:
-			case syscall.SIGUSR2:
-			}
-		}
-	})
-
-	return ctx
+func Cancel() context.Context {
+	return __ctx
 }

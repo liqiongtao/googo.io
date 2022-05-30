@@ -60,8 +60,8 @@ func NewFileAdapter(opt ...FileOption) *FileAdapter {
 func (fa *FileAdapter) Write(msg *Message) {
 	go func() {
 		defer func() {
-			if err := recover(); err != nil {
-				log.Println(err)
+			if r := recover(); r != nil {
+				log.Println(r)
 			}
 		}()
 

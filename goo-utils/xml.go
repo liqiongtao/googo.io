@@ -29,7 +29,7 @@ func (m StringMap) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	return e.EncodeToken(start.End())
 }
 
-func (m *StringMap) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+func (m *StringMap) UnmarshalXML(d *xml.Decoder, _ xml.StartElement) error {
 	*m = StringMap{}
 	for {
 		var e xmlMapEntry

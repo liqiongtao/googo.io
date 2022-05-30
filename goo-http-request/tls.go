@@ -12,19 +12,19 @@ type Tls struct {
 	ClientKeyFile string
 }
 
-func (this *Tls) CaCrt() []byte {
-	if this.CaCrtFile == "" {
+func (s *Tls) CaCrt() []byte {
+	if s.CaCrtFile == "" {
 		return caCert
 	}
-	bts, err := ioutil.ReadFile(this.CaCrtFile)
+	bts, err := ioutil.ReadFile(s.CaCrtFile)
 	if err != nil {
 		goo_log.Error(err.Error())
 	}
 	return bts
 }
 
-func (this *Tls) ClientCrt() tls.Certificate {
-	crt, err := tls.LoadX509KeyPair(this.ClientCrtFile, this.ClientKeyFile)
+func (s *Tls) ClientCrt() tls.Certificate {
+	crt, err := tls.LoadX509KeyPair(s.ClientCrtFile, s.ClientKeyFile)
 	if err != nil {
 		goo_log.Error(err.Error())
 	}

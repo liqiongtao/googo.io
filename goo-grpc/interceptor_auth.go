@@ -1,22 +1,25 @@
-package main
+package goo_grpc
 
 import (
 	"context"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 )
 
-type AuthFunc func(ctx context.Context, fullMethod string) (context.Context, error)
+type AuthFunc func(md metadata.MD, ctx context.Context, fullMethod string) (context.Context, error)
 
 // 服务端 - 单向拦截器 - 认证
-func unaryServerInterceptorAuth(authFunc AuthFunc) grpc.UnaryServerInterceptor {
+func serverUnaryInterceptorAuth(authFunc AuthFunc) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		if authFunc == nil {
 			return handler(ctx, req)
 		}
 
-		ctxx, err := authFunc(ctx, info.FullMethod)
+		md, _ := metadata.FromIncomingContext(ctx)
+		ctxx, err := authFunc(md, ctx, info.FullMethod)
 		if err != nil {
-			return nil, err
+			return nil, status.Errorf(401, "认证失败，原因：%s", err)
 		}
 
 		return handler(ctxx, req)
@@ -24,15 +27,16 @@ func unaryServerInterceptorAuth(authFunc AuthFunc) grpc.UnaryServerInterceptor {
 }
 
 // 服务端 - 流式拦截器 - 认证
-func streamServerInterceptorAuth(authFunc AuthFunc) grpc.StreamServerInterceptor {
+func serverStreamInterceptorAuth(authFunc AuthFunc) grpc.StreamServerInterceptor {
 	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		if authFunc == nil {
 			return handler(srv, ss)
 		}
 
-		ctxx, err := authFunc(ss.Context(), info.FullMethod)
+		md, _ := metadata.FromIncomingContext(ss.Context())
+		ctxx, err := authFunc(md, ss.Context(), info.FullMethod)
 		if err != nil {
-			return err
+			return status.Errorf(401, "认证失败，原因：%s", err)
 		}
 
 		ssa := newServerStreamAuth(ss)

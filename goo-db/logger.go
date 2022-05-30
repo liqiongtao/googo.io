@@ -61,7 +61,7 @@ func (l logger) SetLevel(ll core.LogLevel) {
 	l.LogLevel = ll
 }
 
-func (l logger) ShowSQL(show ...bool) {
+func (l logger) ShowSQL(_ ...bool) {
 }
 
 func (l logger) IsShowSQL() bool {

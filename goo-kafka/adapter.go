@@ -1,7 +1,7 @@
 package goo_kafka
 
 // 生产者
-type iProducer interface {
+type IProducer interface {
 	init() error
 
 	Close()
@@ -14,7 +14,7 @@ type iProducer interface {
 }
 
 // 消费者
-type iConsumer interface {
+type IConsumer interface {
 	init() error
 
 	Close()

@@ -7,8 +7,8 @@ import (
 
 // 捕获panic
 func Recovery() {
-	if err := recover(); err != nil {
-		goo_log.Error(err)
+	if r := recover(); r != nil {
+		goo_log.Error(r)
 	}
 }
 

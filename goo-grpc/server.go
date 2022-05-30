@@ -1,4 +1,4 @@
-package main
+package goo_grpc
 
 import (
 	"fmt"
@@ -13,9 +13,11 @@ import (
 )
 
 type Server struct {
-	conf  Config
-	net   *gracenet.Net
-	s     *grpc.Server
+	conf Config
+
+	*gracenet.Net
+	*grpc.Server
+
 	pprof *PProf
 }
 
@@ -29,30 +31,36 @@ func New(conf Config, opt ...ServerOption) *Server {
 		// 单向拦截 - 链式
 		grpc.ChainUnaryInterceptor(
 			serverUnaryInterceptorLog(),
-			unaryServerInterceptorAuth(opts.AuthFunc),
+			serverUnaryInterceptorRecovery(),
+			serverUnaryInterceptorAuth(opts.AuthFunc),
 		),
 		// 流式拦截 - 链式
 		grpc.ChainStreamInterceptor(
 			serverStreamInterceptorLog(),
-			streamServerInterceptorAuth(opts.AuthFunc),
+			serverStreamInterceptorRecovery(),
+			serverStreamInterceptorAuth(opts.AuthFunc),
 		),
+		// todo:: 服务未找到
+		//grpc.UnknownServiceHandler(func(srv interface{}, stream grpc.ServerStream) error {
+		//	return nil
+		//}),
 	}...)
 
 	return &Server{
-		conf: conf,
-		net:  &gracenet.Net{},
-		s:    grpc.NewServer(serverOptions...),
+		conf:   conf,
+		Net:    &gracenet.Net{},
+		Server: grpc.NewServer(serverOptions...),
 	}
 }
 
 func (s *Server) Serve() {
 	defer func() {
-		if err := recover(); err != nil {
-			goo_log.WithTag("goo-grpc").Error(err)
+		if r := recover(); r != nil {
+			goo_log.WithTag("goo-grpc").Error(r)
 		}
 	}()
 
-	lis, err := s.net.Listen("tcp", s.conf.Addr)
+	lis, err := s.Net.Listen("tcp", s.conf.Addr)
 	if err != nil {
 		goo_log.WithTag("goo-grpc").Error(err)
 		return
@@ -60,12 +68,12 @@ func (s *Server) Serve() {
 
 	go func() {
 		defer func() {
-			if err := recover(); err != nil {
-				goo_log.WithTag("goo-grpc").Error(err)
+			if r := recover(); r != nil {
+				goo_log.WithTag("goo-grpc").Error(r)
 			}
 		}()
 
-		if err := s.s.Serve(lis); err != nil {
+		if err := s.Server.Serve(lis); err != nil {
 			goo_log.WithTag("goo-grpc").Error(err)
 		}
 	}()
@@ -120,14 +128,14 @@ func (s *Server) pprofStop() {
 
 // 平滑重启
 func (s *Server) gracefulReStart() {
-	if _, err := s.net.StartProcess(); err != nil {
+	if _, err := s.Net.StartProcess(); err != nil {
 		goo_log.WithTag("goo-grpc").Error(err)
 	}
 }
 
 // 平滑退出
 func (s *Server) gracefulStop() {
-	s.s.GracefulStop()
+	s.Server.GracefulStop()
 }
 
 func (s *Server) storePID() {

@@ -5,19 +5,21 @@ import (
 	goo_http_request "github.com/liqiongtao/googo.io/goo-http-request"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	"runtime"
+	"sync"
 )
 
-var FeiShu = &feishu{
-	ch: make(chan struct{}, runtime.NumCPU()*2),
-}
+var (
+	__fieShuCH   chan struct{}
+	__feiShuOnce sync.Once
+)
 
-type feishu struct {
-	ch chan struct{}
-}
+func FieShu(hookUrl string, text string) error {
+	__feiShuOnce.Do(func() {
+		__fieShuCH = make(chan struct{}, runtime.NumCPU()*2)
+	})
 
-func (fs *feishu) Text(hookUrl string, text string) error {
-	fs.ch <- struct{}{}
-	defer func() { <-fs.ch }()
+	__fieShuCH <- struct{}{}
+	defer func() { <-__fieShuCH }()
 
 	content := goo_utils.NewParams().Set("text", text)
 

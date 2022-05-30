@@ -9,11 +9,11 @@ type group struct {
 	handler ConsumerHandler
 }
 
-func (g group) Setup(sess sarama.ConsumerGroupSession) error {
+func (g group) Setup(sarama.ConsumerGroupSession) error {
 	return nil
 }
 
-func (group) Cleanup(sess sarama.ConsumerGroupSession) error {
+func (group) Cleanup(sarama.ConsumerGroupSession) error {
 	return nil
 }
 

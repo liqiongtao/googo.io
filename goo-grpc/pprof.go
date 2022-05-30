@@ -1,4 +1,4 @@
-package main
+package goo_grpc
 
 import (
 	"fmt"

@@ -3,10 +3,14 @@ package goo_etcd
 import (
 	"context"
 	"crypto/tls"
+	goo_context "github.com/liqiongtao/googo.io/goo-context"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	"go.etcd.io/etcd/client/pkg/v3/transport"
 	clientv3 "go.etcd.io/etcd/client/v3"
+	"go.etcd.io/etcd/client/v3/naming/endpoints"
 	"runtime"
+	"strconv"
+	"sync"
 	"time"
 )
 
@@ -16,7 +20,7 @@ type Client struct {
 }
 
 func New(conf Config) (cli *Client, err error) {
-	cli = &Client{ctx: context.TODO()}
+	cli = &Client{ctx: goo_context.Cancel()}
 
 	config := clientv3.Config{
 		Endpoints:   conf.Endpoints,
@@ -162,42 +166,48 @@ func (cli *Client) DelWithPrefix(key string) (resp *clientv3.DeleteResponse, err
 	return cli.Del(key, clientv3.WithPrefix())
 }
 
-// set key and keep alive
-func (cli *Client) RegisterService(key, val string) (err error) {
+// register service and keepalive
+func (cli *Client) RegisterService(serviceName, addr string) (err error) {
 	var (
 		ttl   int64 = 1
+		em    endpoints.Manager
 		lease *clientv3.LeaseGrantResponse
 		ch    <-chan *clientv3.LeaseKeepAliveResponse
 	)
 
+	em, err = endpoints.NewManager(cli.Client, serviceName)
+	if err != nil {
+		goo_log.WithTag("goo-etcd").WithField("serviceName", serviceName).WithField("addr", addr).Error(err)
+		return
+	}
+
 	lease, err = cli.Client.Grant(cli.ctx, ttl)
 	if err != nil {
-		goo_log.WithTag("goo-etcd").WithField("key", key).WithField("val", val).Error(err)
+		goo_log.WithTag("goo-etcd").WithField("serviceName", serviceName).WithField("addr", addr).Error(err)
 		return
 	}
 
-	leaseID := lease.ID
-
-	_, err = cli.Client.Put(cli.ctx, key, val, clientv3.WithLease(leaseID))
+	serviceKey := serviceName + "/" + strconv.Itoa(int(lease.ID))
+	err = em.AddEndpoint(cli.Ctx(), serviceKey, endpoints.Endpoint{Addr: addr}, clientv3.WithLease(lease.ID))
 	if err != nil {
-		goo_log.WithTag("goo-etcd").WithField("key", key).WithField("val", val).Error(err)
+		goo_log.WithTag("goo-etcd").WithField("serviceName", serviceName).WithField("addr", addr).Error(err)
 		return
 	}
 
-	ch, err = cli.Client.KeepAlive(cli.ctx, leaseID)
+	ch, err = cli.Client.KeepAlive(cli.ctx, lease.ID)
 	if err != nil {
-		goo_log.WithTag("goo-etcd").WithField("key", key).WithField("val", val).Error(err)
+		goo_log.WithTag("goo-etcd").WithField("serviceName", serviceName).WithField("addr", addr).Error(err)
 		return
 	}
 
 	go func() {
 		for {
 			select {
-			case <-ch:
+			case <-cli.ctx.Done():
+				cli.Client.Revoke(cli.ctx, lease.ID)
 				return
 
-			case <-cli.ctx.Done():
-				return
+			case <-ch:
 			}
 		}
 	}()
@@ -207,30 +217,57 @@ func (cli *Client) RegisterService(key, val string) (err error) {
 
 // watch the key
 func (cli *Client) Watch(key string) <-chan []string {
-	ch := make(chan []string, runtime.NumCPU()*2)
+	var (
+		mu   sync.Mutex
+		ch   = make(chan []string, runtime.NumCPU()*2)
+		data = cli.GetMap(key)
+	)
+
+	ch <- cli.map2array(data)
 
 	go func() {
 		defer func() {
-			if err := recover(); err != nil {
-				goo_log.WithTag("goo-etcd").WithField("key", key).Error(err)
-			}
-		}()
-
-		ch <- cli.GetArray(key)
-	}()
-
-	go func() {
-		defer func() {
-			if err := recover(); err != nil {
-				goo_log.WithTag("goo-etcd").WithField("key", key).Error(err)
+			if r := recover(); r != nil {
+				goo_log.WithTag("goo-etcd").WithField("key", key).Error(r)
 			}
 		}()
 
 		wc := cli.Client.Watch(cli.ctx, key, clientv3.WithPrefix())
-		for range wc {
-			ch <- cli.GetArray(key)
+		for {
+			select {
+			case <-cli.ctx.Done():
+				return
+
+			case w := <-wc:
+				mu.Lock()
+
+				for _, ev := range w.Events {
+					k := string(ev.Kv.Key)
+					v := string(ev.Kv.Value)
+
+					switch ev.Type {
+					case clientv3.EventTypePut:
+						data[k] = v
+
+					case clientv3.EventTypeDelete:
+						delete(data, k)
+					}
+				}
+
+				ch <- cli.map2array(data)
+
+				mu.Unlock()
+			}
 		}
 	}()
 
 	return ch
+}
+
+func (cli *Client) map2array(data map[string]string) []string {
+	var arrData []string
+	for _, v := range data {
+		arrData = append(arrData, v)
+	}
+	return arrData
 }

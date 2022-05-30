@@ -102,8 +102,8 @@ func (entry *Entry) output(level Level, v ...interface{}) {
 
 func (entry *Entry) hookHandler(fn func(msg *Message)) {
 	defer func() {
-		if err := recover(); err != nil {
-			log.Println(err)
+		if r := recover(); r != nil {
+			log.Println(r)
 		}
 	}()
 

@@ -31,10 +31,10 @@ func Client() *client {
 	return __client
 }
 
-func Producer() iProducer {
+func Producer() IProducer {
 	return &producer{client: __client}
 }
 
-func Consumer() iConsumer {
+func Consumer() IConsumer {
 	return &consumer{client: __client}
 }

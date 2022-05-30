@@ -84,31 +84,31 @@ func SHAWithRSA(key, data []byte) (string, error) {
 }
 
 func AESECBEncrypt(data, key []byte) ([]byte, error) {
-	cipher, err := aes.NewCipher(key)
+	cb, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
 	}
-	blockSize := cipher.BlockSize()
+	blockSize := cb.BlockSize()
 	paddingSize := blockSize - len(data)%blockSize
 	if paddingSize != 0 {
 		data = append(data, bytes.Repeat([]byte{byte(0)}, paddingSize)...)
 	}
 	encrypted := make([]byte, len(data))
 	for bs, be := 0, blockSize; bs < len(data); bs, be = bs+blockSize, be+blockSize {
-		cipher.Encrypt(encrypted[bs:be], data[bs:be])
+		cb.Encrypt(encrypted[bs:be], data[bs:be])
 	}
 	return encrypted, nil
 }
 
 func AESECBDecrypt(buf, key []byte) ([]byte, error) {
-	cipher, err := aes.NewCipher(key)
+	cb, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
 	}
-	blockSize := cipher.BlockSize()
+	blockSize := cb.BlockSize()
 	decrypted := make([]byte, len(buf))
 	for bs, be := 0, blockSize; bs < len(buf); bs, be = bs+blockSize, be+blockSize {
-		cipher.Decrypt(decrypted[bs:be], buf[bs:be])
+		cb.Decrypt(decrypted[bs:be], buf[bs:be])
 	}
 	paddingSize := int(decrypted[len(decrypted)-1])
 	return decrypted[0 : len(decrypted)-paddingSize], nil

@@ -14,6 +14,10 @@ func Default() *Logger {
 	return __log
 }
 
+func SetAdapter(adapter Adapter) {
+	Default().adapter = adapter
+}
+
 func WithHook(fns ...func(msg *Message)) {
 	Default().WithHook(fns...)
 }

@@ -8,6 +8,10 @@ func Init(conf Config) {
 	__client, _ = New(conf)
 }
 
+func Default() *Client {
+	return __client
+}
+
 func Set(key, val string) (resp *clientv3.PutResponse, err error) {
 	return __client.Set(key, val)
 }
@@ -25,7 +29,7 @@ func SetTTLWithPrevKV(key, val string, ttl int64) (resp *clientv3.PutResponse, e
 }
 
 func Get(key string, opts ...clientv3.OpOption) (rsp *clientv3.GetResponse, err error) {
-	return __client.Get(key)
+	return __client.Get(key, opts...)
 }
 
 func GetString(key string) string {

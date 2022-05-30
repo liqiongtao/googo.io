@@ -1,39 +1,13 @@
-# goo-context
+# signal
 
-## Cancel
+- `syscall.SIGUSR1`: `kill -USR1`
+- `syscall.SIGUSR2`: `kill -USR2`
+- `syscall.SIGHUP`: `kill -1`
+- `syscall.SIGTERM`: `kill TERM`
+- `syscall.SIGQUIT`: `kill QUIT`
+- `syscall.SIGINT`: `ctrl + c`
+- `syscall.SIGKILL`: `kill -9` 应用程序捕获不到
 
-```
-func main() {
-    for {
-        select {
-        case <-goo_context.Cancel().Done():
-            goo_log.Debug("exit")
-            return
+# context
 
-        default:
-            goo_log.Debug(time.Now().Format("15:04:05"))
-            time.Sleep(time.Second)
-        }
-    }
-}
-```
-
-## Timeout
-
-```
-func main() {
-    ctx := goo_context.Timeout(5 * time.Second)
-    	
-    for {
-        select {
-        case <-ctx.Done():
-            goo_log.Debug("exit")
-            return
-
-        default:
-            goo_log.Debug(time.Now().Format("15:04:05"))
-            time.Sleep(time.Second)
-        }
-    }
-}
-```
+- `Cancel()` 取消执行
