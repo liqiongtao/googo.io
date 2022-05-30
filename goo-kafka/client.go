@@ -7,20 +7,17 @@ import (
 )
 
 type client struct {
-	user     string
-	password string
-	addrs    []string
-	timeout  time.Duration
+	conf Config
 	sarama.Client
 }
 
 func (cli *client) init() (err error) {
 	config := sarama.NewConfig()
 
-	if cli.user != "" {
+	if cli.conf.User != "" {
 		config.Net.SASL.Enable = true
-		config.Net.SASL.User = cli.user
-		config.Net.SASL.Password = cli.password
+		config.Net.SASL.User = cli.conf.User
+		config.Net.SASL.Password = cli.conf.Password
 	}
 
 	// 等所有follower都成功后再返回
@@ -40,11 +37,11 @@ func (cli *client) init() (err error) {
 	config.ChannelBufferSize = 1000
 	config.Version = sarama.V0_10_2_0
 
-	if cli.timeout > 0 {
-		config.Producer.Timeout = cli.timeout
+	if cli.conf.Timeout > 0 {
+		config.Producer.Timeout = time.Duration(cli.conf.Timeout) * time.Second
 	}
 
-	cli.Client, err = sarama.NewClient(cli.addrs, config)
+	cli.Client, err = sarama.NewClient(cli.conf.Addrs, config)
 	if err != nil {
 		goo_log.WithTag("goo-kafka").Error(err)
 	}

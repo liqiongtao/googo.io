@@ -3,20 +3,14 @@ package goo_kafka
 import (
 	goo_context "github.com/liqiongtao/googo.io/goo-context"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
-	"time"
 )
 
 var (
 	__client *client
 )
 
-func Init(user, password string, addrs ...string) error {
-	__client = &client{
-		user:     user,
-		password: password,
-		addrs:    addrs,
-		timeout:  5 * time.Second,
-	}
+func Init(conf Config) error {
+	__client = &client{conf: conf}
 	goo_utils.AsyncFunc(func() {
 		select {
 		case <-goo_context.Cancel().Done():
