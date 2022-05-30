@@ -11,7 +11,7 @@ import (
 type Response struct {
 	Code    int32         `json:"code"`
 	Message string        `json:"message"`
-	Data    interface{}   `json:"data"`
+	Data    interface{}   `json:"data,omitempty"`
 	Errors  []interface{} `json:"-"`
 }
 
@@ -38,7 +38,6 @@ func Error(code int32, message string, v ...interface{}) *Response {
 	return &Response{
 		Code:    code,
 		Message: message,
-		Data:    map[string]string{},
 		Errors:  v,
 	}
 }

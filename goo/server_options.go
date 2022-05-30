@@ -1,49 +1,93 @@
 package goo
 
-type Option struct {
-	Name  string
-	Value interface{}
+var defaultOptions = options{
+	noAccessPath: map[string]struct{}{
+		"/favicon.ico": {},
+	},
+	noLogPath: map[string]struct{}{
+		"/favicon.ico": {},
+	},
+	corsHeaders: []string{
+		"Content-Type", "Content-Length",
+		"Accept", "Referer", "User-Agent", "Authorization",
+		"X-Requested-Id", "X-Request-Timestamp", "X-Request-Sign",
+		"X-Request-AppId", "X-Request-Source", "X-Request-Token",
+	},
 }
 
-func NewOption(name string, value interface{}) Option {
-	return Option{Name: name, Value: value}
+type options struct {
+	pprofEnable  bool
+	serverName   string
+	env          Env
+	corsHeaders  []string
+	noAccessPath map[string]struct{}
+	noLogPath    map[string]struct{}
 }
 
-const (
-	pprofEnable   = "pprof-enable"
-	baseDir       = "base-dir"
-	serverName    = "server-name"
-	corsHeaders   = "cors-headers"
-	noAccessPaths = "no-access-paths"
-	noLogPaths    = "no-log-paths"
-)
-
-// 性能分析
-func PProfEnable(flag bool) Option {
-	return NewOption(pprofEnable, flag)
+type Option interface {
+	apply(opts *options)
 }
 
-// 根路径
-func BaseDirOption(v string) Option {
-	return NewOption(baseDir, v)
+type funcOption struct {
+	f func(opts *options)
+}
+
+func newFuncOption(f func(opts *options)) *funcOption {
+	return &funcOption{f: f}
+}
+
+func (f funcOption) apply(opts *options) {
+	f.f(opts)
+}
+
+// 开启分析
+func PProfEnableOption(pprofEnable bool) Option {
+	return newFuncOption(func(opts *options) {
+		opts.pprofEnable = pprofEnable
+	})
 }
 
 // 服务名称
-func ServerNameOption(v string) Option {
-	return NewOption(serverName, v)
+func ServerNameOption(serverName string) Option {
+	return newFuncOption(func(opts *options) {
+		opts.serverName = serverName
+	})
 }
 
-// 跨域字段
-func CorsHeadersOption(v ...string) Option {
-	return NewOption(corsHeaders, v)
+// 运行环境
+func EnvOption(env Env) Option {
+	return newFuncOption(func(opts *options) {
+		opts.env = env
+	})
 }
 
-// 不允许访问的路径
-func NoAccessPathsOption(v ...string) Option {
-	return NewOption(noAccessPaths, v)
+// 跨域
+func CorsHeaderOption(corsHeaders ...string) Option {
+	return newFuncOption(func(opts *options) {
+		opts.corsHeaders = append(opts.corsHeaders, corsHeaders...)
+	})
 }
 
-// 不记录日志的路径
-func NoLogPathsOption(v ...string) Option {
-	return NewOption(noLogPaths, v)
+// 禁止访问的path
+func NoAccessPathsOption(noAccessPaths ...string) Option {
+	return newFuncOption(func(opts *options) {
+		for _, i := range noAccessPaths {
+			opts.noAccessPath[i] = struct{}{}
+		}
+	})
+}
+
+// 不记录日志的path
+func NoLogPathsOption(noLogPaths ...string) Option {
+	return newFuncOption(func(opts *options) {
+		for _, i := range noLogPaths {
+			opts.noLogPath[i] = struct{}{}
+		}
+	})
+}
+
+// 不记录日志的path
+func Router() Option {
+	return newFuncOption(func(opts *options) {
+	})
 }

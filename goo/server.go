@@ -9,9 +9,8 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+	"time"
 )
-
-type HandlerFunc func(ctx *Context)
 
 // 定义web服务
 type Server struct {
@@ -19,12 +18,6 @@ type Server struct {
 
 	// 性能分析
 	pprofEnable bool
-
-	// 根路径
-	baseDir string
-
-	// 服务名称
-	serverName string
 
 	// 不允许访问的路径
 	noAccessPath map[string]struct{}
@@ -36,66 +29,25 @@ type Server struct {
 	corsHeaders []string
 }
 
-func NewServer(opts ...Option) *Server {
-	s := &Server{
-		Engine: gin.New(),
-		noAccessPath: map[string]struct{}{
-			"/favicon.ico": {},
-		},
-		noLogPath: map[string]struct{}{
-			"/favicon.ico": {},
-		},
-		corsHeaders: []string{
-			"Content-Type", "Content-Length",
-			"Accept", "Referer", "User-Agent", "Authorization",
-			"X-Requested-Id", "X-Request-Timestamp", "X-Request-Sign",
-			"X-Request-AppId", "X-Request-Source", "X-Request-Token",
-		},
+func NewServer(opt ...Option) *Server {
+	opts := defaultOptions
+	for _, o := range opt {
+		o.apply(&opts)
 	}
 
-	s.apply(opts...)
+	s := &Server{
+		Engine:       gin.New(),
+		noAccessPath: opts.noAccessPath,
+		noLogPath:    opts.noLogPath,
+		corsHeaders:  opts.corsHeaders,
+	}
 
 	s.Engine.NoRoute(s.noRoute)
 	s.Engine.NoMethod(s.noMethod)
 
-	s.Use(s.cors, s.noAccess, s.recovery)
+	s.Use(s.cors, s.noAccess, s.log(opts), s.recovery)
 
 	return s
-}
-
-// 参数设置
-func (s *Server) apply(opts ...Option) {
-	if l := len(opts); l == 0 {
-		return
-	}
-
-	for _, opt := range opts {
-		switch opt.Name {
-		case pprofEnable:
-			s.pprofEnable = opt.Value.(bool)
-
-		case baseDir:
-			s.baseDir = opt.Value.(string)
-
-		case serverName:
-			s.serverName = opt.Value.(string)
-
-		case noAccessPaths:
-			for _, value := range opt.Value.([]string) {
-				s.noAccessPath[value] = struct{}{}
-			}
-
-		case noLogPaths:
-			for _, value := range opt.Value.([]string) {
-				s.noLogPath[value] = struct{}{}
-			}
-
-		case corsHeaders:
-			for _, value := range opt.Value.([]string) {
-				s.corsHeaders = append(s.corsHeaders, value)
-			}
-		}
-	}
 }
 
 // 启动服务
@@ -104,80 +56,112 @@ func (s *Server) Run(addr string) {
 	if err := ioutil.WriteFile(".pid", []byte(pid), 0644); err != nil {
 		goo_log.Panic(err.Error())
 	}
+
 	// 性能分析
 	if s.pprofEnable {
 		pprof.Register(s.Engine, "/goo/pprof")
 	}
+
 	endless.NewServer(addr, s.Engine).ListenAndServe()
 }
 
-// 路由
-func (s *Server) Router(fn func(s *Server)) *Server {
-	fn(s)
-	return s
-}
-
-// 中间件
-func (s *Server) Use(handlers ...HandlerFunc) *Server {
-	for _, handler := range handlers {
-		s.Engine.Use(func(handler HandlerFunc) gin.HandlerFunc {
-			return func(c *gin.Context) {
-				ctx := NewContext(c)
-				ctx.Set("__request_id", ctx.requestId())
-				ctx.Set("__base_dir", s.baseDir)
-				ctx.Set("__server_name", s.serverName)
-				ctx.Set("__server", s)
-				handler(ctx)
-			}
-		}(handler))
-	}
-
-	return s
-}
-
 // 跨域
-func (s *Server) cors(ctx *Context) {
-	ctx.Header("Access-Control-Allow-Origin", "*")
-	ctx.Header("Access-Control-Allow-Methods", "PUT, POST, GET, DELETE, OPTIONS")
-	ctx.Header("Access-Control-Allow-Headers", strings.Join(s.corsHeaders, ","))
-	ctx.Next()
+func (s *Server) cors(c *gin.Context) {
+	c.Header("Access-Control-Allow-Origin", "*")
+	c.Header("Access-Control-Allow-Methods", "PUT, POST, GET, DELETE, OPTIONS")
+	c.Header("Access-Control-Allow-Headers", strings.Join(s.corsHeaders, ","))
+	c.Next()
 }
 
 // 禁止访问
-func (s *Server) noAccess(ctx *Context) {
-	if ctx.Request.Method == "OPTIONS" {
-		ctx.AbortWithStatus(200)
+func (s *Server) noAccess(c *gin.Context) {
+	if c.Request.Method == "OPTIONS" {
+		c.AbortWithStatus(200)
 		return
 	}
 
-	if _, ok := s.noAccessPath[ctx.Request.URL.Path]; ok {
-		ctx.AbortWithStatus(200)
+	if _, ok := s.noAccessPath[c.Request.URL.Path]; ok {
+		c.AbortWithStatus(200)
 		return
 	}
 
-	ctx.Next()
+	c.Next()
+}
+
+// log
+func (s *Server) log(opts options) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		c.Set("__server_name", opts.serverName)
+		c.Set("__env", opts.env.String())
+
+		beginTime := time.Now()
+
+		header := gin.H{}
+		if v := c.GetHeader("Authorization"); v != "" {
+			header["authorization"] = v
+		}
+		if v := c.GetHeader("Content-Type"); v != "" {
+			header["content-type"] = v
+		}
+
+		req := gin.H{
+			"method":    c.Request.Method,
+			"uri":       c.Request.RequestURI,
+			"header":    header,
+			"client-ip": clientIP(c),
+			"trace-id":  requestId(c),
+		}
+		if v := requestBody(c); v != nil {
+			req["body"] = v
+		}
+
+		l := goo_log.WithTag("goo-api").
+			WithField("request", req)
+
+		c.Next()
+
+		l.WithField("duration", fmt.Sprintf("%dms", time.Since(beginTime)/1e6))
+
+		if resp, has := c.Get("__response"); has {
+			l.WithField("response", resp)
+			if r, ok := resp.(*Response); ok {
+				if ll := len(r.Errors); ll > 0 {
+					l.Error(r.Errors)
+					return
+				}
+
+				if r.Code > 0 {
+					l.Warn()
+					return
+				}
+			}
+		}
+
+		l.Debug()
+	}
 }
 
 // 捕获panic信息
-func (s *Server) recovery(ctx *Context) {
+func (s *Server) recovery(c *gin.Context) {
 	defer func() {
 		if r := recover(); r != nil {
-			rsp := Error(500, "请求异常")
-			ctx.AbortWithStatusJSON(200, rsp, r)
+			resp := Error(500, fmt.Sprintf("请求异常, 提示信息: %v", r), r)
+			c.Set("__response", resp)
+			c.AbortWithStatusJSON(500, resp)
 		}
 	}()
 
-	ctx.Next()
+	c.Next()
 }
 
 // 找不到路由
 func (s *Server) noRoute(c *gin.Context) {
 	rsp := Error(404, "Page Not Found")
-	NewContext(c).AbortWithStatusJSON(404, rsp)
+	c.AbortWithStatusJSON(404, rsp)
 }
 
 // 找不到方法
 func (*Server) noMethod(c *gin.Context) {
 	rsp := Error(405, "Method not allowed")
-	NewContext(c).AbortWithStatusJSON(405, rsp)
+	c.AbortWithStatusJSON(405, rsp)
 }

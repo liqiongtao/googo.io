@@ -2,7 +2,7 @@ package goo_xlsx
 
 import (
 	"fmt"
-	"github.com/liqiongtao/googo.io/goo"
+	"github.com/gin-gonic/gin"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	"github.com/xuri/excelize/v2"
 )
@@ -64,7 +64,7 @@ func (x *xlsxWrite) Save2File(filename string) (err error) {
 	return nil
 }
 
-func (x *xlsxWrite) Output(ctx *goo.Context, filename string) (err error) {
+func (x *xlsxWrite) Output(ctx *gin.Context, filename string) (err error) {
 	if err = x.fh.SetSheetRow(x.sheetName, "A1", x.titles); err != nil {
 		goo_log.Error(err)
 		return

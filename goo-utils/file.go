@@ -48,9 +48,8 @@ func WriteToFile(filename string, b []byte) error {
 }
 
 // 追踪信息
-func Trace(skip int, trimPaths ...string) (arr []string) {
+func Trace(skip int) (arr []string) {
 	arr = []string{}
-	l := len(trimPaths)
 	if skip == 0 {
 		skip = 1
 	}
@@ -66,12 +65,21 @@ func Trace(skip int, trimPaths ...string) (arr []string) {
 			strings.Contains(file, "vendor/") {
 			continue
 		}
-		if l > 0 {
-			for _, trimPath := range trimPaths {
-				file = strings.Replace(file, trimPath, "", -1)
-			}
-		}
-		arr = append(arr, fmt.Sprintf("%s %dL", file, line))
+		arr = append(arr, fmt.Sprintf("%s %dL", prettyFile(file), line))
 	}
 	return
+}
+
+func prettyFile(file string) string {
+	index := strings.LastIndex(file, "/")
+	if index < 0 {
+		return file
+	}
+
+	index2 := strings.LastIndex(file[:index], "/")
+	if index2 < 0 {
+		return file[index+1:]
+	}
+
+	return file[index2+1:]
 }

@@ -20,6 +20,7 @@ require (
 	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/go-xorm/xorm v0.7.9
+	github.com/google/uuid v1.1.2
 	github.com/klauspost/compress v1.14.2 // indirect
 	github.com/satori/go.uuid v1.2.0 // indirect
 	github.com/xuri/excelize/v2 v2.5.0

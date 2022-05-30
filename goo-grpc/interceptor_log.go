@@ -39,7 +39,7 @@ func serverUnaryInterceptorLog() grpc.UnaryServerInterceptor {
 
 		defer func() {
 			l.WithField("response", resp)
-			l.WithField("execute_time", fmt.Sprintf("%dms", time.Since(startTime)/1e6))
+			l.WithField("duration", fmt.Sprintf("%dms", time.Since(startTime)/1e6))
 
 			if err == nil {
 				l.Debug()
@@ -71,7 +71,7 @@ func serverStreamInterceptorLog() grpc.StreamServerInterceptor {
 		var startTime = time.Now()
 
 		defer func() {
-			l.WithField("execute_time", fmt.Sprintf("%dms", time.Since(startTime)/1e6))
+			l.WithField("duration", fmt.Sprintf("%dms", time.Since(startTime)/1e6))
 
 			if err != nil {
 				l.Error(err)
