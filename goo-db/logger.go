@@ -22,7 +22,7 @@ func (l logger) Debug(v ...interface{}) {
 	l.l.Debug(v...)
 }
 
-func (l logger) DebugF(format string, v ...interface{}) {
+func (l logger) Debugf(format string, v ...interface{}) {
 	l.l.Debug(fmt.Sprintf(format, v...))
 }
 
@@ -38,7 +38,7 @@ func (l logger) Info(v ...interface{}) {
 	l.l.Info(v...)
 }
 
-func (l logger) InfoF(format string, v ...interface{}) {
+func (l logger) Infof(format string, v ...interface{}) {
 	if strings.Index(format, "PING DATABASE") != -1 {
 		return
 	}
@@ -49,7 +49,7 @@ func (l logger) Warn(v ...interface{}) {
 	l.l.Warn(v...)
 }
 
-func (l logger) WarnF(format string, v ...interface{}) {
+func (l logger) Warnf(format string, v ...interface{}) {
 	l.l.Warn(fmt.Sprintf(format, v...))
 }
 
