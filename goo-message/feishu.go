@@ -13,7 +13,7 @@ var (
 	__feiShuOnce sync.Once
 )
 
-func FieShu(hookUrl string, text string) error {
+func FeiShu(hookUrl string, text string) error {
 	__feiShuOnce.Do(func() {
 		__fieShuCH = make(chan struct{}, runtime.NumCPU()*2)
 	})
