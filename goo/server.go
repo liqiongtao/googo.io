@@ -1,11 +1,14 @@
 package goo
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"github.com/fvbock/endless"
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -29,7 +32,7 @@ func NewServer(opt ...Option) *Server {
 	s.Engine.NoRoute(s.noRoute)
 	s.Engine.NoMethod(s.noMethod)
 
-	s.Use(s.cors, s.noAccess, s.log, s.recovery)
+	s.Use(s.cors, s.noAccess, s.decodeBody, s.log, s.recovery)
 
 	return s
 }
@@ -67,6 +70,36 @@ func (s *Server) noAccess(c *gin.Context) {
 	if _, ok := defaultOptions.noAccessPath[c.Request.URL.Path]; ok {
 		c.AbortWithStatus(200)
 		return
+	}
+
+	c.Next()
+}
+
+//
+func (s *Server) decodeBody(c *gin.Context) {
+	if !defaultOptions.enableEncodeResponse {
+		c.Next()
+		return
+	}
+
+	switch c.ContentType() {
+	case "application/json":
+		b, err := ioutil.ReadAll(c.Request.Body)
+		if err != nil {
+			c.AbortWithStatusJSON(403, Error(40301, "数据错误", err))
+			return
+		}
+
+		req := map[string]string{}
+		if err := json.Unmarshal(b, &req); err != nil {
+			c.AbortWithStatusJSON(403, Error(40302, "数据错误", err))
+			return
+		}
+
+		if str := req["data"]; str != "" {
+			jsonStr := goo_utils.Base59Decoding(str, defaultOptions.encodeKey)
+			c.Request.Body = ioutil.NopCloser(bytes.NewBuffer([]byte(jsonStr)))
+		}
 	}
 
 	c.Next()
@@ -138,12 +171,10 @@ func (s *Server) recovery(c *gin.Context) {
 
 // 找不到路由
 func (s *Server) noRoute(c *gin.Context) {
-	rsp := Error(404, "Page Not Found")
-	c.AbortWithStatusJSON(404, rsp)
+	c.AbortWithStatusJSON(404, Error(404, "Page Not Found"))
 }
 
 // 找不到方法
 func (*Server) noMethod(c *gin.Context) {
-	rsp := Error(405, "Method not allowed")
-	c.AbortWithStatusJSON(405, rsp)
+	c.AbortWithStatusJSON(405, Error(405, "Method not allowed"))
 }

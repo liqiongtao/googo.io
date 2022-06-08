@@ -1,7 +1,7 @@
 package goo
 
 import (
-	"fmt"
+	"encoding/json"
 	"github.com/gin-gonic/gin"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 )
@@ -22,12 +22,19 @@ func Handler(controller iController) gin.HandlerFunc {
 
 		c.Set("__response", resp)
 
-		if defaultOptions.enableEncodeResponse {
-			if resp.Data != nil {
-				resp.Data = goo_utils.Base59Encoding(fmt.Sprintf("%v", resp.Data), defaultOptions.encodeKey)
-			}
+		if !defaultOptions.enableEncodeResponse {
+			c.JSON(200, resp)
+			return
 		}
 
-		c.JSON(200, resp)
+		data := gin.H{
+			"code":    resp.Code,
+			"message": resp.Message,
+		}
+		if resp.Data != nil {
+			b, _ := json.Marshal(&resp.Data)
+			data["data"] = goo_utils.Base59Encoding(string(b), defaultOptions.encodeKey)
+		}
+		c.JSON(200, data)
 	}
 }
