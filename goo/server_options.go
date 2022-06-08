@@ -89,9 +89,12 @@ func NoLogPathsOption(noLogPaths ...string) Option {
 }
 
 // 启用加密传输
-func EnableEncryptionOption() Option {
+func EnableEncryptionOption(key ...string) Option {
 	return newFuncOption(func(opts *options) {
 		opts.enableEncryption = true
+		if l := len(key); l > 0 {
+			opts.encryptionKey = key[0]
+		}
 	})
 }
 
