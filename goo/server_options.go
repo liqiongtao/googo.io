@@ -16,12 +16,14 @@ var defaultOptions = options{
 }
 
 type options struct {
-	pprofEnable  bool
-	serverName   string
-	env          Env
-	corsHeaders  []string
-	noAccessPath map[string]struct{}
-	noLogPath    map[string]struct{}
+	pprofEnable          bool
+	serverName           string
+	env                  Env
+	corsHeaders          []string
+	noAccessPath         map[string]struct{}
+	noLogPath            map[string]struct{}
+	enableEncodeResponse bool
+	encodeKey            string
 }
 
 type Option interface {
@@ -86,8 +88,16 @@ func NoLogPathsOption(noLogPaths ...string) Option {
 	})
 }
 
-// 不记录日志的path
-func Router() Option {
+// 启用加密传输
+func EnableEncodeResponseOption() Option {
 	return newFuncOption(func(opts *options) {
+		opts.enableEncodeResponse = true
+	})
+}
+
+// 启用加密传输
+func EncodeKeyOption(key string) Option {
+	return newFuncOption(func(opts *options) {
+		opts.encodeKey = key
 	})
 }

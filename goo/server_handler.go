@@ -1,7 +1,9 @@
 package goo
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
+	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 )
 
 // 定义控制器抽象类
@@ -19,6 +21,12 @@ func Handler(controller iController) gin.HandlerFunc {
 		}
 
 		c.Set("__response", resp)
+
+		if defaultOptions.enableEncodeResponse {
+			if resp.Data != nil {
+				resp.Data = goo_utils.Base59Encoding(fmt.Sprintf("%v", resp.Data), defaultOptions.encodeKey)
+			}
+		}
 
 		c.JSON(200, resp)
 	}
