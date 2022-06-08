@@ -75,7 +75,7 @@ func (s *Server) noAccess(c *gin.Context) {
 	c.Next()
 }
 
-//
+// 解密请求参数
 func (s *Server) decodeBody(c *gin.Context) {
 	if !defaultOptions.enableEncodeResponse {
 		c.Next()
@@ -96,7 +96,7 @@ func (s *Server) decodeBody(c *gin.Context) {
 			return
 		}
 
-		if str := req["data"]; str != "" {
+		if str, ok := req["data"]; ok && str != "" {
 			jsonStr := goo_utils.Base59Decoding(str, defaultOptions.encodeKey)
 			c.Request.Body = ioutil.NopCloser(bytes.NewBuffer([]byte(jsonStr)))
 		}
@@ -109,6 +109,11 @@ func (s *Server) decodeBody(c *gin.Context) {
 func (s *Server) log(c *gin.Context) {
 	c.Set("__server_name", defaultOptions.serverName)
 	c.Set("__env", defaultOptions.env.String())
+
+	if _, ok := defaultOptions.noLogPath[c.Request.RequestURI]; ok {
+		c.Next()
+		return
+	}
 
 	beginTime := time.Now()
 

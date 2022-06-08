@@ -229,7 +229,7 @@ const (
 )
 
 func Base59Encoding(str string, key ...string) string {
-	if l := len(key); l == 0 {
+	if l := len(key); l == 0 || key[0] == "" {
 		key = []string{base59key}
 	}
 	str = url.PathEscape(str) // 解决特殊字符问题
@@ -264,7 +264,7 @@ func reverseByteArr(bytes []byte) []byte {
 }
 
 func Base59Decoding(str string, key ...string) string {
-	if l := len(key); l == 0 {
+	if l := len(key); l == 0 || key[0] == "" {
 		key = []string{base59key}
 	}
 	base := int64(59)
