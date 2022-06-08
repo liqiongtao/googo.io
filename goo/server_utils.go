@@ -1,6 +1,7 @@
 package goo
 
 import (
+	"bytes"
 	"encoding/json"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -45,10 +46,12 @@ func requestBody(c *gin.Context) interface{} {
 	switch ctx.ContentType() {
 	case "application/x-www-form-urlencoded", "text/xml":
 		b, _ := ioutil.ReadAll(ctx.Request.Body)
+		c.Request.Body = ioutil.NopCloser(bytes.NewBuffer(b))
 		return string(b)
 
 	case "application/json":
 		b, _ := ioutil.ReadAll(ctx.Request.Body)
+		c.Request.Body = ioutil.NopCloser(bytes.NewBuffer(b))
 		var body interface{}
 		if err := json.Unmarshal(b, &body); err != nil {
 			return string(b)

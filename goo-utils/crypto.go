@@ -16,6 +16,8 @@ import (
 	"encoding/hex"
 	"errors"
 	"io"
+	"math/big"
+	"net/url"
 	"strings"
 )
 
@@ -220,4 +222,59 @@ func SessionId() string {
 		return ""
 	}
 	return hex.EncodeToString(buf)
+}
+
+const (
+	base59key = "123456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ."
+)
+
+func Base59Encoding(str string, key ...string) string {
+	if l := len(key); l == 0 {
+		key = []string{base59key}
+	}
+	str = url.PathEscape(str) // 解决特殊字符问题
+	base := int64(59)
+	strByte := []byte(str)
+	strTen := big.NewInt(0).SetBytes(strByte)
+	keyByte := []byte(key[0])
+	var modSlice []byte
+	for strTen.Cmp(big.NewInt(0)) > 0 {
+		mod := big.NewInt(0)
+		strTen5 := big.NewInt(base)
+		strTen.DivMod(strTen, strTen5, mod)
+		modSlice = append(modSlice, keyByte[mod.Int64()])
+	}
+	for _, elem := range strByte {
+		if elem != 0 {
+			break
+		}
+		if elem == 0 {
+			modSlice = append(modSlice, byte('1'))
+		}
+	}
+	ReverseModSlice := reverseByteArr(modSlice)
+	return string(ReverseModSlice)
+}
+
+func reverseByteArr(bytes []byte) []byte {
+	for i := 0; i < len(bytes)/2; i++ {
+		bytes[i], bytes[len(bytes)-1-i] = bytes[len(bytes)-1-i], bytes[i]
+	}
+	return bytes
+}
+
+func Base59Decoding(str string, key ...string) string {
+	if l := len(key); l == 0 {
+		key = []string{base59key}
+	}
+	base := int64(59)
+	strByte := []byte(str)
+	ret := big.NewInt(0)
+	for _, byteElem := range strByte {
+		index := bytes.IndexByte([]byte(key[0]), byteElem)
+		ret.Mul(ret, big.NewInt(base))
+		ret.Add(ret, big.NewInt(int64(index)))
+	}
+	rawStr, _ := url.PathUnescape(string(ret.Bytes()))
+	return rawStr
 }
