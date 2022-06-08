@@ -77,7 +77,7 @@ func (s *Server) noAccess(c *gin.Context) {
 
 // 解密请求参数
 func (s *Server) decodeBody(c *gin.Context) {
-	if !defaultOptions.enableEncodeResponse {
+	if !defaultOptions.enableEncryption {
 		c.Next()
 		return
 	}
@@ -97,7 +97,7 @@ func (s *Server) decodeBody(c *gin.Context) {
 		}
 
 		if str, ok := req["data"]; ok && str != "" {
-			jsonStr := goo_utils.Base59Decoding(str, defaultOptions.encodeKey)
+			jsonStr := goo_utils.Base59Decoding(str, defaultOptions.encryptionKey)
 			c.Request.Body = ioutil.NopCloser(bytes.NewBuffer([]byte(jsonStr)))
 		}
 	}

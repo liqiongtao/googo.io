@@ -22,7 +22,7 @@ func Handler(controller iController) gin.HandlerFunc {
 
 		c.Set("__response", resp)
 
-		if !defaultOptions.enableEncodeResponse {
+		if !defaultOptions.enableEncryption {
 			c.JSON(200, resp)
 			return
 		}
@@ -33,7 +33,7 @@ func Handler(controller iController) gin.HandlerFunc {
 		}
 		if resp.Data != nil {
 			b, _ := json.Marshal(&resp.Data)
-			data["data"] = goo_utils.Base59Encoding(string(b), defaultOptions.encodeKey)
+			data["data"] = goo_utils.Base59Encoding(string(b), defaultOptions.encryptionKey)
 		}
 		c.JSON(200, data)
 	}

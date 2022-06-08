@@ -16,14 +16,14 @@ var defaultOptions = &options{
 }
 
 type options struct {
-	pprofEnable          bool
-	serverName           string
-	env                  Env
-	corsHeaders          []string
-	noAccessPath         map[string]struct{}
-	noLogPath            map[string]struct{}
-	enableEncodeResponse bool
-	encodeKey            string
+	pprofEnable      bool
+	serverName       string
+	env              Env
+	corsHeaders      []string
+	noAccessPath     map[string]struct{}
+	noLogPath        map[string]struct{}
+	enableEncryption bool
+	encryptionKey    string
 }
 
 type Option interface {
@@ -89,15 +89,15 @@ func NoLogPathsOption(noLogPaths ...string) Option {
 }
 
 // 启用加密传输
-func EnableEncodeResponseOption() Option {
+func EnableEncryptionOption() Option {
 	return newFuncOption(func(opts *options) {
-		opts.enableEncodeResponse = true
+		opts.enableEncryption = true
 	})
 }
 
 // 启用加密传输
-func EncodeKeyOption(key string) Option {
+func EncryptionKeyOption(key string) Option {
 	return newFuncOption(func(opts *options) {
-		opts.encodeKey = key
+		opts.encryptionKey = key
 	})
 }
