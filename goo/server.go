@@ -29,7 +29,7 @@ func NewServer(opt ...Option) *Server {
 	s.Engine.NoRoute(s.noRoute)
 	s.Engine.NoMethod(s.noMethod)
 
-	s.Use(s.cors, s.noAccess, s.log(), s.recovery)
+	s.Use(s.cors, s.noAccess, s.log, s.recovery)
 
 	return s
 }
@@ -73,56 +73,54 @@ func (s *Server) noAccess(c *gin.Context) {
 }
 
 // log
-func (s *Server) log() func(c *gin.Context) {
-	return func(c *gin.Context) {
-		c.Set("__server_name", defaultOptions.serverName)
-		c.Set("__env", defaultOptions.env.String())
+func (s *Server) log(c *gin.Context) {
+	c.Set("__server_name", defaultOptions.serverName)
+	c.Set("__env", defaultOptions.env.String())
 
-		beginTime := time.Now()
+	beginTime := time.Now()
 
-		header := gin.H{}
-		if v := c.GetHeader("Authorization"); v != "" {
-			header["authorization"] = v
-		}
-		if v := c.GetHeader("Content-Type"); v != "" {
-			header["content-type"] = v
-		}
+	header := gin.H{}
+	if v := c.GetHeader("Authorization"); v != "" {
+		header["authorization"] = v
+	}
+	if v := c.GetHeader("Content-Type"); v != "" {
+		header["content-type"] = v
+	}
 
-		req := gin.H{
-			"method":    c.Request.Method,
-			"uri":       c.Request.RequestURI,
-			"header":    header,
-			"client-ip": clientIP(c),
-			"trace-id":  requestId(c),
-		}
-		if v := requestBody(c); v != nil {
-			req["body"] = v
-		}
+	req := gin.H{
+		"method":    c.Request.Method,
+		"uri":       c.Request.RequestURI,
+		"header":    header,
+		"client-ip": clientIP(c),
+		"trace-id":  requestId(c),
+	}
+	if v := requestBody(c); v != nil {
+		req["body"] = v
+	}
 
-		l := goo_log.WithTag("goo-api").
-			WithField("request", req)
+	l := goo_log.WithTag("goo-api").
+		WithField("request", req)
 
-		c.Next()
+	c.Next()
 
-		l.WithField("duration", fmt.Sprintf("%dms", time.Since(beginTime)/1e6))
+	l.WithField("duration", fmt.Sprintf("%dms", time.Since(beginTime)/1e6))
 
-		if resp, has := c.Get("__response"); has {
-			l.WithField("response", resp)
-			if r, ok := resp.(*Response); ok {
-				if ll := len(r.Errors); ll > 0 {
-					l.Error(r.Errors)
-					return
-				}
+	if resp, has := c.Get("__response"); has {
+		l.WithField("response", resp)
+		if r, ok := resp.(*Response); ok {
+			if ll := len(r.Errors); ll > 0 {
+				l.Error(r.Errors)
+				return
+			}
 
-				if r.Code > 0 {
-					l.Warn()
-					return
-				}
+			if r.Code > 0 {
+				l.Warn()
+				return
 			}
 		}
-
-		l.Debug()
 	}
+
+	l.Debug()
 }
 
 // 捕获panic信息
