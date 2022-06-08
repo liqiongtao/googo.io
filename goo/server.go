@@ -15,37 +15,21 @@ import (
 // 定义web服务
 type Server struct {
 	*gin.Engine
-
-	// 性能分析
-	pprofEnable bool
-
-	// 不允许访问的路径
-	noAccessPath map[string]struct{}
-
-	// 不记录日志的路径
-	noLogPath map[string]struct{}
-
-	// 跨域
-	corsHeaders []string
 }
 
 func NewServer(opt ...Option) *Server {
-	opts := defaultOptions
 	for _, o := range opt {
-		o.apply(&opts)
+		o.apply(defaultOptions)
 	}
 
 	s := &Server{
-		Engine:       gin.New(),
-		noAccessPath: opts.noAccessPath,
-		noLogPath:    opts.noLogPath,
-		corsHeaders:  opts.corsHeaders,
+		Engine: gin.New(),
 	}
 
 	s.Engine.NoRoute(s.noRoute)
 	s.Engine.NoMethod(s.noMethod)
 
-	s.Use(s.cors, s.noAccess, s.log(opts), s.recovery)
+	s.Use(s.cors, s.noAccess, s.log(), s.recovery)
 
 	return s
 }
@@ -58,7 +42,7 @@ func (s *Server) Run(addr string) {
 	}
 
 	// 性能分析
-	if s.pprofEnable {
+	if defaultOptions.pprofEnable {
 		pprof.Register(s.Engine, "/goo/pprof")
 	}
 
@@ -69,7 +53,7 @@ func (s *Server) Run(addr string) {
 func (s *Server) cors(c *gin.Context) {
 	c.Header("Access-Control-Allow-Origin", "*")
 	c.Header("Access-Control-Allow-Methods", "PUT, POST, GET, DELETE, OPTIONS")
-	c.Header("Access-Control-Allow-Headers", strings.Join(s.corsHeaders, ","))
+	c.Header("Access-Control-Allow-Headers", strings.Join(defaultOptions.corsHeaders, ","))
 	c.Next()
 }
 
@@ -80,7 +64,7 @@ func (s *Server) noAccess(c *gin.Context) {
 		return
 	}
 
-	if _, ok := s.noAccessPath[c.Request.URL.Path]; ok {
+	if _, ok := defaultOptions.noAccessPath[c.Request.URL.Path]; ok {
 		c.AbortWithStatus(200)
 		return
 	}
@@ -89,10 +73,10 @@ func (s *Server) noAccess(c *gin.Context) {
 }
 
 // log
-func (s *Server) log(opts options) func(c *gin.Context) {
+func (s *Server) log() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		c.Set("__server_name", opts.serverName)
-		c.Set("__env", opts.env.String())
+		c.Set("__server_name", defaultOptions.serverName)
+		c.Set("__env", defaultOptions.env.String())
 
 		beginTime := time.Now()
 

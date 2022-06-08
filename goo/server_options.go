@@ -1,6 +1,6 @@
 package goo
 
-var defaultOptions = options{
+var defaultOptions = &options{
 	noAccessPath: map[string]struct{}{
 		"/favicon.ico": {},
 	},
