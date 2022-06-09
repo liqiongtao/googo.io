@@ -90,7 +90,7 @@ func (s *Server) decodeBody(c *gin.Context) {
 		return
 	}
 
-	if method := c.Request.Method; method != "PUT" || method != "POST" {
+	if method := c.Request.Method; method != "PUT" && method != "POST" {
 		c.AbortWithStatusJSON(403, Error(40301, "请求方法被拒绝"))
 		return
 	}
