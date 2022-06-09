@@ -113,6 +113,9 @@ func (cli *Client) GetString(key string) string {
 	if err != nil {
 		return ""
 	}
+	if l := len(resp.Kvs); l == 0 {
+		return ""
+	}
 	return string(resp.Kvs[0].Value)
 }
 

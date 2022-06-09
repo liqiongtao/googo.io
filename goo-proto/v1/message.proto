@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package goo.proto.v1;
+option go_package = "pb/pb-goo-v1";
+
+message Request {
+  bytes data = 1;
+}
+
+message Response {
+  int32 code = 1;
+  string message = 2;
+  bytes data = 3;
+}
+
+message Empty {
+}
+
+message Pagination {
+  int32 page_num = 1;
+  int32 page_size = 2;
+}
