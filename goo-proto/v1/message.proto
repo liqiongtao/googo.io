@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 package goo.proto.v1;
-option go_package = "pb/pb-goo-v1";
+option go_package = "github.com/liqiongtao/googo.io/goo-proto/v1;pb-goo-v1";
 
 message Request {
   bytes data = 1;
