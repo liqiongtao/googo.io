@@ -50,7 +50,7 @@ func serverUnaryInterceptorLog() grpc.UnaryServerInterceptor {
 		defer func() {
 			l.WithField("duration", fmt.Sprintf("%dms", time.Since(startTime)/1e6))
 
-			if rst, ok := resp.(*pb_goo_v1.Response); ok {
+			if rst, ok := resp.(*pb_goo_v1.Response); ok && rst != nil {
 				var v interface{}
 				if err := json.Unmarshal(rst.Data, &v); err != nil {
 					l.WithField("response", map[string]interface{}{
