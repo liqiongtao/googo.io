@@ -2,7 +2,6 @@ package goo
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"github.com/fvbock/endless"
 	"github.com/gin-contrib/pprof"
@@ -91,25 +90,19 @@ func (s *Server) decodeBody(c *gin.Context) {
 		return
 	}
 
-	switch c.ContentType() {
-	case "application/json":
-		b, err := ioutil.ReadAll(c.Request.Body)
-		if err != nil {
-			c.AbortWithStatusJSON(403, Error(40301, "数据错误", err))
-			return
-		}
-
-		req := map[string]string{}
-		if err := json.Unmarshal(b, &req); err != nil {
-			c.AbortWithStatusJSON(403, Error(40302, "数据错误", err))
-			return
-		}
-
-		if str, ok := req["data"]; ok && str != "" {
-			jsonStr := goo_utils.Base59Decoding(str, defaultOptions.encryptionKey)
-			c.Request.Body = ioutil.NopCloser(bytes.NewBuffer([]byte(jsonStr)))
-		}
+	if method := c.Request.Method; method != "PUT" || method != "POST" {
+		c.AbortWithStatusJSON(403, Error(40301, "请求方法被拒绝"))
+		return
 	}
+
+	b, err := ioutil.ReadAll(c.Request.Body)
+	if err != nil {
+		c.AbortWithStatusJSON(403, Error(40302, "数据错误", err))
+		return
+	}
+
+	jsonStr := goo_utils.Base59Decoding(string(b), defaultOptions.encryptionKey)
+	c.Request.Body = ioutil.NopCloser(bytes.NewBuffer([]byte(jsonStr)))
 
 	c.Next()
 }
