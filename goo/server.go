@@ -32,7 +32,7 @@ func NewServer(opt ...Option) *Server {
 	s.Engine.NoRoute(s.noRoute)
 	s.Engine.NoMethod(s.noMethod)
 
-	s.Use(s.cors, s.noAccess, s.decodeBody, s.log, s.recovery)
+	s.Use(s.cors, s.noAccess, s.setFields, s.decodeBody, s.log, s.recovery)
 
 	return s
 }
@@ -75,6 +75,15 @@ func (s *Server) noAccess(c *gin.Context) {
 	c.Next()
 }
 
+// 设置字段
+func (s *Server) setFields(c *gin.Context) {
+	c.Set("__begin_time", time.Now())
+	c.Set("__server_name", defaultOptions.serverName)
+	c.Set("__env", defaultOptions.env.Tag())
+
+	c.Next()
+}
+
 // 解密请求参数
 func (s *Server) decodeBody(c *gin.Context) {
 	if !defaultOptions.enableEncryption {
@@ -107,15 +116,12 @@ func (s *Server) decodeBody(c *gin.Context) {
 
 // log
 func (s *Server) log(c *gin.Context) {
-	c.Set("__server_name", defaultOptions.serverName)
-	c.Set("__env", defaultOptions.env.String())
-
 	if _, ok := defaultOptions.noLogPath[c.Request.RequestURI]; ok {
 		c.Next()
 		return
 	}
 
-	beginTime := time.Now()
+	beginTime := c.GetTime("__begin_time")
 
 	header := gin.H{}
 	if v := c.GetHeader("Authorization"); v != "" {
@@ -141,7 +147,9 @@ func (s *Server) log(c *gin.Context) {
 
 	c.Next()
 
-	l.WithField("duration", fmt.Sprintf("%dms", time.Since(beginTime)/1e6))
+	if !beginTime.IsZero() {
+		l.WithField("duration", fmt.Sprintf("%dms", time.Since(beginTime)/1e6))
+	}
 
 	if resp, has := c.Get("__response"); has {
 		l.WithField("response", resp)

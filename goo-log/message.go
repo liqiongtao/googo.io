@@ -52,12 +52,14 @@ func (msg *Message) trace() (arr []string) {
 
 	for i := 2; i < 16; i++ {
 		_, file, line, _ := runtime.Caller(i)
-		if file == "" ||
-			strings.Contains(file, ".pb.go") ||
+		if file == "" {
+			continue
+		}
+		if !strings.Contains(file, "googo.io") && (strings.Contains(file, ".pb.go") ||
 			strings.Contains(file, "runtime/") ||
-			strings.Contains(file, "src/testing") ||
+			strings.Contains(file, "src/") ||
 			strings.Contains(file, "pkg/mod/") ||
-			strings.Contains(file, "vendor/") {
+			strings.Contains(file, "vendor/")) {
 			continue
 		}
 		arr = append(arr, fmt.Sprintf("%s %dL", msg.prettyFile(file), line))
@@ -67,15 +69,29 @@ func (msg *Message) trace() (arr []string) {
 }
 
 func (msg *Message) prettyFile(file string) string {
-	index := strings.LastIndex(file, "/")
-	if index < 0 {
-		return file
-	}
+	var (
+		index  int
+		index2 int
+	)
 
-	index2 := strings.LastIndex(file[:index], "/")
-	if index2 < 0 {
+	if index = strings.LastIndex(file, "src/test/"); index >= 0 {
+		return file[index+1:]
+	}
+	if index = strings.LastIndex(file, "src/"); index >= 0 {
+		return file[index+1:]
+	}
+	if index = strings.LastIndex(file, "pkg/mod/"); index >= 0 {
+		return file[index+1:]
+	}
+	if index = strings.LastIndex(file, "vendor/"); index >= 0 {
 		return file[index+1:]
 	}
 
+	if index = strings.LastIndex(file, "/"); index < 0 {
+		return file
+	}
+	if index2 = strings.LastIndex(file[:index], "/"); index2 < 0 {
+		return file[index+1:]
+	}
 	return file[index2+1:]
 }

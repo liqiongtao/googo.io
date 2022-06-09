@@ -2,8 +2,10 @@ package goo
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
+	"time"
 )
 
 // 定义控制器抽象类
@@ -22,14 +24,23 @@ func Handler(controller iController) gin.HandlerFunc {
 
 		c.Set("__response", resp)
 
+		// 计算执行时间
+		beginTime := c.GetTime("__begin_time")
+		if !beginTime.IsZero() {
+			c.Header("duration", fmt.Sprintf("%dms", time.Since(beginTime)/1e6))
+		}
+
+		// 如果没有启用加密传输
 		if !defaultOptions.enableEncryption {
 			c.JSON(200, resp)
 			return
 		}
 
+		// 启用加密传输
 		data := gin.H{
 			"code":    resp.Code,
 			"message": resp.Message,
+			"_ts":     time.Now().Unix(),
 		}
 		if resp.Data != nil {
 			b, _ := json.Marshal(&resp.Data)
