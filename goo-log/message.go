@@ -55,11 +55,11 @@ func (msg *Message) trace() (arr []string) {
 		if file == "" {
 			continue
 		}
-		if !strings.Contains(file, "googo.io") && (strings.Contains(file, ".pb.go") ||
+		if strings.Contains(file, ".pb.go") ||
 			strings.Contains(file, "runtime/") ||
 			strings.Contains(file, "src/") ||
 			strings.Contains(file, "pkg/mod/") ||
-			strings.Contains(file, "vendor/")) {
+			strings.Contains(file, "vendor/") {
 			continue
 		}
 		arr = append(arr, fmt.Sprintf("%s %dL", msg.prettyFile(file), line))
@@ -75,16 +75,16 @@ func (msg *Message) prettyFile(file string) string {
 	)
 
 	if index = strings.LastIndex(file, "src/test/"); index >= 0 {
-		return file[index+1:]
+		return file[index+9:]
 	}
 	if index = strings.LastIndex(file, "src/"); index >= 0 {
-		return file[index+1:]
+		return file[index+4:]
 	}
 	if index = strings.LastIndex(file, "pkg/mod/"); index >= 0 {
-		return file[index+1:]
+		return file[index+8:]
 	}
 	if index = strings.LastIndex(file, "vendor/"); index >= 0 {
-		return file[index+1:]
+		return file[index+7:]
 	}
 
 	if index = strings.LastIndex(file, "/"); index < 0 {
