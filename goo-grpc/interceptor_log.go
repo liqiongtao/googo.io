@@ -2,8 +2,10 @@ package goo_grpc
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	pb_goo_v1 "github.com/liqiongtao/googo.io/goo-proto/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -28,8 +30,16 @@ func clientStreamInterceptorLog() grpc.StreamClientInterceptor {
 func serverUnaryInterceptorLog() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
 		l := goo_log.WithTag("goo-grpc").
-			WithField("method", info.FullMethod).
-			WithField("request", req)
+			WithField("method", info.FullMethod)
+
+		if req, ok := req.(*pb_goo_v1.Request); ok {
+			var v interface{}
+			if err := json.Unmarshal(req.Data, &v); err != nil {
+				l.WithField("request", v)
+			}
+		} else {
+			l.WithField("request", req)
+		}
 
 		if md, ok := metadata.FromIncomingContext(ctx); ok {
 			l.WithField("metadata", md)
@@ -38,8 +48,20 @@ func serverUnaryInterceptorLog() grpc.UnaryServerInterceptor {
 		var startTime = time.Now()
 
 		defer func() {
-			l.WithField("response", resp)
 			l.WithField("duration", fmt.Sprintf("%dms", time.Since(startTime)/1e6))
+
+			if rst, ok := resp.(*pb_goo_v1.Response); ok {
+				var v interface{}
+				if err := json.Unmarshal(rst.Data, &v); err != nil {
+					l.WithField("response", map[string]interface{}{
+						"code":    rst.Code,
+						"message": rst.Message,
+						"data":    v,
+					})
+				}
+			} else {
+				l.WithField("response", resp)
+			}
 
 			if err == nil {
 				l.Debug()
