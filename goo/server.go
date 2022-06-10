@@ -2,6 +2,7 @@ package goo
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"github.com/fvbock/endless"
 	"github.com/gin-contrib/pprof"
@@ -102,9 +103,19 @@ func (s *Server) decodeBody(c *gin.Context) {
 		return
 	}
 
-	b := goo_utils.Base59Decoding(buf.Bytes(), defaultOptions.encryptionKey)
+	data := map[string]string{}
+	if err := json.Unmarshal(buf.Bytes(), &data); err != nil {
+		c.AbortWithStatusJSON(403, Error(40303, "解析请求数据错误", err))
+	}
+
+	str, ok := data["data"]
+	if !ok {
+		c.AbortWithStatusJSON(403, Error(40304, "请求数据格式错误"))
+	}
+
+	b := goo_utils.Base59Decoding([]byte(str), defaultOptions.encryptionKey)
 	if index := bytes.Index(b, []byte("goo://")); index != 0 {
-		c.AbortWithStatusJSON(403, Error(40303, "数据格式错误"))
+		c.AbortWithStatusJSON(403, Error(40305, "请求数据格式错误"))
 		return
 	}
 
