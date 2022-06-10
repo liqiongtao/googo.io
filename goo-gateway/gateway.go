@@ -25,9 +25,12 @@ func (g gateway) DoHandle(c *gin.Context) *goo.Response {
 	req := pb_goo_v1.Request{Data: buf.Bytes()}
 	resp := pb_goo_v1.Response{}
 
-	var err error
+	var (
+		err         error
+		serviceName = fmt.Sprintf("/%s/%s/%s", g.conf.ServerName, service, g.conf.Env.Tag())
+	)
 
-	err = Client(service).Invoke(c, fmt.Sprintf("/%s/%s", service, method), &req, &resp)
+	err = Client(serviceName).Invoke(c, fmt.Sprintf("/%s/%s", service, method), &req, &resp)
 	if s := status.Convert(err); s != nil {
 		return goo.Error(s.Proto().Code, s.Proto().Message)
 	}
