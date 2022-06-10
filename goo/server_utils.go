@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"io"
 	"io/ioutil"
 )
 
@@ -41,16 +42,21 @@ func clientIP(c *gin.Context) string {
 
 // 请求数据
 func requestBody(c *gin.Context) interface{} {
-	ctx := c.Copy()
+	var (
+		b   []byte
+		buf bytes.Buffer
+	)
 
-	switch ctx.ContentType() {
+	switch c.ContentType() {
 	case "application/x-www-form-urlencoded", "text/xml":
-		b, _ := ioutil.ReadAll(ctx.Request.Body)
+		io.Copy(&buf, c.Request.Body)
+		b = buf.Bytes()
 		c.Request.Body = ioutil.NopCloser(bytes.NewBuffer(b))
 		return string(b)
 
 	case "application/json":
-		b, _ := ioutil.ReadAll(ctx.Request.Body)
+		io.Copy(&buf, c.Request.Body)
+		b = buf.Bytes()
 		c.Request.Body = ioutil.NopCloser(bytes.NewBuffer(b))
 		var body interface{}
 		if err := json.Unmarshal(b, &body); err != nil {

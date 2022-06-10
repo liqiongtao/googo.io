@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
+	"io"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -95,16 +96,17 @@ func (s *Server) decodeBody(c *gin.Context) {
 		return
 	}
 
-	b, err := ioutil.ReadAll(c.Request.Body)
-	if err != nil {
+	var buf bytes.Buffer
+	if _, err := io.Copy(&buf, c.Request.Body); err != nil {
 		c.AbortWithStatusJSON(403, Error(40302, "获取请求数据错误", err))
 		return
 	}
 
+	b := buf.Bytes()
 	jsonStr := goo_utils.Base59Decoding(string(b[6:]), defaultOptions.encryptionKey)
 
 	if index := strings.Index(jsonStr, "goo://"); index != 0 {
-		c.AbortWithStatusJSON(403, Error(40303, "数据格式错误", err))
+		c.AbortWithStatusJSON(403, Error(40303, "数据格式错误"))
 		return
 	}
 
