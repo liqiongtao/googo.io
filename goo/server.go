@@ -102,15 +102,13 @@ func (s *Server) decodeBody(c *gin.Context) {
 		return
 	}
 
-	b := buf.Bytes()
-	jsonStr := goo_utils.Base59Decoding(string(b[6:]), defaultOptions.encryptionKey)
-
-	if index := strings.Index(jsonStr, "goo://"); index != 0 {
+	b := goo_utils.Base59Decoding(buf.Bytes(), defaultOptions.encryptionKey)
+	if index := bytes.Index(b, []byte("goo://")); index != 0 {
 		c.AbortWithStatusJSON(403, Error(40303, "数据格式错误"))
 		return
 	}
 
-	c.Request.Body = ioutil.NopCloser(bytes.NewBuffer([]byte(jsonStr[6:])))
+	c.Request.Body = ioutil.NopCloser(bytes.NewBuffer(b[6:]))
 
 	c.Next()
 }

@@ -43,27 +43,27 @@ func clientIP(c *gin.Context) string {
 // 请求数据
 func requestBody(c *gin.Context) interface{} {
 	var (
-		b   []byte
-		buf bytes.Buffer
+		b           []byte
+		buf         bytes.Buffer
+		contentType = c.ContentType()
 	)
 
-	switch c.ContentType() {
-	case "application/x-www-form-urlencoded", "text/xml":
+	switch contentType {
+	case "application/x-www-form-urlencoded", "text/xml", "application/json":
 		io.Copy(&buf, c.Request.Body)
 		b = buf.Bytes()
 		c.Request.Body = ioutil.NopCloser(bytes.NewBuffer(b))
-		return string(b)
 
-	case "application/json":
-		io.Copy(&buf, c.Request.Body)
-		b = buf.Bytes()
-		c.Request.Body = ioutil.NopCloser(bytes.NewBuffer(b))
-		var body interface{}
-		if err := json.Unmarshal(b, &body); err != nil {
-			return string(b)
-		}
-		return body
+	default:
+		return nil
 	}
 
-	return nil
+	if contentType == "application/json" {
+		var body interface{}
+		if err := json.Unmarshal(b, &body); err == nil {
+			return body
+		}
+	}
+
+	return string(b)
 }

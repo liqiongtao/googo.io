@@ -40,11 +40,11 @@ func Handler(controller iController) gin.HandlerFunc {
 		data := gin.H{
 			"code":    resp.Code,
 			"message": resp.Message,
-			"_ts":     time.Now().Unix(),
+			"ts":      time.Now().Unix(),
 		}
 		if resp.Data != nil {
 			b, _ := json.Marshal(&resp.Data)
-			data["data"] = goo_utils.Base59Encoding(string(b), defaultOptions.encryptionKey)
+			data["data"] = goo_utils.Base59Encoding(b, defaultOptions.encryptionKey)
 		}
 		c.JSON(200, data)
 	}

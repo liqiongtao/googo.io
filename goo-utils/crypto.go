@@ -17,7 +17,6 @@ import (
 	"errors"
 	"io"
 	"math/big"
-	"net/url"
 	"strings"
 )
 
@@ -228,13 +227,12 @@ const (
 	base59key = "123456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ."
 )
 
-func Base59Encoding(str string, key ...string) string {
+// 如果遇到特殊字符，可以用 url.PathEscape(str) 解决
+func Base59Encoding(strByte []byte, key ...string) string {
 	if l := len(key); l == 0 || key[0] == "" {
 		key = []string{base59key}
 	}
-	str = url.PathEscape(str) // 解决特殊字符问题
 	base := int64(59)
-	strByte := []byte(str)
 	strTen := big.NewInt(0).SetBytes(strByte)
 	keyByte := []byte(key[0])
 	var modSlice []byte
@@ -263,18 +261,16 @@ func reverseByteArr(bytes []byte) []byte {
 	return bytes
 }
 
-func Base59Decoding(str string, key ...string) string {
+func Base59Decoding(strByte []byte, key ...string) []byte {
 	if l := len(key); l == 0 || key[0] == "" {
 		key = []string{base59key}
 	}
 	base := int64(59)
-	strByte := []byte(str)
 	ret := big.NewInt(0)
 	for _, byteElem := range strByte {
 		index := bytes.IndexByte([]byte(key[0]), byteElem)
 		ret.Mul(ret, big.NewInt(base))
 		ret.Add(ret, big.NewInt(int64(index)))
 	}
-	rawStr, _ := url.PathUnescape(string(ret.Bytes()))
-	return rawStr
+	return ret.Bytes()
 }
