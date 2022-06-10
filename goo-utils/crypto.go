@@ -17,6 +17,7 @@ import (
 	"errors"
 	"io"
 	"math/big"
+	"net/url"
 	"strings"
 )
 
@@ -227,8 +228,9 @@ const (
 	base59key = "123456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ."
 )
 
-// 如果遇到特殊字符，可以用 url.PathEscape(str) 解决
+// 如果遇到特殊字符，需要用 url.PathEscape(str) 解决
 func Base59Encoding(strByte []byte, key ...string) string {
+	strByte = []byte(url.PathEscape(string(strByte)))
 	if l := len(key); l == 0 || key[0] == "" {
 		key = []string{base59key}
 	}
@@ -272,5 +274,6 @@ func Base59Decoding(strByte []byte, key ...string) []byte {
 		ret.Mul(ret, big.NewInt(base))
 		ret.Add(ret, big.NewInt(int64(index)))
 	}
-	return ret.Bytes()
+	str, _ := url.PathUnescape(string(ret.Bytes()))
+	return []byte(str)
 }
