@@ -32,10 +32,12 @@ func serverUnaryInterceptorLog() grpc.UnaryServerInterceptor {
 		l := goo_log.WithTag("goo-grpc").
 			WithField("method", info.FullMethod)
 
-		if req, ok := req.(*pb_goo_v1.Request); ok {
-			var v interface{}
-			if err := json.Unmarshal(req.Data, &v); err != nil {
-				l.WithField("request", v)
+		if v, ok := req.(*pb_goo_v1.Request); ok {
+			var vv interface{}
+			if err = json.Unmarshal(v.Data, &vv); err == nil {
+				l.WithField("request", vv)
+			} else {
+				l.WithField("request", req)
 			}
 		} else {
 			l.WithField("request", req)
