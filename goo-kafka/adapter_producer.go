@@ -10,7 +10,7 @@ type producer struct {
 }
 
 // 发送消息 - 同步
-func (p *producer) SendMessage(key, topic string, message []byte) (partition int32, offset int64, err error) {
+func (p *producer) SendMessage(topic string, message []byte) (partition int32, offset int64, err error) {
 	var producer sarama.SyncProducer
 
 	producer, err = sarama.NewSyncProducerFromClient(p.Client)
@@ -23,14 +23,14 @@ func (p *producer) SendMessage(key, topic string, message []byte) (partition int
 	msg := &sarama.ProducerMessage{
 		Topic: topic,
 		Value: sarama.ByteEncoder(message),
-		Key:   sarama.StringEncoder(key),
+		Key:   sarama.StringEncoder(topic),
 	}
 
 	return producer.SendMessage(msg)
 }
 
 // 发送消息 - 异步
-func (p *producer) SendAsyncMessage(key, topic string, message []byte) (partition int32, offset int64, err error) {
+func (p *producer) SendAsyncMessage(topic string, message []byte) (partition int32, offset int64, err error) {
 	var producer sarama.AsyncProducer
 
 	producer, err = sarama.NewAsyncProducerFromClient(p.Client)
@@ -43,7 +43,7 @@ func (p *producer) SendAsyncMessage(key, topic string, message []byte) (partitio
 	msg := &sarama.ProducerMessage{
 		Topic: topic,
 		Value: sarama.ByteEncoder(message),
-		Key:   sarama.StringEncoder(key),
+		Key:   sarama.StringEncoder(topic),
 	}
 
 	producer.Input() <- msg
