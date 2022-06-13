@@ -4,7 +4,7 @@ import (
 	"github.com/Shopify/sarama"
 )
 
-type ConsumerHandler func(msg *ConsumerMessage, err *ConsumerError) error
+type ConsumerHandler func(msg *ConsumerMessage, consumerErr *ConsumerError) error
 
 type ConsumerMessage struct {
 	*sarama.ConsumerMessage
