@@ -7,83 +7,78 @@ import (
 )
 
 /**
- * 每天执行一次
+ * 每天00时执行一次
  */
 func CronDay(fns ...func()) {
 	goo_utils.AsyncFunc(func() {
-		timer := time.NewTimer(0)
-		for {
-			select {
-			case <-goo_context.Cancel().Done():
-				return
-			case <-timer.C:
-				for _, fn := range fns {
-					goo_utils.AsyncFunc(fn)
-				}
-				ti, _ := time.ParseInLocation("2006-01-02", time.Now().Add(24*time.Hour).Format("2006-01-02"), time.Local)
-				timer.Reset(time.Duration(ti.Unix()-time.Now().Unix()) * time.Second)
-			}
-		}
+		nw := time.Now()
+
+		d := time.Date(nw.Year(), nw.Month(), nw.Day(),
+			0, 0, 0, 0, time.Local).
+			Add(24 * time.Hour).Sub(nw)
+
+		time.Sleep(d)
+
+		goo_utils.AsyncFuncGroup(fns...)
+
+		Cron(24*time.Hour, fns...)
 	})
 }
 
 /**
- * 每小时执行一次
+ * 每小时00分执行一次
  */
 func CronHour(fns ...func()) {
 	goo_utils.AsyncFunc(func() {
-		timer := time.NewTimer(0)
-		for {
-			select {
-			case <-goo_context.Cancel().Done():
-				return
-			case <-timer.C:
-				for _, fn := range fns {
-					goo_utils.AsyncFunc(fn)
-				}
-				ti, _ := time.ParseInLocation("2006-01-02 15", time.Now().Add(1*time.Hour).Format("2006-01-02 15"), time.Local)
-				timer.Reset(time.Duration(ti.Unix()-time.Now().Unix()) * time.Second)
-			}
-		}
+		nw := time.Now()
+
+		d := time.Date(nw.Year(), nw.Month(), nw.Day(),
+			nw.Hour(), 0, 0, 0, time.Local).
+			Add(time.Hour).Sub(nw)
+
+		time.Sleep(d)
+
+		goo_utils.AsyncFuncGroup(fns...)
+
+		Cron(time.Hour, fns...)
 	})
 }
 
 /**
- * 每分钟执行一次
+ * 每分钟00秒执行一次
  */
 func CronMinute(fns ...func()) {
 	goo_utils.AsyncFunc(func() {
-		timer := time.NewTimer(0)
-		for {
-			select {
-			case <-goo_context.Cancel().Done():
-				return
-			case <-timer.C:
-				for _, fn := range fns {
-					goo_utils.AsyncFunc(fn)
-				}
-				ti, _ := time.ParseInLocation("2006-01-02 15:04", time.Now().Add(60*time.Second).Format("2006-01-02 15:04"), time.Local)
-				timer.Reset(time.Duration(ti.Unix()-time.Now().Unix()) * time.Second)
-			}
-		}
+		nw := time.Now()
+
+		d := time.Date(nw.Year(), nw.Month(), nw.Day(),
+			nw.Hour(), nw.Minute(), 0, 0, time.Local).
+			Add(time.Minute).Sub(nw)
+
+		time.Sleep(d)
+
+		goo_utils.AsyncFuncGroup(fns...)
+
+		Cron(time.Minute, fns...)
 	})
 }
 
 /**
- * 定期执行任务
+ * 没多长时间执行任务
  */
-func Crond(d time.Duration, fns ...func()) {
+func Cron(d time.Duration, fns ...func()) {
 	goo_utils.AsyncFunc(func() {
-		timer := time.NewTimer(0)
+		ticker := time.NewTicker(d)
+
 		for {
 			select {
 			case <-goo_context.Cancel().Done():
+				ticker.Stop()
 				return
-			case <-timer.C:
-				for _, fn := range fns {
-					goo_utils.AsyncFunc(fn)
-				}
-				timer.Reset(d)
+
+			case <-ticker.C:
+				time.Sleep(time.Second)
+				goo_utils.AsyncFuncGroup(fns...)
 			}
 		}
 	})
