@@ -9,11 +9,15 @@ type producer struct {
 	*client
 }
 
+func (p *producer) Client() sarama.Client {
+	return p.client.Client
+}
+
 // 发送消息 - 同步
 func (p *producer) SendMessage(topic string, message []byte) (partition int32, offset int64, err error) {
 	var producer sarama.SyncProducer
 
-	producer, err = sarama.NewSyncProducerFromClient(p.Client)
+	producer, err = sarama.NewSyncProducerFromClient(p.Client())
 	if err != nil {
 		goo_log.WithTag("goo-kafka-producer").Error(err)
 		return
@@ -33,7 +37,7 @@ func (p *producer) SendMessage(topic string, message []byte) (partition int32, o
 func (p *producer) SendAsyncMessage(topic string, message []byte) (partition int32, offset int64, err error) {
 	var producer sarama.AsyncProducer
 
-	producer, err = sarama.NewAsyncProducerFromClient(p.Client)
+	producer, err = sarama.NewAsyncProducerFromClient(p.Client())
 	if err != nil {
 		goo_log.WithTag("goo-kafka-producer").Error(err)
 		return

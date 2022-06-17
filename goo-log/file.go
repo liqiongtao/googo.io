@@ -18,7 +18,7 @@ type FileAdapter struct {
 	maxSize int64
 	count   int
 
-	ch chan *Message
+	ch chan []byte
 	mu sync.Mutex
 }
 
@@ -35,7 +35,7 @@ func NewFileAdapter(opt ...FileOption) *FileAdapter {
 	fa := &FileAdapter{
 		filepath: opts.Filepath,
 		maxSize:  opts.MaxSize,
-		ch:       make(chan *Message, runtime.NumCPU()*2),
+		ch:       make(chan []byte, runtime.NumCPU()*2),
 	}
 
 	if l := len(fa.filepath); fa.filepath[l-1:] != "/" {
@@ -68,10 +68,10 @@ func (fa *FileAdapter) Write(msg *Message) {
 		fa.writeHandle(<-fa.ch)
 	}()
 
-	fa.ch <- msg
+	fa.ch <- msg.JSON()
 }
 
-func (fa *FileAdapter) writeHandle(msg *Message) {
+func (fa *FileAdapter) writeHandle(b []byte) {
 	fa.mu.Lock()
 	defer func() { fa.mu.Unlock() }()
 
@@ -99,7 +99,7 @@ func (fa *FileAdapter) writeHandle(msg *Message) {
 	}
 
 	if fa.fh != nil {
-		fa.fh.Write(msg.JSON())
+		fa.fh.Write(b)
 		fa.fh.Write([]byte("\n"))
 	}
 }

@@ -54,9 +54,8 @@ func (ca *ConsoleAdapter) Write(msg *Message) {
 		buf.WriteString(" ")
 	}
 
-	if msg.Level >= WARN {
-		arr := msg.trace()
-		if b, err := json.Marshal(&arr); err == nil {
+	if l := len(msg.Trace); l > 0 {
+		if b, err := json.Marshal(&msg.Trace); err == nil {
 			buf.Write(b)
 		}
 		buf.WriteString(" ")

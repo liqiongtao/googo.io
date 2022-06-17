@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/ClickHouse/clickhouse-go"
-	"github.com/liqiongtao/googo.io/goo"
+	goo_cron "github.com/liqiongtao/googo.io/goo-cron"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 )
 
@@ -27,11 +27,10 @@ func New(conf Config) (cli *client, err error) {
 		return
 	}
 
-	if !conf.AutoPing || conf.PingDuration == 0 {
-		return
+	if conf.AutoPing {
+		goo_cron.SecondX(5, __client.ping)
 	}
 
-	goo.Crond(conf.PingDuration, __client.ping)
 	return
 }
 

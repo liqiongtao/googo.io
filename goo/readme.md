@@ -1,39 +1,3 @@
-# 定时任务
-
-```
-func main() {
-	var wg sync.WaitGroup
-
-	goo.Crond(1*time.Second, func() {
-		fmt.Println(time.Now().Format("15:04:05"))
-	})
-
-	goo.Crond(3*time.Second, func() {
-		fmt.Println(time.Now().Format("15:04:05"))
-	})
-
-	goo.CronMinute(func() {
-		fmt.Println(time.Now().Format("15:04:05"))
-	})
-
-	goo.CronHour(func() {
-		fmt.Println(time.Now().Format("15:04:05"))
-	})
-
-	goo.CronDay(func() {
-		fmt.Println(time.Now().Format("15:04:05"))
-	})
-
-	wg.Add(1)
-	goo_utils.AsyncFunc(func() {
-		defer wg.Done()
-		<-goo_context.Cancel().Done()
-	})
-
-	wg.Wait()
-}
-```
-
 # mysql
 
 ```

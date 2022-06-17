@@ -1,8 +1,8 @@
 package goo_db
 
 import (
+	goo_cron "github.com/liqiongtao/googo.io/goo-cron"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 )
 
 var __clients = map[string]*Orm{}
@@ -18,7 +18,7 @@ func Init(configs ...Config) {
 			continue
 		}
 		if conf.AutoPing {
-			goo_utils.AsyncFunc(__clients[name].ping)
+			goo_cron.SecondX(5, __clients[name].ping)
 		}
 	}
 }

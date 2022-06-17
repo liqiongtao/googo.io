@@ -11,9 +11,13 @@ type consumer struct {
 	*client
 }
 
+func (c *consumer) Client() sarama.Client {
+	return c.client.Client
+}
+
 // 处理分区消息
 func (c *consumer) PartitionConsume(topic string, partition int32, offset int64, handler ConsumerHandler) {
-	consumer, err := sarama.NewConsumerFromClient(c.Client)
+	consumer, err := sarama.NewConsumerFromClient(c.Client())
 	if err != nil {
 		goo_log.WithTag("goo-kafka-consumer").Error(err)
 		return
@@ -58,7 +62,7 @@ func (c *consumer) ConsumeOldest(topic string, handler ConsumerHandler) {
 
 // 处理分区消息
 func (c *consumer) ConsumeGroup(groupId string, topics []string, handler ConsumerHandler) {
-	cg, err := sarama.NewConsumerGroupFromClient(groupId, c.Client)
+	cg, err := sarama.NewConsumerGroupFromClient(groupId, c.Client())
 	if err != nil {
 		goo_log.WithTag("goo-kafka-consumer").Error(err)
 		return

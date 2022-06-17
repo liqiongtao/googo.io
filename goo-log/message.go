@@ -3,14 +3,13 @@ package goo_log
 import (
 	"encoding/json"
 	"fmt"
-	"runtime"
-	"strings"
 	"time"
 )
 
 type Message struct {
 	Level   Level
 	Message []interface{}
+	Trace   []string
 	Time    time.Time
 	Entry   *Entry
 }
@@ -39,59 +38,10 @@ func (msg *Message) JSON() []byte {
 		data["log_content"] = arr
 	}
 
-	if msg.Level >= WARN {
-		data["log_trace"] = msg.trace()
+	if l := len(msg.Trace); l > 0 {
+		data["log_trace"] = msg.Trace
 	}
 
 	buf, _ := json.Marshal(&data)
 	return buf
-}
-
-func (msg *Message) trace() (arr []string) {
-	arr = []string{}
-
-	for i := 2; i < 16; i++ {
-		_, file, line, _ := runtime.Caller(i)
-		if file == "" {
-			continue
-		}
-		if strings.Contains(file, ".pb.go") ||
-			strings.Contains(file, "runtime/") ||
-			strings.Contains(file, "src/") ||
-			strings.Contains(file, "pkg/mod/") ||
-			strings.Contains(file, "vendor/") {
-			continue
-		}
-		arr = append(arr, fmt.Sprintf("%s %dL", msg.prettyFile(file), line))
-	}
-
-	return
-}
-
-func (msg *Message) prettyFile(file string) string {
-	var (
-		index  int
-		index2 int
-	)
-
-	if index = strings.LastIndex(file, "src/test/"); index >= 0 {
-		return file[index+9:]
-	}
-	if index = strings.LastIndex(file, "src/"); index >= 0 {
-		return file[index+4:]
-	}
-	if index = strings.LastIndex(file, "pkg/mod/"); index >= 0 {
-		return file[index+8:]
-	}
-	if index = strings.LastIndex(file, "vendor/"); index >= 0 {
-		return file[index+7:]
-	}
-
-	if index = strings.LastIndex(file, "/"); index < 0 {
-		return file
-	}
-	if index2 = strings.LastIndex(file[:index], "/"); index2 < 0 {
-		return file[index+1:]
-	}
-	return file[index2+1:]
 }

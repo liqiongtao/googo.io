@@ -1,10 +1,14 @@
 package goo_kafka
 
+import "github.com/Shopify/sarama"
+
 // 生产者
 type IProducer interface {
 	init() error
 
 	Close()
+
+	Client() sarama.Client
 
 	// 发送消息 - 同步
 	SendMessage(topic string, message []byte) (partition int32, offset int64, err error)
@@ -18,6 +22,8 @@ type IConsumer interface {
 	init() error
 
 	Close()
+
+	Client() sarama.Client
 
 	// 处理分区消息
 	// partition: 分区ID
