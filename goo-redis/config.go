@@ -1,10 +1,10 @@
 package goo_redis
 
 type Config struct {
-	Name     string `yaml:"name"`
-	Addr     string `yaml:"addr"`
-	Password string `yaml:"password"`
-	DB       int    `yaml:"db"`
-	Prefix   string `yaml:"prefix"`
-	AutoPing bool   `yaml:"auto_ping"`
+	Name     string `yaml:"name" json:"name"`
+	Addr     string `yaml:"addr" json:"addr"`
+	Password string `yaml:"password" json:"password"`
+	DB       int    `yaml:"db" json:"DB"`
+	Prefix   string `yaml:"prefix" json:"prefix"`
+	AutoPing bool   `yaml:"auto_ping" json:"autoPing"`
 }
