@@ -1,10 +1,8 @@
 package goo_redis
 
-import (
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
-)
+import goo_log "github.com/liqiongtao/googo.io/goo-log"
 
-var __clients = map[string]*Redis{}
+var __clients = map[string]*Client{}
 
 func Init(configs ...Config) {
 	for _, conf := range configs {
@@ -16,7 +14,7 @@ func Init(configs ...Config) {
 	}
 }
 
-func Client(names ...string) *Redis {
+func Client(names ...string) *Client {
 	name := "default"
 	if l := len(names); l > 0 {
 		name = names[0]

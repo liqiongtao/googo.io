@@ -4,15 +4,24 @@ import (
 	"context"
 	"github.com/go-redis/redis"
 	goo_context "github.com/liqiongtao/googo.io/goo-context"
+	goo_cron "github.com/liqiongtao/googo.io/goo-cron"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	"time"
 )
 
-func NewRedis(conf Config) *Redis {
-	return &Redis{
+func New(conf Config) (r *Redis, err error) {
+	r = &Redis{
 		ctx:  goo_context.Cancel(),
 		conf: conf,
 	}
+	if err = r.connect(); err != nil {
+		goo_log.WithTag("goo-redis").Error(err)
+		return
+	}
+	if conf.AutoPing {
+		goo_cron.SecondX(5, r.ping)
+	}
+	return
 }
 
 type Redis struct {
