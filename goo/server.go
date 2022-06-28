@@ -85,9 +85,20 @@ func (s *Server) setFields(c *gin.Context) {
 	c.Next()
 }
 
+// 停用加解密
+func (s *Server) DisableEncryption(c *gin.Context) {
+	c.Set("__disable_encryption", true)
+	c.Next()
+}
+
 // 解密请求参数
 func (s *Server) decodeBody(c *gin.Context) {
 	if !defaultOptions.enableEncryption {
+		c.Next()
+		return
+	}
+
+	if b := c.GetBool("__disable_encryption"); b {
 		c.Next()
 		return
 	}
