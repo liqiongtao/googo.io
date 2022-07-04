@@ -98,7 +98,12 @@ func (s *Server) decodeBody(c *gin.Context) {
 		return
 	}
 
-	if b := c.GetBool("__disable_encryption"); b {
+	if _, ok := defaultOptions.disableEncryptionUris[c.Request.RequestURI]; ok {
+		c.Next()
+		return
+	}
+
+	if ok := c.GetBool("__disable_encryption"); ok {
 		c.Next()
 		return
 	}

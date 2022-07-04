@@ -13,6 +13,9 @@ type logger struct {
 }
 
 func newLogger(logFilePath string) *logger {
+	if logFilePath == "" {
+		logFilePath = "logs/sql/"
+	}
 	return &logger{
 		l: goo_log.NewFileLog(goo_log.FilePathOption(logFilePath)),
 	}

@@ -1,44 +1,46 @@
 package goo_db
 
 import (
+	"github.com/go-xorm/xorm"
 	goo_cron "github.com/liqiongtao/googo.io/goo-cron"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 )
 
-var __clients = map[string]*Orm{}
-
-func Init(configs ...Config) {
-	for _, conf := range configs {
-		name := conf.Name
-		if name == "" {
-			name = "default"
-		}
-		__clients[name] = New(conf)
-		if err := __clients[name].connect(); err != nil {
-			continue
-		}
-		if conf.AutoPing {
-			goo_cron.SecondX(5, __clients[name].ping)
-		}
-	}
+type Client struct {
+	*xorm.EngineGroup
 }
 
-func Client(names ...string) *Orm {
-	name := "default"
-	if l := len(names); l > 0 {
-		name = names[0]
+func New(conf Config) (cli *Client, err error) {
+	conns := []string{conf.Master}
+	if n := len(conf.Slaves); n > 0 {
+		conns = append(conns, conf.Slaves...)
 	}
 
-	if client, ok := __clients[name]; ok {
-		return client
+	cli = &Client{}
+
+	cli.EngineGroup, err = xorm.NewEngineGroup(conf.Driver, conns)
+	if err != nil {
+		goo_log.WithTag("goo-db").Error(err)
+		return
 	}
 
-	if l := len(__clients); l == 1 {
-		for _, client := range __clients {
-			return client
-		}
+	if err = cli.Ping(); err != nil {
+		goo_log.WithTag("goo-db").Error(err)
+		return
 	}
 
-	goo_log.WithTag("goo-db").Error("no default db client")
-	return nil
+	cli.EngineGroup.ShowSQL(conf.LogModel)
+	cli.EngineGroup.SetLogger(newLogger(conf.LogFilepath))
+	cli.EngineGroup.SetMaxIdleConns(conf.MaxIdle)
+	cli.EngineGroup.SetMaxOpenConns(conf.MaxOpen)
+
+	if conf.AutoPing {
+		goo_cron.SecondX(5, func() {
+			if err := cli.Ping(); err != nil {
+				goo_log.WithTag("goo-db").Error(err)
+			}
+		})
+	}
+
+	return
 }

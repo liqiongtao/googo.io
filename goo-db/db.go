@@ -1,8 +1,6 @@
-package goo_redis
+package goo_db
 
-import (
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
-)
+import goo_log "github.com/liqiongtao/googo.io/goo-log"
 
 var __clients = map[string]*Client{}
 
@@ -18,7 +16,6 @@ func Init(configs ...Config) (err error) {
 			return
 		}
 	}
-
 	return
 }
 
@@ -38,7 +35,7 @@ func GetClient(names ...string) *Client {
 		}
 	}
 
-	goo_log.WithTag("goo-redis").Error("no default redis client")
+	goo_log.WithTag("goo-db").Error("no default db client")
 
 	return nil
 }
@@ -54,7 +51,7 @@ func Default() *Client {
 		}
 	}
 
-	goo_log.WithTag("goo-redis").Error("no default redis client")
+	goo_log.WithTag("goo-db").Error("no default db client")
 
 	return nil
 }

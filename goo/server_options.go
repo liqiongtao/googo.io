@@ -13,17 +13,22 @@ var defaultOptions = &options{
 		"X-Requested-Id", "X-Request-Timestamp", "X-Request-Sign",
 		"X-Request-AppId", "X-Request-Source", "X-Request-Token",
 	},
+	disableEncryptionUris: map[string]struct{}{},
 }
 
 type options struct {
-	pprofEnable      bool
-	serverName       string
-	env              Env
-	corsHeaders      []string
-	noAccessPath     map[string]struct{}
-	noLogPath        map[string]struct{}
-	enableEncryption bool
-	encryptionKey    string
+	pprofEnable bool
+
+	serverName string
+	env        Env
+
+	corsHeaders  []string
+	noAccessPath map[string]struct{}
+	noLogPath    map[string]struct{}
+
+	enableEncryption      bool
+	encryptionKey         string
+	disableEncryptionUris map[string]struct{}
 }
 
 type Option interface {
@@ -102,5 +107,14 @@ func EnableEncryptionOption(key ...string) Option {
 func EncryptionKeyOption(key string) Option {
 	return newFuncOption(func(opts *options) {
 		opts.encryptionKey = key
+	})
+}
+
+// 不启用加密的urls
+func DisableEncryptionUriOption(urls ...string) Option {
+	return newFuncOption(func(opts *options) {
+		for _, i := range urls {
+			opts.disableEncryptionUris[i] = struct{}{}
+		}
 	})
 }

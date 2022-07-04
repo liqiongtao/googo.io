@@ -1,34 +1,36 @@
 package goo_redis
 
 import (
+	"github.com/go-redis/redis"
+	goo_cron "github.com/liqiongtao/googo.io/goo-cron"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 )
 
-var __clients = map[string]*Redis{}
-
-func Init(configs ...Config) {
-	for _, conf := range configs {
-		name := conf.Name
-		if name == "" {
-			name = "default"
-		}
-		__clients[name], _ = New(conf)
-	}
+type Client struct {
+	*redis.Client
 }
 
-func Client(names ...string) *Redis {
-	name := "default"
-	if l := len(names); l > 0 {
-		name = names[0]
+func New(conf Config) (cli *Client, err error) {
+	cli = &Client{}
+
+	cli.Client = redis.NewClient(&redis.Options{
+		Addr:     conf.Addr,
+		Password: conf.Password,
+		DB:       conf.DB,
+	})
+
+	if err = cli.Ping().Err(); err != nil {
+		goo_log.WithTag("goo-redis").Error(err)
+		return
 	}
-	if client, ok := __clients[name]; ok {
-		return client
+
+	if conf.AutoPing {
+		goo_cron.SecondX(5, func() {
+			if err := cli.Ping().Err(); err != nil {
+				goo_log.WithTag("goo-redis").Error(err)
+			}
+		})
 	}
-	if l := len(__clients); l == 1 {
-		for _, client := range __clients {
-			return client
-		}
-	}
-	goo_log.WithTag("goo-redis").Error("no default redis client")
-	return nil
+
+	return
 }
