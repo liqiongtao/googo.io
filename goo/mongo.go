@@ -8,3 +8,7 @@ import (
 func Mongo(names ...string) *mongo.Database {
 	return goo_mongo.GetClient(names...).DB()
 }
+
+func MongoClient(names ...string) *goo_mongo.Client {
+	return goo_mongo.GetClient(names...)
+}
