@@ -45,7 +45,9 @@ func (ev *Event) Subscribe(topic string, fn SubscribeFunc) {
 		for {
 			select {
 			case msg := <-ch:
-				fn(msg)
+				goo_utils.AsyncFunc(func() {
+					fn(msg)
+				})
 			}
 		}
 	})
