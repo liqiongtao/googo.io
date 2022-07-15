@@ -6,21 +6,17 @@ import (
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	"os"
 	"sort"
-	"strings"
 )
 
 var (
 	maxLine = 1000000
 )
 
-func FileSort(filename string) (sortedFile string, err error) {
+func FileSort(filename, sortedFile string) (err error) {
 	if !Exist(filename) {
 		err = errors.New("文件不存在")
 		return
 	}
-
-	index := strings.LastIndex(filename, ".")
-	sortedFile = fmt.Sprintf("%s.sort.%s", filename[:index], filename[index+1:])
 
 	var (
 		// 部分文件
@@ -70,7 +66,7 @@ func FileSort(filename string) (sortedFile string, err error) {
 			}
 
 			var (
-				partFile = fmt.Sprintf("%s.sort.%d.%s", filename[:index], partNum, filename[index+1:])
+				partFile = fmt.Sprintf("%s.%d", filename, partNum)
 				fh       *os.File
 			)
 

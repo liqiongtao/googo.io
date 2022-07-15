@@ -9,6 +9,7 @@ import (
 	"strings"
 )
 
+// 把多个文件内容合并到一个文件里面，合并时做好排序
 func FileMerge(filename string, files []*os.File) (err error) {
 	defer func() {
 		if err != nil {
@@ -77,6 +78,7 @@ func FileMerge(filename string, files []*os.File) (err error) {
 		s, err = rs[n].ReadString('\n')
 		if err != nil {
 			if io.EOF == err {
+				err = nil
 				continue
 			}
 			goo_log.Error(err)
