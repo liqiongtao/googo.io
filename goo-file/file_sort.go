@@ -13,14 +13,14 @@ var (
 	maxLine = 1000000
 )
 
-func FileSort(filename string) (err error) {
+func FileSort(filename string) (sortedFile string, err error) {
 	if !Exist(filename) {
 		err = errors.New("文件不存在")
 		return
 	}
 
 	index := strings.LastIndex(filename, ".")
-	sortedFile := fmt.Sprintf("%s.sort.%s", filename[:index], filename[index+1:])
+	sortedFile = fmt.Sprintf("%s.sort.%s", filename[:index], filename[index+1:])
 
 	var (
 		// 部分文件
@@ -46,18 +46,24 @@ func FileSort(filename string) (err error) {
 	}()
 
 	defer func() {
+		if err != nil {
+			return
+		}
+
 		l := len(partFiles)
 		if l == 0 {
 			return
 		}
+
 		if l == 1 {
 			os.Rename(partFiles[0], sortedFile)
 			return
 		}
+		
 		err = FileMerge(sortedFile, partFileHandlers)
 	}()
 
-	return ReadByLine(filename, func(b []byte, end bool) (err error) {
+	err = ReadByLine(filename, func(b []byte, end bool) (err error) {
 		defer func() {
 			if l := len(data); l < maxLine && !end {
 				return
@@ -91,4 +97,6 @@ func FileSort(filename string) (err error) {
 
 		return
 	})
+
+	return
 }
