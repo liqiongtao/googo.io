@@ -59,7 +59,7 @@ func FileSort(filename string) (sortedFile string, err error) {
 			os.Rename(partFiles[0], sortedFile)
 			return
 		}
-		
+
 		err = FileMerge(sortedFile, partFileHandlers)
 	}()
 

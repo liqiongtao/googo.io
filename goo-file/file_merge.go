@@ -9,11 +9,24 @@ import (
 	"strings"
 )
 
-func FileMerge(filename string, files []*os.File) error {
-	fh, err := os.OpenFile(filename, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0755)
+func FileMerge(filename string, files []*os.File) (err error) {
+	defer func() {
+		if err != nil {
+			if Exist(filename + ".0") {
+				os.Remove(filename + ".0")
+			}
+			return
+		}
+
+		os.Rename(filename+".0", filename)
+	}()
+
+	var fh *os.File
+
+	fh, err = os.OpenFile(filename+".0", os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0755)
 	if err != nil {
 		goo_log.Error(err)
-		return err
+		return
 	}
 	defer fh.Close()
 
@@ -60,13 +73,14 @@ func FileMerge(filename string, files []*os.File) error {
 		// 删除已经使用的str
 		delete(data, str)
 
-		s, err := rs[n].ReadString('\n')
+		var s string
+		s, err = rs[n].ReadString('\n')
 		if err != nil {
 			if io.EOF == err {
 				continue
 			}
 			goo_log.Error(err)
-			return err
+			return
 		}
 
 		if strings.TrimSpace(s) == "" {
@@ -76,5 +90,5 @@ func FileMerge(filename string, files []*os.File) error {
 		data[s] = n
 	}
 
-	return nil
+	return
 }
