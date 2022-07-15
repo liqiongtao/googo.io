@@ -1,4 +1,4 @@
-package goo_utils
+package goo_file
 
 import (
 	"os"
