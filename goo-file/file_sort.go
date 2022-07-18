@@ -52,7 +52,14 @@ func FileSort(filename, sortedFile string) (err error) {
 		}
 
 		if l == 1 {
-			os.Rename(partFiles[0], sortedFile)
+			if Exist(sortedFile) {
+				if err = os.Remove(sortedFile); err != nil {
+					goo_log.Error(err)
+				}
+			}
+			if err = os.Rename(partFiles[0], sortedFile); err != nil {
+				goo_log.Error(err)
+			}
 			return
 		}
 
@@ -81,6 +88,8 @@ func FileSort(filename, sortedFile string) (err error) {
 			for _, s := range data {
 				fh.WriteString(s)
 			}
+
+			goo_log.DebugF("产生一个文件：%s", partFile)
 
 			partFiles = append(partFiles, partFile)
 			partFileHandlers = append(partFileHandlers, fh)

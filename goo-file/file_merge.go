@@ -14,12 +14,16 @@ func FileMerge(filename string, files []*os.File) (err error) {
 	defer func() {
 		if err != nil {
 			if Exist(filename + ".0") {
-				os.Remove(filename + ".0")
+				if err = os.Remove(filename + ".0"); err != nil {
+					goo_log.Error(err)
+				}
 			}
 			return
 		}
 
-		os.Rename(filename+".0", filename)
+		if err = os.Rename(filename+".0", filename); err != nil {
+			goo_log.Error(err)
+		}
 	}()
 
 	var fh *os.File
