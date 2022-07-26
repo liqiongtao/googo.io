@@ -10,20 +10,16 @@ import (
 )
 
 // 把多个文件内容合并到一个文件里面，合并时做好排序
-func FileMerge(filename string, files []*os.File) (err error) {
+func FileMerge(filename string, fileHandlers []*os.File) (err error) {
 	defer func() {
 		if err != nil {
 			if Exist(filename + ".0") {
-				if err = os.Remove(filename + ".0"); err != nil {
-					goo_log.Error(err)
-				}
+				os.Remove(filename + ".0")
 			}
 			return
 		}
 
-		if err = os.Rename(filename+".0", filename); err != nil {
-			goo_log.Error(err)
-		}
+		os.Rename(filename+".0", filename)
 	}()
 
 	var fh *os.File
@@ -36,9 +32,8 @@ func FileMerge(filename string, files []*os.File) (err error) {
 	defer fh.Close()
 
 	// 定义 分隔文件读句柄
-	var rs = make([]*bufio.Reader, len(files))
-	for n, f := range files {
-		f.Seek(0, 0)
+	var rs = make([]*bufio.Reader, len(fileHandlers))
+	for n, f := range fileHandlers {
 		rs[n] = bufio.NewReader(f)
 	}
 

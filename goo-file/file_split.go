@@ -4,8 +4,11 @@ import (
 	"errors"
 	"fmt"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	"os"
+	"runtime"
 	"strings"
+	"sync"
 )
 
 func FileSplit(filename string, maxLine int) (files []string, err error) {
@@ -19,7 +22,11 @@ func FileSplit(filename string, maxLine int) (files []string, err error) {
 	var (
 		partNum int
 		data    []string
-		index   = strings.LastIndex(filename, ".")
+
+		index = strings.LastIndex(filename, ".")
+
+		wg sync.WaitGroup
+		ch = make(chan struct{}, runtime.NumCPU()*2)
 	)
 
 	err = ReadByLine(filename, func(b []byte, end bool) (err error) {
@@ -28,35 +35,44 @@ func FileSplit(filename string, maxLine int) (files []string, err error) {
 				return
 			}
 
-			var (
-				partFile = fmt.Sprintf("%s.%d.%s", filename[:index], partNum, filename[index+1:])
-				fh       *os.File
-			)
+			wg.Add(1)
+			ch <- struct{}{}
 
-			fh, err = os.OpenFile(partFile, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0755)
-			if err != nil {
-				goo_log.Error(err)
-				return
-			}
+			func(partNum int, data []string) {
+				goo_utils.AsyncFunc(func() {
+					defer wg.Done()
+					defer func() { <-ch }()
 
-			for _, s := range data {
-				fh.WriteString(s)
-			}
+					var (
+						partFile = fmt.Sprintf("%s.%d.%s", filename[:index], partNum, filename[index+1:])
+						fh       *os.File
+					)
 
-			fh.Close()
+					fh, err = os.OpenFile(partFile, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0755)
+					if err != nil {
+						goo_log.Error(err)
+						return
+					}
+					defer fh.Close()
 
-			goo_log.DebugF("产生一个文件：%s", partFile)
+					for _, s := range data {
+						fh.WriteString(s)
+					}
 
-			files = append(files, partFile)
+					goo_log.DebugF("产生一个文件：%s", partFile)
+
+					files = append(files, partFile)
+				})
+			}(partNum, data)
 
 			data = []string{}
 			partNum++
 		}()
 
 		data = append(data, string(b))
-
 		return
 	})
 
+	wg.Wait()
 	return
 }
