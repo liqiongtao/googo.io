@@ -2,8 +2,16 @@ package goo_utils
 
 import "time"
 
+func DateTime(format string) string {
+	return time.Now().Format(format)
+}
+
 func Today() string {
-	return time.Now().Format("2006-01-02")
+	return DateTime("2006-01-02")
+}
+
+func Now() string {
+	return DateTime("2006-01-02 15:04:05")
 }
 
 func NextDate(d int) string {
