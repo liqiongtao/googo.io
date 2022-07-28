@@ -28,7 +28,7 @@ func FileMerge(file string, files []string) (err error) {
 
 	var (
 		index int
-		size  = 2
+		size  = 5
 	)
 
 	for {
@@ -120,6 +120,7 @@ func fileMergeHandler(file string, files []string) (err error) {
 
 				f, err = os.OpenFile(_file, os.O_RDWR, 0755)
 				if err != nil {
+					goo_log.Error(err)
 					return
 				}
 
@@ -192,7 +193,7 @@ func fileMergeHandler(file string, files []string) (err error) {
 				continue
 			}
 			goo_log.Error(err)
-			return err
+			return
 		}
 
 		if strings.TrimSpace(s) == "" {
