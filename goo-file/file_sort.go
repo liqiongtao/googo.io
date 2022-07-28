@@ -22,9 +22,6 @@ func FileSort(filename, sortedFile string) (err error) {
 		// 部分文件
 		partFiles []string
 
-		// 部分文件句柄
-		fileHandlers []*os.File
-
 		// 第几部分
 		partNum int
 
@@ -33,12 +30,6 @@ func FileSort(filename, sortedFile string) (err error) {
 	)
 
 	defer func() {
-		for _, fh := range fileHandlers {
-			if fh != nil {
-				fh.Close()
-			}
-		}
-
 		for _, file := range partFiles {
 			if Exist(file) {
 				os.Remove(file)
@@ -61,11 +52,7 @@ func FileSort(filename, sortedFile string) (err error) {
 			return
 		}
 
-		for _, fh := range fileHandlers {
-			fh.Seek(0, 0)
-		}
-
-		err = FileMerge(sortedFile, fileHandlers)
+		err = FileMerge(sortedFile, partFiles)
 	}()
 
 	err = ReadByLine(filename, func(b []byte, end bool) (err error) {
@@ -84,6 +71,7 @@ func FileSort(filename, sortedFile string) (err error) {
 				goo_log.Error(err)
 				return
 			}
+			defer fh.Close()
 
 			sort.Strings(data)
 
@@ -94,7 +82,6 @@ func FileSort(filename, sortedFile string) (err error) {
 			goo_log.DebugF("产生一个文件：%s", partFile)
 
 			partFiles = append(partFiles, partFile)
-			fileHandlers = append(fileHandlers, fh)
 
 			data = []string{}
 			partNum++

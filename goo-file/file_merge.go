@@ -2,43 +2,148 @@ package goo_file
 
 import (
 	"bufio"
+	"fmt"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	"io"
 	"os"
+	"runtime"
 	"sort"
 	"strings"
+	"sync"
 )
 
-// 把多个文件内容合并到一个文件里面，合并时做好排序
-func FileMerge(filename string, fileHandlers []*os.File) (err error) {
+var (
+	tempMergeFiles []string
+)
+
+func FileMerge(file string, files []string) (err error) {
 	defer func() {
-		if err != nil {
-			if Exist(filename + ".0") {
-				os.Remove(filename + ".0")
+		for _, _file := range tempMergeFiles {
+			if Exist(_file) {
+				os.Remove(_file)
+			}
+		}
+	}()
+
+	var (
+		index int
+		size  = 5
+	)
+
+	for {
+		l := len(files)
+		if l == 0 {
+			return
+		}
+		if l == 1 {
+			if _file := files[0]; Exist(_file) {
+				os.Rename(_file, file)
 			}
 			return
 		}
 
-		os.Rename(filename+".0", filename)
-	}()
+		filename := fmt.Sprintf("%s.%d", file, index)
+		filesArr := goo_utils.SplitStringArray(files, size)
 
+		files = fileGroupMerge(filename, filesArr)
+
+		index++
+	}
+}
+
+func fileGroupMerge(file string, filesArr [][]string) (files []string) {
+	files = []string{}
+
+	var (
+		wg sync.WaitGroup
+		ch = make(chan struct{}, runtime.NumCPU()/2)
+	)
+
+	for n, _files := range filesArr {
+		l := len(_files)
+		if l == 0 {
+			continue
+		}
+		if l == 1 {
+			files = append(files, _files[0])
+			continue
+		}
+
+		wg.Add(1)
+		ch <- struct{}{}
+
+		_file := fmt.Sprintf("%s.%d", file, n)
+
+		files = append(files, _file)
+		tempMergeFiles = append(tempMergeFiles, _file)
+
+		goo_log.DebugF("文件合并，临时文件: %s", _file)
+
+		func(_file string, _files []string) {
+			goo_utils.AsyncFunc(func() {
+				defer wg.Done()
+				defer func() { <-ch }()
+
+				fileMergeHandler(_file, _files)
+			})
+		}(_file, _files)
+	}
+
+	wg.Wait()
+
+	return
+}
+
+func fileMergeHandler(file string, files []string) (err error) {
 	var fh *os.File
 
-	fh, err = os.OpenFile(filename+".0", os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0755)
+	fh, err = os.OpenFile(file, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0755)
 	if err != nil {
-		goo_log.Error(err)
 		return
 	}
-	defer fh.Close()
 
-	// 定义 分隔文件读句柄
-	var rs = make([]*bufio.Reader, len(fileHandlers))
-	for n, f := range fileHandlers {
-		rs[n] = bufio.NewReader(f)
+	var (
+		handlers []*os.File
+		rs       []*bufio.Reader
+		wg       sync.WaitGroup
+	)
+
+	for _, _file := range files {
+		wg.Add(1)
+
+		func(_file string) {
+			goo_utils.AsyncFunc(func() {
+				defer wg.Done()
+
+				var f *os.File
+
+				f, err = os.OpenFile(_file, os.O_RDWR, 0755)
+				if err != nil {
+					return
+				}
+
+				rs = append(rs, bufio.NewReader(f))
+				handlers = append(handlers, f)
+			})
+		}(_file)
 	}
 
-	// 定义 每个文件 拿到的一行字符串
-	var data = map[string]int{}
+	wg.Wait()
+
+	defer func() {
+		for _, f := range handlers {
+			if f != nil {
+				f.Close()
+			}
+		}
+	}()
+
+	var (
+		data = map[string]int{}
+		strs []string
+	)
+
 	for n, r := range rs {
 		s, _ := r.ReadString('\n')
 		if strings.TrimSpace(s) == "" {
@@ -46,8 +151,6 @@ func FileMerge(filename string, fileHandlers []*os.File) (err error) {
 		}
 		data[s] = n
 	}
-
-	var strs []string
 
 	for {
 		if l := len(data); l == 0 {
@@ -89,7 +192,7 @@ func FileMerge(filename string, fileHandlers []*os.File) (err error) {
 				continue
 			}
 			goo_log.Error(err)
-			return
+			return err
 		}
 
 		if strings.TrimSpace(s) == "" {

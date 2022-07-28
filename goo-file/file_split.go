@@ -59,7 +59,7 @@ func FileSplit(filename string, maxLine int) (files []string, err error) {
 						fh.WriteString(s)
 					}
 
-					goo_log.DebugF("产生一个文件：%s", partFile)
+					goo_log.DebugF("产生一个文件: %s", partFile)
 
 					files = append(files, partFile)
 				})
