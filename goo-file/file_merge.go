@@ -47,6 +47,8 @@ func FileMerge(filename string, fileHandlers []*os.File) (err error) {
 		data[s] = n
 	}
 
+	var strs []string
+
 	for {
 		if l := len(data); l == 0 {
 			break
@@ -65,7 +67,13 @@ func FileMerge(filename string, fileHandlers []*os.File) (err error) {
 		str := arr[0]
 
 		// 写入到文件
-		fh.WriteString(str)
+		{
+			strs = append(strs, str)
+			if l := len(strs); l >= 1000 {
+				fh.WriteString(strings.Join(strs, ""))
+				strs = []string{}
+			}
+		}
 
 		// 该字符串对应的索引
 		n := data[str]
@@ -89,6 +97,10 @@ func FileMerge(filename string, fileHandlers []*os.File) (err error) {
 		}
 
 		data[s] = n
+	}
+
+	if l := len(strs); l > 0 {
+		fh.WriteString(strings.Join(strs, ""))
 	}
 
 	return
