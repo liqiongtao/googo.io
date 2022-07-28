@@ -100,37 +100,27 @@ func fileMergeHandler(file string, files []string) (err error) {
 
 	fh, err = os.OpenFile(file, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0755)
 	if err != nil {
+		goo_log.Error(err)
 		return
 	}
 
 	var (
 		handlers []*os.File
 		rs       []*bufio.Reader
-		wg       sync.WaitGroup
 	)
 
 	for _, _file := range files {
-		wg.Add(1)
+		var f *os.File
 
-		func(_file string) {
-			goo_utils.AsyncFunc(func() {
-				defer wg.Done()
+		f, err = os.OpenFile(_file, os.O_RDWR, 0755)
+		if err != nil {
+			goo_log.Error(err)
+			return
+		}
 
-				var f *os.File
-
-				f, err = os.OpenFile(_file, os.O_RDWR, 0755)
-				if err != nil {
-					goo_log.Error(err)
-					return
-				}
-
-				rs = append(rs, bufio.NewReader(f))
-				handlers = append(handlers, f)
-			})
-		}(_file)
+		rs = append(rs, bufio.NewReader(f))
+		handlers = append(handlers, f)
 	}
-
-	wg.Wait()
 
 	defer func() {
 		for _, f := range handlers {
