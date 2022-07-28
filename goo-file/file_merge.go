@@ -28,7 +28,7 @@ func FileMerge(file string, files []string) (err error) {
 
 	var (
 		index int
-		size  = 5
+		size  = 2
 	)
 
 	for {
