@@ -13,11 +13,11 @@ import (
 	"sync"
 )
 
-var (
-	tempMergeFiles []string
-)
-
 func FileMerge(file string, files []string) (err error) {
+	var (
+		tempMergeFiles []string
+	)
+
 	defer func() {
 		for _, _file := range tempMergeFiles {
 			if Exist(_file) {
@@ -27,8 +27,9 @@ func FileMerge(file string, files []string) (err error) {
 	}()
 
 	var (
-		index int
-		size  = 5
+		index     int
+		size      = 5
+		tempFiles []string
 	)
 
 	for {
@@ -46,14 +47,19 @@ func FileMerge(file string, files []string) (err error) {
 		filename := fmt.Sprintf("%s.%d", file, index)
 		filesArr := goo_utils.SplitStringArray(files, size)
 
-		files = fileGroupMerge(filename, filesArr)
+		files, tempFiles = fileGroupMerge(filename, filesArr)
+
+		if ll := len(tempFiles); ll > 0 {
+			tempMergeFiles = append(tempMergeFiles, tempFiles...)
+		}
 
 		index++
 	}
 }
 
-func fileGroupMerge(file string, filesArr [][]string) (files []string) {
+func fileGroupMerge(file string, filesArr [][]string) (files, tempFiles []string) {
 	files = []string{}
+	tempFiles = []string{}
 
 	var (
 		wg sync.WaitGroup
@@ -76,7 +82,7 @@ func fileGroupMerge(file string, filesArr [][]string) (files []string) {
 		_file := fmt.Sprintf("%s.%d", file, n)
 
 		files = append(files, _file)
-		tempMergeFiles = append(tempMergeFiles, _file)
+		tempFiles = append(tempFiles, _file)
 
 		goo_log.DebugF("文件合并，临时文件: %s", _file)
 
