@@ -206,6 +206,7 @@ func (cli *Client) RegisterService(serviceName, addr string) (err error) {
 		for {
 			select {
 			case <-cli.ctx.Done():
+				goo_log.WithTag("goo-etcd").WithField("serviceName", serviceName).WithField("addr", addr).Warn("服务退出,收回注册信息")
 				cli.Client.Revoke(cli.ctx, lease.ID)
 				return
 
