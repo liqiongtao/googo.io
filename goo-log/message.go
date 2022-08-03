@@ -23,23 +23,29 @@ func (msg *Message) JSON() []byte {
 		}
 	}
 
-	data["__level"] = LevelText[msg.Level]
-	data["__datetime"] = msg.Time.Format("2006-01-02 15:04:05")
+	{
+		info := map[string]interface{}{}
 
-	if l := len(msg.Entry.Tags); l > 0 {
-		data["__tags"] = msg.Entry.Tags
-	}
+		info["level"] = LevelText[msg.Level]
+		info["datetime"] = msg.Time.Format("2006-01-02 15:04:05")
 
-	if l := len(msg.Message); l > 0 {
-		var arr []string
-		for _, i := range msg.Message {
-			arr = append(arr, fmt.Sprint(i))
+		if l := len(msg.Entry.Tags); l > 0 {
+			info["tags"] = msg.Entry.Tags
 		}
-		data["__content"] = arr
-	}
 
-	if l := len(msg.Trace); l > 0 {
-		data["__trace"] = msg.Trace
+		if l := len(msg.Message); l > 0 {
+			var arr []string
+			for _, i := range msg.Message {
+				arr = append(arr, fmt.Sprint(i))
+			}
+			info["message"] = arr
+		}
+
+		if l := len(msg.Trace); l > 0 {
+			info["trace"] = msg.Trace
+		}
+
+		data["log"] = info
 	}
 
 	buf, _ := json.Marshal(&data)
