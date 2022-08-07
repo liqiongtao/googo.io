@@ -1,6 +1,7 @@
 package goo_kafka
 
 import (
+	"github.com/Shopify/sarama"
 	goo_context "github.com/liqiongtao/googo.io/goo-context"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 )
@@ -25,10 +26,10 @@ func Client() *client {
 	return __client
 }
 
-func Producer() IProducer {
-	return &producer{client: __client}
+func Producer() iProducer {
+	return &producer{client: __client, msg: &sarama.ProducerMessage{}}
 }
 
-func Consumer() IConsumer {
+func Consumer() iConsumer {
 	return &consumer{client: __client}
 }
