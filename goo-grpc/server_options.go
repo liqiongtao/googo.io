@@ -1,13 +1,16 @@
 package goo_grpc
 
 import (
+	goo_etcd "github.com/liqiongtao/googo.io/goo-etcd"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 	"time"
 )
 
 var defaultServerOptions = serverOptions{
-	AuthFunc: nil,
+	AuthFunc:      nil,
+	EtcdClient:    nil,
+	Register2Etcd: false,
 	ServerOptions: []grpc.ServerOption{
 		grpc.KeepaliveParams(keepalive.ServerParameters{
 			MaxConnectionIdle:     15 * time.Second,
@@ -25,7 +28,11 @@ var defaultServerOptions = serverOptions{
 
 // 定义配置项集合
 type serverOptions struct {
-	AuthFunc      AuthFunc
+	AuthFunc AuthFunc
+
+	EtcdClient    *goo_etcd.Client
+	Register2Etcd bool
+
 	ServerOptions []grpc.ServerOption
 }
 

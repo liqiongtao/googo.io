@@ -7,8 +7,10 @@ import (
 	"google.golang.org/grpc"
 	"io/ioutil"
 	"log"
+	"net"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 )
 
@@ -17,6 +19,8 @@ type Server struct {
 
 	*gracenet.Net
 	*grpc.Server
+
+	lis net.Listener
 
 	pprof *PProf
 }
@@ -53,17 +57,33 @@ func New(conf Config, opt ...ServerOption) *Server {
 	}
 }
 
-func (s *Server) Serve() {
+func (s *Server) Serve() (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			goo_log.WithTag("goo-grpc").Error(r)
 		}
 	}()
 
-	lis, err := s.Net.Listen("tcp", s.conf.Addr)
+	// 随机端口
+	addr := s.conf.Addr
+	if addr == "" {
+		addr = "0.0.0.0:0"
+	}
+	if !strings.Contains(addr, ":") {
+		addr += ":0"
+	}
+
+	s.lis, err = s.Net.Listen("tcp", addr)
 	if err != nil {
 		goo_log.WithTag("goo-grpc").Error(err)
 		return
+	}
+
+	// 服务注册
+	if defaultServerOptions.Register2Etcd {
+		if cli := defaultServerOptions.EtcdClient; cli != nil {
+			cli.RegisterService(s.conf.ServiceName, s.lis.Addr().String())
+		}
 	}
 
 	go func() {
@@ -73,13 +93,15 @@ func (s *Server) Serve() {
 			}
 		}()
 
-		if err := s.Server.Serve(lis); err != nil {
+		if err = s.Server.Serve(s.lis); err != nil {
 			goo_log.WithTag("goo-grpc").Error(err)
 		}
 	}()
 
 	s.storePID()
 	s.handleSignal()
+
+	return
 }
 
 func (s *Server) handleSignal() {
@@ -144,5 +166,5 @@ func (s *Server) storePID() {
 		log.Println(fmt.Sprintf("server store pid err: %s", err.Error()))
 		return
 	}
-	log.Println(fmt.Sprintf("server is running, address=%s, pid=%s", s.conf.Addr, pid))
+	log.Println(fmt.Sprintf("server is running, address=%s, pid=%s", s.lis.Addr(), pid))
 }

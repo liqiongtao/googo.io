@@ -120,7 +120,7 @@ func (entry *Entry) hookHandler(fn func(msg *Message)) {
 func (entry *Entry) trace() (arr []string) {
 	arr = []string{}
 
-	for i := 5; i < 16; i++ {
+	for i := 3; i < 16; i++ {
 		_, file, line, _ := runtime.Caller(i)
 		if file == "" {
 			continue
@@ -129,7 +129,8 @@ func (entry *Entry) trace() (arr []string) {
 			strings.Contains(file, "runtime/") ||
 			strings.Contains(file, "src/") ||
 			strings.Contains(file, "pkg/mod/") ||
-			strings.Contains(file, "vendor/") {
+			strings.Contains(file, "vendor/") ||
+			strings.Contains(file, "goo-log") {
 			continue
 		}
 		arr = append(arr, fmt.Sprintf("%s %dL", entry.prettyFile(file), line))
