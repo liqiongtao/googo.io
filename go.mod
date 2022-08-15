@@ -1,6 +1,6 @@
 module github.com/liqiongtao/googo.io
 
-go 1.17
+go 1.18
 
 require (
 	github.com/ClickHouse/clickhouse-go v1.5.4
@@ -21,6 +21,7 @@ require (
 	go.etcd.io/etcd/client/pkg/v3 v3.5.4
 	go.etcd.io/etcd/client/v3 v3.5.4
 	go.mongodb.org/mongo-driver v1.10.1
+	go.uber.org/zap v1.17.0
 	golang.org/x/text v0.3.7
 	google.golang.org/grpc v1.48.0
 	google.golang.org/protobuf v1.28.1
@@ -81,7 +82,6 @@ require (
 	go.etcd.io/etcd/api/v3 v3.5.4 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
-	go.uber.org/zap v1.17.0 // indirect
 	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d // indirect
 	golang.org/x/net v0.0.0-20220708220712-1185a9018129 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
