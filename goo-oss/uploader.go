@@ -2,7 +2,7 @@ package goo_oss
 
 import (
 	"bytes"
-	"fmt"
+	"errors"
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
@@ -53,27 +53,33 @@ func (o *uploader) Options(opts ...oss.Option) *uploader {
 }
 
 func (o *uploader) Upload(filename string, body []byte) (string, error) {
-	md5str := goo_utils.MD5(body)
-	filepath := fmt.Sprintf("%s/%s/", md5str[0:2], md5str[2:4])
-
-	if index := strings.LastIndexByte(filename, '/'); index > 0 {
-		filename = filename[index+1:]
+	if filename == "" {
+		return "", errors.New("文件名为空")
 	}
+
+	md5str := goo_utils.MD5(body)
 
 	ext := path.Ext(filename)
 	index := strings.Index(filename, ext)
-	filename = filename[:index] + "_" + md5str[8:16] + filename[index:]
+	filename = filename[:index] + "_" + md5str[8:24] + filename[index:]
 
-	if err := o.bucket.PutObject(filepath+filename, bytes.NewReader(body), o.options...); err != nil {
+	if err := o.bucket.PutObject(filename, bytes.NewReader(body), o.options...); err != nil {
 		goo_log.Error(err.Error())
 		return "", err
 	}
 
-	if o.conf.Domain != "" {
-		return o.conf.Domain + filepath + filename, nil
+	if filename[0:1] != "/" {
+		filename = "/" + filename
 	}
 
-	url := "https://" + o.conf.Bucket + "." + o.conf.Endpoint + "/" + filepath + filename
+	if o.conf.Domain != "" {
+		if idx, l := strings.LastIndex(o.conf.Domain, "/"), len(o.conf.Domain); idx+1 == l {
+			o.conf.Domain = o.conf.Domain[:l-1]
+		}
+		return o.conf.Domain + filename, nil
+	}
+
+	url := "https://" + o.conf.Bucket + "." + o.conf.Endpoint + filename
 	return url, nil
 }
 
