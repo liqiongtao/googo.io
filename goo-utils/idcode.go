@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-const key = "1A2B3C5D6E7F8G9H0JKLMPQRSNVWXYZTU"
+const key = "6A7CDKV5TBH0ULFSEP82XMW1G9R3YJQNZ"
 
 type idCode struct {
 	base int64
