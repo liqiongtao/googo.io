@@ -9,17 +9,19 @@ import (
 	"time"
 )
 
-const key = "abcdefghijklmnpqrstuvwxyzABCDEFGHIJKLMNPQRSTUVWXYZ1234567890"
+const key = "1235ABCDEFGHJKLMNPQRSTUVWXYZ67890"
 
 type idCode struct {
-	key string
-	l   int
+	base int64
+	key  string
+	l    int
 }
 
 func NewIdCode(key string) *idCode {
 	return &idCode{
-		key: key,
-		l:   len(key),
+		base: 100000,
+		key:  key,
+		l:    len(key),
 	}
 }
 
@@ -30,6 +32,8 @@ func NewIdCode(key string) *idCode {
  * 验证字符B = 从key里面获取一个字符，字符位置=(密钥长度-随机数+给定ID长度)%密钥长度
  */
 func (c *idCode) Encode(id int64) string {
+	id += c.base
+
 	n := c.randNum()
 
 	hexArr := []rune(strconv.FormatInt(id, 16))
@@ -83,7 +87,11 @@ func (c *idCode) Decode(str string) (id int64, err error) {
 	}
 	if strArr[l-1] != keyArr[(c.l-n+len(strconv.FormatInt(id, 10)))%c.l] {
 		err = errors.New("校验错误")
+		return
 	}
+
+	id -= c.base
+
 	return
 }
 
