@@ -9,10 +9,10 @@ func Init(conf Config, options ...elastic.ClientOptionFunc) (err error) {
 	return
 }
 
-func Default() *client {
+func Client() *client {
 	return __client
 }
 
-func Client() *elastic.Client {
+func ESClient() *elastic.Client {
 	return __client.cli
 }
