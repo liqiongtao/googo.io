@@ -69,7 +69,7 @@ func (o *uploader) Upload(filename string, body []byte) (string, error) {
 	}
 
 	{
-		index := strings.LastIndex(filename, ".")
+		index := strings.Index(filename, ".")
 		filename = fmt.Sprintf("%s_%s.%s", filename[:index], md5str[8:24], filename[index+1:])
 	}
 
