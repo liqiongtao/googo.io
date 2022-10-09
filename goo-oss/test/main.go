@@ -11,12 +11,15 @@ import (
 	"strings"
 )
 
+// go build -ldflags "-s -w" -o oss
+
 var (
-	AccessKeyId     = flag.String("access_key_id", "", "")
-	AccessKeySecret = flag.String("access_key_secret", "", "")
-	Endpoint        = flag.String("endpoint", "", "")
-	Bucket          = flag.String("bucket", "", "")
-	Domain          = flag.String("domain", "", "")
+	AccessKeyIdFlag     = flag.String("access_key_id", "", "")
+	AccessKeySecretFlag = flag.String("access_key_secret", "", "")
+	EndpointFlag        = flag.String("endpoint", "", "")
+	BucketFlag          = flag.String("bucket", "", "")
+	DomainFlag          = flag.String("domain", "", "")
+	filenameFlag        = flag.String("filename", "", "")
 )
 
 func main() {
@@ -29,11 +32,11 @@ func main() {
 	}
 
 	conf := goo_oss.Config{
-		AccessKeyId:     *AccessKeyId,
-		AccessKeySecret: *AccessKeySecret,
-		Endpoint:        *Endpoint,
-		Bucket:          *Bucket,
-		Domain:          *Domain,
+		AccessKeyId:     *AccessKeyIdFlag,
+		AccessKeySecret: *AccessKeySecretFlag,
+		Endpoint:        *EndpointFlag,
+		Bucket:          *BucketFlag,
+		Domain:          *DomainFlag,
 	}
 
 	if conf.AccessKeyId == "" {
@@ -55,34 +58,40 @@ func main() {
 		return
 	}
 
-	for n, i := range args {
-		if n == 0 {
-			continue
-		}
-
-		b, err := ioutil.ReadFile(i)
-		if err != nil {
-			fmt.Println(err.Error())
-			return
-		}
-
-		index := strings.LastIndex(i, "/")
-
-		var filename string
-		if index == -1 {
-			filename = i
-		} else {
-			filename = i[index+1:]
-		}
-
-		md5 := goo_utils.MD5(b)
-		filename = fmt.Sprintf("%s/%s/%s", md5[0:2], md5[2:4], filename)
-
-		url, err := up.Upload(strings.ToLower(filename), b)
-		if err != nil {
-			fmt.Println(err.Error())
-			continue
-		}
-		fmt.Println(url)
+	b, err := ioutil.ReadFile(args[1])
+	if err != nil {
+		fmt.Println(err.Error())
+		return
 	}
+
+	var filename string
+	{
+		index := strings.LastIndex(args[1], "/")
+		if index == -1 {
+			filename = args[1]
+		} else {
+			filename = args[1][index+1:]
+		}
+	}
+
+	md5 := goo_utils.MD5(b)
+
+	{
+		index := strings.LastIndex(filename, ".")
+		filename = fmt.Sprintf("%s_%s.%s", filename[:index], md5[8:24], filename[index+1:])
+	}
+
+	filename = fmt.Sprintf("%s/%s/%s", md5[0:2], md5[2:4], filename)
+
+	if *filenameFlag != "" {
+		filename = *filenameFlag
+	}
+
+	url, err := up.Upload(strings.ToLower(filename), b)
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+
+	fmt.Println(url)
 }
