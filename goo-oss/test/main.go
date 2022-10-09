@@ -15,7 +15,7 @@ var (
 	AccessKeyIdFlag     = flag.String("access_key_id", "", "")
 	AccessKeySecretFlag = flag.String("access_key_secret", "", "")
 	EndpointFlag        = flag.String("endpoint", "oss-cn-beijing.aliyuncs.com", "")
-	BucketFlag          = flag.String("bucket", "video-ai", "")
+	BucketFlag          = flag.String("bucket", "", "")
 	DomainFlag          = flag.String("domain", "", "")
 )
 
