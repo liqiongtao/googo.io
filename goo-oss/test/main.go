@@ -12,10 +12,10 @@ import (
 // go build -ldflags "-s -w" -o oss
 
 var (
-	AccessKeyIdFlag     = flag.String("access_key_id", "LTAI4GBHAJyCstLZawynP22z", "")
-	AccessKeySecretFlag = flag.String("access_key_secret", "9MkHx0Ink16cKzlH3umoNUMpNTyNSW", "")
+	AccessKeyIdFlag     = flag.String("access_key_id", "", "")
+	AccessKeySecretFlag = flag.String("access_key_secret", "", "")
 	EndpointFlag        = flag.String("endpoint", "oss-cn-beijing.aliyuncs.com", "")
-	BucketFlag          = flag.String("bucket", "video-ai", "")
+	BucketFlag          = flag.String("bucket", "", "")
 	DomainFlag          = flag.String("domain", "", "")
 )
 
