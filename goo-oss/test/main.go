@@ -5,21 +5,18 @@ import (
 	"fmt"
 	"github.com/liqiongtao/googo.io/goo"
 	goo_oss "github.com/liqiongtao/googo.io/goo-oss"
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	"io/ioutil"
 	"os"
-	"strings"
 )
 
 // go build -ldflags "-s -w" -o oss
 
 var (
-	AccessKeyIdFlag     = flag.String("access_key_id", "", "")
-	AccessKeySecretFlag = flag.String("access_key_secret", "", "")
-	EndpointFlag        = flag.String("endpoint", "", "")
-	BucketFlag          = flag.String("bucket", "", "")
+	AccessKeyIdFlag     = flag.String("access_key_id", "LTAI4GBHAJyCstLZawynP22z", "")
+	AccessKeySecretFlag = flag.String("access_key_secret", "9MkHx0Ink16cKzlH3umoNUMpNTyNSW", "")
+	EndpointFlag        = flag.String("endpoint", "oss-cn-beijing.aliyuncs.com", "")
+	BucketFlag          = flag.String("bucket", "video-ai", "")
 	DomainFlag          = flag.String("domain", "", "")
-	filenameFlag        = flag.String("filename", "", "")
 )
 
 func main() {
@@ -64,30 +61,7 @@ func main() {
 		return
 	}
 
-	var filename string
-	{
-		index := strings.LastIndex(args[1], "/")
-		if index == -1 {
-			filename = args[1]
-		} else {
-			filename = args[1][index+1:]
-		}
-	}
-
-	md5 := goo_utils.MD5(b)
-
-	{
-		index := strings.LastIndex(filename, ".")
-		filename = fmt.Sprintf("%s_%s.%s", filename[:index], md5[8:24], filename[index+1:])
-	}
-
-	filename = fmt.Sprintf("%s/%s/%s", md5[0:2], md5[2:4], filename)
-
-	if *filenameFlag != "" {
-		filename = *filenameFlag
-	}
-
-	url, err := up.Upload(strings.ToLower(filename), b)
+	url, err := up.Upload(args[1], b)
 	if err != nil {
 		fmt.Println(err.Error())
 		return
