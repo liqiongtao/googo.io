@@ -15,7 +15,7 @@ var (
 	AccessKeyIdFlag     = flag.String("access_key_id", "", "")
 	AccessKeySecretFlag = flag.String("access_key_secret", "", "")
 	EndpointFlag        = flag.String("endpoint", "oss-cn-beijing.aliyuncs.com", "")
-	BucketFlag          = flag.String("bucket", "", "")
+	BucketFlag          = flag.String("bucket", "video-ai", "")
 	DomainFlag          = flag.String("domain", "", "")
 )
 
@@ -43,7 +43,7 @@ func main() {
 		conf.AccessKeySecret = ""
 	}
 	if conf.Endpoint == "" {
-		conf.Endpoint = "oss-cn-beijing.aliyuncs.com"
+		conf.Endpoint = ""
 	}
 	if conf.Bucket == "" {
 		conf.Bucket = ""
