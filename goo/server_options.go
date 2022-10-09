@@ -12,6 +12,7 @@ var defaultOptions = &options{
 		"Accept", "Referer", "User-Agent", "Authorization",
 		"X-Requested-Id", "X-Request-Timestamp", "X-Request-Sign",
 		"X-Request-AppId", "X-Request-Source", "X-Request-Token",
+		"X-Client-Id", "X-Client-Token",
 	},
 	disableEncryptionUris: map[string]struct{}{},
 }
