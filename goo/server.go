@@ -198,13 +198,13 @@ func (s *Server) noMethod(c *gin.Context) {
 	s.abortWithStatus40X(c, 405, "Method not allowed")
 }
 
-func (*Server) abortWithStatus40X(c *gin.Context, code int, msg string) {
+func (*Server) abortWithStatus40X(c *gin.Context, code int32, msg string) {
 	resp := Error(code, msg, msg)
 	c.Set("__response", resp)
-	c.AbortWithStatusJSON(code, resp)
+	c.AbortWithStatusJSON(int(code), resp)
 }
 
-func (*Server) abortWithStatus50X(c *gin.Context, code int, msg string) {
+func (*Server) abortWithStatus50X(c *gin.Context, code int32, msg string) {
 	resp := Error(code, msg, msg)
 	c.Set("__response", resp)
 	c.AbortWithStatusJSON(500, resp)
