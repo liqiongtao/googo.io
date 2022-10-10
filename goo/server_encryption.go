@@ -3,6 +3,7 @@ package goo
 import (
 	"encoding/hex"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
+	"strings"
 )
 
 type Encryption struct {
@@ -22,6 +23,7 @@ func (enc *Encryption) Encode(b []byte) (str string, err error) {
 
 func (enc *Encryption) Decode(str string) (b []byte, err error) {
 	var bts []byte
+	str = strings.ReplaceAll(str, "\"", "")
 	bts, err = hex.DecodeString(str)
 	if err != nil {
 		return
