@@ -116,9 +116,6 @@ func (s *Server) encrypt(c *gin.Context) {
 		s.abortWithStatus50X(c, 5002, "解码失败，原因："+err.Error())
 		return
 	}
-	if l := len(b); l == 0 {
-		b = []byte("{}")
-	}
 
 	c.Request.Body = ioutil.NopCloser(bytes.NewBuffer(b))
 
