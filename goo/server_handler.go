@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
+	"strings"
 	"time"
 )
 
@@ -27,25 +27,47 @@ func Handler(controller iController) gin.HandlerFunc {
 		// 计算执行时间
 		beginTime := c.GetTime("__begin_time")
 		if !beginTime.IsZero() {
-			c.Header("duration", fmt.Sprintf("%dms", time.Since(beginTime)/1e6))
+			c.Header("X-Response-Duration", fmt.Sprintf("%dms", time.Since(beginTime)/1e6))
 		}
 
-		// 如果没有启用加密传输
-		if !defaultOptions.enableEncryption {
+		if !defaultOptions.encryptionEnable {
 			c.JSON(200, resp)
 			return
 		}
 
-		// 启用加密传输
-		data := gin.H{
-			"code":    resp.Code,
-			"message": resp.Message,
-			"ts":      time.Now().Unix(),
+		switch strings.ToUpper(c.Request.Method) {
+		case "POST", "PUT":
+		default:
+			c.JSON(200, resp)
+			return
 		}
-		if resp.Data != nil {
-			b, _ := json.Marshal(&resp.Data)
-			data["data"] = goo_utils.Base59Encoding(b, defaultOptions.encryptionKey)
+
+		switch strings.ToLower(c.Request.Header.Get("Content-Type")) {
+		case "multipart/form-data":
+			c.JSON(200, resp)
+			return
 		}
-		c.JSON(200, data)
+
+		if _, ok := defaultOptions.encryptionExcludeUris[c.Request.RequestURI]; ok {
+			c.JSON(200, resp)
+			return
+		}
+
+		b, err := json.Marshal(&resp.Data)
+		if err != nil {
+			c.JSON(500, Error(5003, "数据解析失败，原因："+err.Error()))
+			return
+		}
+
+		body, err := defaultOptions.encryption.Encode(b)
+		if err != nil {
+			c.JSON(500, Error(5004, "数据解析失败，原因："+err.Error()))
+			return
+		}
+
+		resp.Data = body
+		c.JSON(200, resp)
+
+		return
 	}
 }

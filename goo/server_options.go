@@ -14,7 +14,7 @@ var defaultOptions = &options{
 		"X-Request-AppId", "X-Request-Source", "X-Request-Token",
 		"X-Client-Id", "X-Client-Token",
 	},
-	disableEncryptionUris: map[string]struct{}{},
+	encryptionExcludeUris: map[string]struct{}{},
 }
 
 type options struct {
@@ -27,9 +27,9 @@ type options struct {
 	noAccessPath map[string]struct{}
 	noLogPath    map[string]struct{}
 
-	enableEncryption      bool
-	encryptionKey         string
-	disableEncryptionUris map[string]struct{}
+	encryption            *Encryption
+	encryptionEnable      bool
+	encryptionExcludeUris map[string]struct{}
 }
 
 type Option interface {
@@ -95,27 +95,12 @@ func NoLogPathsOption(noLogPaths ...string) Option {
 }
 
 // 启用加密传输
-func EnableEncryptionOption(key ...string) Option {
+func EnableEncryptionOption(encryptKey, encryptSecret string, excludeUris ...string) Option {
 	return newFuncOption(func(opts *options) {
-		opts.enableEncryption = true
-		if l := len(key); l > 0 {
-			opts.encryptionKey = key[0]
-		}
-	})
-}
-
-// 启用加密传输
-func EncryptionKeyOption(key string) Option {
-	return newFuncOption(func(opts *options) {
-		opts.encryptionKey = key
-	})
-}
-
-// 不启用加密的urls
-func DisableEncryptionUriOption(urls ...string) Option {
-	return newFuncOption(func(opts *options) {
-		for _, i := range urls {
-			opts.disableEncryptionUris[i] = struct{}{}
+		opts.encryptionEnable = true
+		opts.encryption = &Encryption{Key: encryptKey, Secret: encryptSecret}
+		for _, uri := range excludeUris {
+			opts.encryptionExcludeUris[uri] = struct{}{}
 		}
 	})
 }

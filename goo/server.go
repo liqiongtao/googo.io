@@ -2,13 +2,11 @@ package goo
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"github.com/fvbock/endless"
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	"io"
 	"io/ioutil"
 	"os"
@@ -33,7 +31,7 @@ func NewServer(opt ...Option) *Server {
 	s.Engine.NoRoute(s.noRoute)
 	s.Engine.NoMethod(s.noMethod)
 
-	s.Use(s.cors, s.noAccess, s.setFields, s.decodeBody, s.log, s.recovery)
+	s.Use(s.cors, s.noAccess, s.setFields, s.encrypt, s.log, s.recovery)
 
 	return s
 }
@@ -85,57 +83,41 @@ func (s *Server) setFields(c *gin.Context) {
 	c.Next()
 }
 
-// 停用加解密
-func (s *Server) DisableEncryption(c *gin.Context) {
-	c.Set("__disable_encryption", true)
-	c.Next()
-}
-
-// 解密请求参数
-func (s *Server) decodeBody(c *gin.Context) {
-	if !defaultOptions.enableEncryption {
+// 加解密
+func (s *Server) encrypt(c *gin.Context) {
+	if !defaultOptions.encryptionEnable {
 		c.Next()
 		return
 	}
 
-	if _, ok := defaultOptions.disableEncryptionUris[c.Request.RequestURI]; ok {
+	switch strings.ToUpper(c.Request.Method) {
+	case "POST", "PUT":
+	default:
 		c.Next()
 		return
 	}
 
-	if ok := c.GetBool("__disable_encryption"); ok {
+	switch strings.ToLower(c.Request.Header.Get("Content-Type")) {
+	case "multipart/form-data":
 		c.Next()
 		return
 	}
 
-	if method := c.Request.Method; method != "PUT" && method != "POST" {
-		c.AbortWithStatusJSON(403, Error(40301, "请求方法被拒绝"))
+	if _, ok := defaultOptions.encryptionExcludeUris[c.Request.RequestURI]; ok {
+		c.Next()
 		return
 	}
 
 	var buf bytes.Buffer
-	if _, err := io.Copy(&buf, c.Request.Body); err != nil {
-		c.AbortWithStatusJSON(403, Error(40302, "获取请求数据错误", err))
+	io.Copy(&buf, c.Request.Body)
+
+	b, err := defaultOptions.encryption.Decode(buf.String())
+	if err != nil {
+		s.abortWithStatus50X(c, 5002, "解码失败，原因："+err.Error())
 		return
 	}
 
-	data := map[string]string{}
-	if err := json.Unmarshal(buf.Bytes(), &data); err != nil {
-		c.AbortWithStatusJSON(403, Error(40303, "解析请求数据错误", err))
-	}
-
-	str, ok := data["data"]
-	if !ok {
-		c.AbortWithStatusJSON(403, Error(40304, "请求数据格式错误"))
-	}
-
-	b := goo_utils.Base59Decoding([]byte(str), defaultOptions.encryptionKey)
-	if index := bytes.Index(b, []byte("goo://")); index != 0 {
-		c.AbortWithStatusJSON(403, Error(40305, "请求数据格式错误"))
-		return
-	}
-
-	c.Request.Body = ioutil.NopCloser(bytes.NewBuffer(b[6:]))
+	c.Request.Body = ioutil.NopCloser(bytes.NewBuffer(b))
 
 	c.Next()
 }
@@ -199,9 +181,7 @@ func (s *Server) log(c *gin.Context) {
 func (s *Server) recovery(c *gin.Context) {
 	defer func() {
 		if r := recover(); r != nil {
-			resp := Error(500, fmt.Sprintf("请求异常, 提示信息: %v", r), r)
-			c.Set("__response", resp)
-			c.AbortWithStatusJSON(500, resp)
+			s.abortWithStatus50X(c, 5001, fmt.Sprintf("请求异常, 提示信息: %v", r))
 		}
 	}()
 
@@ -210,10 +190,22 @@ func (s *Server) recovery(c *gin.Context) {
 
 // 找不到路由
 func (s *Server) noRoute(c *gin.Context) {
-	c.AbortWithStatusJSON(404, Error(404, "Page Not Found"))
+	s.abortWithStatus40X(c, 404, "Page Not Found")
 }
 
 // 找不到方法
-func (*Server) noMethod(c *gin.Context) {
-	c.AbortWithStatusJSON(405, Error(405, "Method not allowed"))
+func (s *Server) noMethod(c *gin.Context) {
+	s.abortWithStatus40X(c, 405, "Method not allowed")
+}
+
+func (*Server) abortWithStatus40X(c *gin.Context, code int, msg string) {
+	resp := Error(code, msg, msg)
+	c.Set("__response", resp)
+	c.AbortWithStatusJSON(code, resp)
+}
+
+func (*Server) abortWithStatus50X(c *gin.Context, code int, msg string) {
+	resp := Error(code, msg, msg)
+	c.Set("__response", resp)
+	c.AbortWithStatusJSON(500, resp)
 }
