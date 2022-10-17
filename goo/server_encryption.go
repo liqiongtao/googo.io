@@ -25,8 +25,11 @@ func (enc *Encryption) Encode(b []byte) (str string, err error) {
 }
 
 func (enc *Encryption) Decode(str string) (b []byte, err error) {
-	var bts []byte
 	str = strings.ReplaceAll(str, "\"", "")
+	if l := len(str); l == 0 {
+		return
+	}
+	var bts []byte
 	bts, err = hex.DecodeString(str)
 	if err != nil {
 		return
