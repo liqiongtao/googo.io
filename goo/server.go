@@ -111,14 +111,14 @@ func (s *Server) encrypt(c *gin.Context) {
 	var buf bytes.Buffer
 	io.Copy(&buf, c.Request.Body)
 
-	if l := buf.Len(); l == 0 {
-		c.Next()
-		return
-	}
-
 	b, err := defaultOptions.encryption.Decode(buf.String())
 	if err != nil {
 		s.abortWithStatus50X(c, 5002, "解码失败，原因："+err.Error())
+		return
+	}
+
+	if l := len(b); l == 0 {
+		c.Next()
 		return
 	}
 
