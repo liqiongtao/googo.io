@@ -12,6 +12,9 @@ type Encryption struct {
 }
 
 func (enc *Encryption) Encode(b []byte) (str string, err error) {
+	if l := len(b); l == 0 {
+		return
+	}
 	var bts []byte
 	bts, err = goo_utils.AESCBCEncrypt(b, []byte(enc.Key), []byte(enc.Secret))
 	if err != nil {
