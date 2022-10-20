@@ -19,7 +19,7 @@ func (msg *Message) JSON() []byte {
 
 	if l := len(msg.Entry.Data); l > 0 {
 		for _, i := range msg.Entry.Data {
-			msg.Message = append(msg.Message, fmt.Sprintf("%s=%s", i.Field, fmt.Sprint(i.Value)))
+			data[i.Field] = i.Value
 		}
 	}
 
