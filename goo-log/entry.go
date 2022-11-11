@@ -10,10 +10,11 @@ import (
 )
 
 type Entry struct {
-	Tags []string
-	Data []DataField
-	msg  *Message
-	l    *Logger
+	Tags  []string
+	Data  []DataField
+	Trace []string
+	msg   *Message
+	l     *Logger
 }
 
 type DataField struct {
@@ -32,6 +33,11 @@ func (entry *Entry) WithTag(tags ...string) *Entry {
 
 func (entry *Entry) WithField(field string, value interface{}) *Entry {
 	entry.Data = append(entry.Data, DataField{Field: field, Value: value})
+	return entry
+}
+
+func (entry *Entry) WithTrace() *Entry {
+	entry.Trace = entry.trace()
 	return entry
 }
 
@@ -94,7 +100,7 @@ func (entry *Entry) output(level Level, v ...interface{}) {
 	}
 
 	if level >= WARN {
-		entry.msg.Trace = entry.trace()
+		entry.WithTrace()
 	}
 
 	for _, fn := range entry.l.hooks {
@@ -127,9 +133,8 @@ func (entry *Entry) trace() (arr []string) {
 		}
 		if strings.Contains(file, ".pb.go") ||
 			strings.Contains(file, "runtime/") ||
-			strings.Contains(file, "src/") ||
-			strings.Contains(file, "pkg/mod/") ||
-			strings.Contains(file, "vendor/") ||
+			(!strings.Contains(file, "googo.io") &&
+				(strings.Contains(file, "src/") || strings.Contains(file, "pkg/mod/") || strings.Contains(file, "vendor/"))) ||
 			strings.Contains(file, "goo-log") {
 			continue
 		}

@@ -9,7 +9,6 @@ import (
 type Message struct {
 	Level   Level
 	Message []interface{}
-	Trace   []string
 	Time    time.Time
 	Entry   *Entry
 }
@@ -39,8 +38,8 @@ func (msg *Message) JSON() []byte {
 			data["log_message"] = arr
 		}
 
-		if l := len(msg.Trace); l > 0 {
-			data["log_trace"] = msg.Trace
+		if l := len(msg.Entry.Trace); l > 0 {
+			data["log_trace"] = msg.Entry.Trace
 		}
 	}
 

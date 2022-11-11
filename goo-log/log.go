@@ -30,6 +30,10 @@ func WithField(field string, value interface{}) *Entry {
 	return Default().WithField(field, value)
 }
 
+func WithTrace() *Entry {
+	return Default().WithTrace()
+}
+
 func Debug(v ...interface{}) {
 	Default().Debug(v...)
 }
