@@ -26,7 +26,7 @@ func ReadByLine(filename string, cb func(b []byte, end bool) error) error {
 
 		if err != nil {
 			if io.EOF == err {
-				return cb([]byte{}, true)
+				return cb(b, true)
 			}
 
 			goo_log.Error(err)
