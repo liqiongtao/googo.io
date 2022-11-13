@@ -164,9 +164,22 @@ func (s *Server) log(c *gin.Context) {
 		l.WithField("duration", fmt.Sprintf("%dms", time.Since(beginTime)/1e6))
 	}
 
+	ctx := c.Copy()
+	for k, v := range ctx.Keys {
+		if k == "__response" {
+			continue
+		}
+		l.WithField(k, v)
+	}
+
 	if resp, has := c.Get("__response"); has {
 		l.WithField("response", resp)
 		if r, ok := resp.(*Response); ok {
+			if r == nil {
+				l.Error(resp)
+				return
+			}
+
 			if ll := len(r.Errors); ll > 0 {
 				l.Error(r.Errors)
 				return
