@@ -11,13 +11,8 @@ import (
 
 type Byte []byte
 
-func (b Byte) Params() (p *Params, err error) {
-	p = NewParams()
-	if err = json.Unmarshal(b, &p.data); err != nil {
-		goo_log.WithField("params", string(b)).Error(err)
-		return
-	}
-	return
+func (b Byte) Params() (p Params, err error) {
+	return Json2Params(b)
 }
 
 type Params struct {
@@ -25,23 +20,15 @@ type Params struct {
 	mu   sync.RWMutex
 }
 
-func NewParams() *Params {
-	return &Params{data: map[string]interface{}{}}
+func Json2Params(b []byte) (p Params, err error) {
+	p = Params{data: map[string]interface{}{}}
+	if err = json.Unmarshal(b, &p.data); err != nil {
+		goo_log.WithField("params", string(b)).Error(err)
+	}
+	return
 }
 
-func (p *Params) Set(key string, val interface{}) *Params {
-	p.mu.Lock()
-	if p.data == nil {
-		p.data = map[string]interface{}{}
-	}
-	if v, ok := (p.data).(map[string]interface{}); ok {
-		v[key] = val
-	}
-	p.mu.Unlock()
-	return p
-}
-
-func (p *Params) Get(key string) *Params {
+func (p Params) Get(key string) Params {
 	keys := strings.Split(key, ".")
 	for _, k := range keys {
 		if data, ok := (p.data).(map[string]interface{}); ok {
@@ -58,7 +45,7 @@ func (p *Params) Get(key string) *Params {
 	return p
 }
 
-func (p *Params) String() string {
+func (p Params) String() string {
 	switch reflect.ValueOf(p.data).Kind() {
 	case reflect.Float64:
 		return strconv.FormatFloat(p.Float64(), 'f', -1, 64)
@@ -78,7 +65,7 @@ func (p *Params) String() string {
 	return string(p.JSON())
 }
 
-func (p *Params) Int64() int64 {
+func (p Params) Int64() int64 {
 	switch reflect.ValueOf(p.data).Kind() {
 	case reflect.Float64:
 		return int64((p.data).(float64))
@@ -101,36 +88,36 @@ func (p *Params) Int64() int64 {
 	return 0
 }
 
-func (p *Params) Int32() int32 {
+func (p Params) Int32() int32 {
 	return int32(p.Int64())
 }
 
-func (p *Params) Int() int {
+func (p Params) Int() int {
 	return int(p.Int64())
 }
 
-func (p *Params) Float64() float64 {
+func (p Params) Float64() float64 {
 	if v, ok := (p.data).(float64); ok {
 		return v
 	}
 	return 0
 }
 
-func (p *Params) Float32() float32 {
+func (p Params) Float32() float32 {
 	if v, ok := (p.data).(float32); ok {
 		return v
 	}
 	return 0
 }
 
-func (p *Params) Bool() bool {
+func (p Params) Bool() bool {
 	if v, ok := (p.data).(bool); ok {
 		return v
 	}
 	return false
 }
 
-func (p *Params) Array() (ps []Params) {
+func (p Params) Array() (ps []Params) {
 	ps = []Params{}
 	if arr, ok := (p.data).([]interface{}); ok {
 		for _, data := range arr {
@@ -140,7 +127,7 @@ func (p *Params) Array() (ps []Params) {
 	return
 }
 
-func (p *Params) Map() (rst map[string]Params) {
+func (p Params) Map() (rst map[string]Params) {
 	rst = map[string]Params{}
 	if m, ok := (p.data).(map[string]interface{}); ok {
 		for k, data := range m {
@@ -150,25 +137,25 @@ func (p *Params) Map() (rst map[string]Params) {
 	return
 }
 
-func (p *Params) Data() interface{} {
+func (p Params) Data() interface{} {
 	return p.data
 }
 
-func (p *Params) MapData() map[string]interface{} {
+func (p Params) MapData() map[string]interface{} {
 	if data, ok := (p.data).(map[string]interface{}); ok {
 		return data
 	}
 	return map[string]interface{}{}
 }
 
-func (p *Params) ArrayData() []interface{} {
+func (p Params) ArrayData() []interface{} {
 	if data, ok := (p.data).([]interface{}); ok {
 		return data
 	}
 	return []interface{}{}
 }
 
-func (p *Params) JSON() []byte {
+func (p Params) JSON() []byte {
 	buf, _ := json.Marshal(p.data)
 	return buf
 }
