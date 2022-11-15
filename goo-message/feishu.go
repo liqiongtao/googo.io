@@ -1,6 +1,7 @@
 package goo_message
 
 import (
+	"encoding/json"
 	"errors"
 	goo_http_request "github.com/liqiongtao/googo.io/goo-http-request"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
@@ -21,13 +22,15 @@ func FeiShu(hookUrl string, text string) error {
 	__fieShuCH <- struct{}{}
 	defer func() { <-__fieShuCH }()
 
-	content := goo_utils.NewParams().Set("text", text)
+	data := map[string]interface{}{
+		"msg_type": "text",
+		"content": map[string]interface{}{
+			"text": text,
+		},
+	}
+	b, _ := json.Marshal(&data)
 
-	params := goo_utils.NewParams().
-		Set("msg_type", "text").
-		Set("content", content.Data())
-
-	buf, err := goo_http_request.PostJson(hookUrl, params.JSON())
+	buf, err := goo_http_request.PostJson(hookUrl, b)
 	if err != nil {
 		return err
 	}
