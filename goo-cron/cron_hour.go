@@ -2,7 +2,7 @@ package goo_cron
 
 // 每小时执行
 func Hour(fn ...func()) *crontab {
-	return __cron.Hour()
+	return __cron.Hour(fn...)
 }
 
 // 每隔x小时执行

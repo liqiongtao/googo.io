@@ -17,6 +17,10 @@ func Cron() *cron.Cron {
 	return __cron.c
 }
 
+func (c *crontab) Run() {
+	c.c.Run()
+}
+
 func (c *crontab) Start() {
 	c.c.Start()
 }
