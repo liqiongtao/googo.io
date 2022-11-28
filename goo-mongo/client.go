@@ -10,8 +10,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
-var MongoDSN = "mongodb://root:ab15eb8e12ea@122.228.113.230:27017"
-
 type Client struct {
 	*mongo.Client
 	conf Config
