@@ -6,7 +6,6 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
-	"sync"
 )
 
 type Byte []byte
@@ -17,7 +16,6 @@ func (b Byte) Params() (p Params, err error) {
 
 type Params struct {
 	data interface{}
-	mu   sync.RWMutex
 }
 
 func Json2Params(b []byte) (p Params, err error) {
