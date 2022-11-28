@@ -17,6 +17,20 @@ func Cron() *cron.Cron {
 	return __cron.c
 }
 
+func Func(spec string, fn ...func()) *crontab {
+	for _, f := range fn {
+		__cron.c.AddFunc(spec, f)
+	}
+	return __cron
+}
+
+func Job(spec string, job ...cron.Job) *crontab {
+	for _, j := range job {
+		__cron.c.AddJob(spec, j)
+	}
+	return __cron
+}
+
 func (c *crontab) Run() {
 	c.c.Run()
 }
