@@ -15,6 +15,16 @@ type Response struct {
 	Errors  []interface{} `json:"-"`
 }
 
+func (rsp *Response) Copy() *Response {
+	r := &Response{
+		Code:    rsp.Code,
+		Message: rsp.Message,
+		Data:    rsp.Data,
+		Errors:  rsp.Errors,
+	}
+	return r
+}
+
 func (rsp *Response) String() string {
 	buf, err := json.Marshal(rsp)
 	if err != nil {

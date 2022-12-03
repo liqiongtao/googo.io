@@ -22,7 +22,7 @@ func Handler(controller iController) gin.HandlerFunc {
 			return
 		}
 
-		c.Set("__response", resp)
+		c.Set("__response", resp.Copy())
 
 		// 计算执行时间
 		beginTime := c.GetTime("__begin_time")
