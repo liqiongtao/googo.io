@@ -58,9 +58,18 @@ func (p Params) String() string {
 	case reflect.Bool:
 		return strconv.FormatBool(p.Bool())
 	case reflect.String:
-		return (p.data).(string)
+		v := (p.data).(string)
+		if v == "null" {
+			v = ""
+		}
+		return v
 	}
-	return string(p.JSON())
+
+	v := string(p.JSON())
+	if v == "null" {
+		v = ""
+	}
+	return v
 }
 
 func (p Params) Int64() int64 {
