@@ -1,7 +1,7 @@
 package goo_utils
 
 import (
-	jsoniter "github.com/json-iterator/go"
+	"encoding/json"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	"reflect"
 	"strconv"
@@ -18,17 +18,10 @@ type Params struct {
 	data interface{}
 }
 
-var jiter = jsoniter.Config{
-	EscapeHTML:                    true,
-	MarshalFloatWith6Digits:       true, // will lose precession
-	ObjectFieldMustBeSimpleString: true, // do not unescape object field
-	UseNumber:                     true,
-}.Froze()
-
 func Json2Params(b []byte) (p Params, err error) {
 	p = Params{data: map[string]interface{}{}}
 
-	if err = jiter.Unmarshal(b, &p.data); err != nil {
+	if err = json.Unmarshal(b, &p.data); err != nil {
 		goo_log.WithField("params", string(b)).Error(err)
 	}
 	return
@@ -171,6 +164,6 @@ func (p Params) ArrayData() []interface{} {
 }
 
 func (p Params) JSON() []byte {
-	buf, _ := jiter.Marshal(p.data)
+	buf, _ := json.Marshal(p.data)
 	return buf
 }
