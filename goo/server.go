@@ -173,7 +173,6 @@ func (s *Server) log(c *gin.Context) {
 	}
 
 	if resp, has := ctx.Get("__response"); has {
-		goo_log.Debug("----------response:", has, resp)
 		if r, ok := resp.(*Response); resp != nil && ok {
 			l.WithField("response", resp)
 			if r == nil {
