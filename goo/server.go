@@ -174,14 +174,14 @@ func (s *Server) log(c *gin.Context) {
 
 	if resp, has := ctx.Get("__response"); has {
 		goo_log.Debug("----------response:", has, resp)
-		l.WithField("response", resp)
-		if r, ok := resp.(*Response); ok {
+		if r, ok := resp.(*Response); resp != nil && ok {
+			l.WithField("response", resp)
 			if r == nil {
 				l.Error(resp)
 				return
 			}
 
-			if ll := len(r.Errors); ll > 0 {
+			if ll := len(r.Errors); r.Errors != nil && ll > 0 {
 				l.Error(r.Errors)
 				return
 			}
