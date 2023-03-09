@@ -17,10 +17,10 @@ func GrpcContext(c *gin.Context) context.Context {
 		if v := c.GetString("__env"); v != "" {
 			md.Set("env", v)
 		}
-		if v := requestId(c); v != "" {
+		if v := RequestId(c); v != "" {
 			md.Set("trace-id", v)
 		}
-		if v := requestId(c); v != "" {
+		if v := RequestId(c); v != "" {
 			arr := goo_utils.Trace(2)
 			if l := len(arr); l > 0 {
 				md.Set("caller", strings.Join(arr, ", "))

@@ -10,7 +10,7 @@ import (
 )
 
 // 唯一ID
-func requestId(c *gin.Context) string {
+func RequestId(c *gin.Context) string {
 	if v := c.GetHeader("X-Request-Id"); v != "" {
 		return v
 	}
@@ -27,7 +27,7 @@ func requestId(c *gin.Context) string {
 }
 
 // 客户端IP
-func clientIP(c *gin.Context) string {
+func ClientIP(c *gin.Context) string {
 	if v := c.GetHeader("X-Real-IP"); v != "" {
 		return v
 	}
@@ -41,7 +41,7 @@ func clientIP(c *gin.Context) string {
 }
 
 // 请求数据
-func requestBody(c *gin.Context) interface{} {
+func RequestBody(c *gin.Context) interface{} {
 	var (
 		b           []byte
 		buf         bytes.Buffer
