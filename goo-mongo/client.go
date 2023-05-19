@@ -19,7 +19,7 @@ type Client struct {
 func New(conf Config) (cli *Client, err error) {
 	cli = &Client{conf: conf, ctx: context.TODO()}
 
-	uri := fmt.Sprintf("mongodb://%s:%s@%s/%s?authSource=admin", conf.User, conf.Password, conf.Addr, conf.Database)
+	uri := fmt.Sprintf("mongodb://%s:%s@%s/%s?authSource=%s", conf.User, conf.Password, conf.Addr, conf.Database, conf.Database)
 	opts := options.Client().ApplyURI(uri)
 
 	cli.Client, err = mongo.Connect(cli.ctx, opts)
