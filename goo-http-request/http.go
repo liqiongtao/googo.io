@@ -52,7 +52,7 @@ func Put(url string, data []byte) ([]byte, error) {
 }
 
 func Stream(url string, data []byte, cb func(b []byte)) ([]byte, error) {
-	return New().Put(url, data)
+	return New().Stream(url, data, cb)
 }
 
 func Upload(url, fileField, fileName string, fh io.Reader, data map[string]string) (b []byte, err error) {
