@@ -7,17 +7,18 @@ import (
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	"io"
-	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"time"
 )
 
 type Request struct {
-	Headers map[string]string
-	Tls     *Tls
-	timeout time.Duration
-	debug   bool
+	Headers        map[string]string
+	Tls            *Tls
+	streamFlag     bool
+	streamCallback func(b []byte)
+	timeout        time.Duration
+	debug          bool
 }
 
 func (r *Request) Debug() *Request {
@@ -90,10 +91,29 @@ func (r *Request) Do(method, url string, reader io.Reader) (rst []byte, err erro
 
 	defer rsp.Body.Close()
 
-	rst, err = ioutil.ReadAll(rsp.Body)
-	if err != nil {
-		return
+	var (
+		bf bytes.Buffer
+		n  int
+	)
+
+	for {
+		bts := make([]byte, 1024)
+		n, err = rsp.Body.Read(bts)
+		if err != nil && err != io.EOF {
+			return
+		}
+		if n == 0 {
+			break
+		}
+
+		if r.streamFlag {
+			r.streamCallback(bts[:n])
+		}
+
+		bf.Write(bts[:n])
 	}
+
+	rst = bf.Bytes()
 
 	return
 }
@@ -134,6 +154,12 @@ func (r *Request) PostJson(url string, data []byte) ([]byte, error) {
 
 func (r *Request) Put(url string, data []byte) ([]byte, error) {
 	return r.handle("PUT", url, data)
+}
+
+func (r *Request) Stream(url string, data []byte, cb func(b []byte)) ([]byte, error) {
+	r.streamFlag = true
+	r.streamCallback = cb
+	return r.handle("POST", url, data)
 }
 
 func (r *Request) Upload(url, fileField, fileName string, fh io.Reader, data map[string]string) ([]byte, error) {
