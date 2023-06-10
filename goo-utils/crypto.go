@@ -229,12 +229,12 @@ const (
 )
 
 // 如果遇到特殊字符，需要用 url.PathEscape(str) 解决
-func Base59Encoding(strByte []byte, key ...string) string {
+func BaseXEncoding(strByte []byte, key ...string) string {
 	strByte = []byte(url.PathEscape(string(strByte)))
 	if l := len(key); l == 0 || key[0] == "" {
 		key = []string{base59key}
 	}
-	base := int64(59)
+	base := int64(len(key[0]))
 	strTen := big.NewInt(0).SetBytes(strByte)
 	keyByte := []byte(key[0])
 	var modSlice []byte
@@ -263,11 +263,11 @@ func reverseByteArr(bytes []byte) []byte {
 	return bytes
 }
 
-func Base59Decoding(strByte []byte, key ...string) []byte {
+func BaseXDecoding(strByte []byte, key ...string) []byte {
 	if l := len(key); l == 0 || key[0] == "" {
 		key = []string{base59key}
 	}
-	base := int64(59)
+	base := int64(len(key[0]))
 	ret := big.NewInt(0)
 	for _, byteElem := range strByte {
 		index := bytes.IndexByte([]byte(key[0]), byteElem)
