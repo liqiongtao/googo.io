@@ -100,10 +100,10 @@ func (r *Request) Do(method, url string, reader io.Reader) (rst []byte, err erro
 		bts := make([]byte, 1024)
 		n, err = rsp.Body.Read(bts)
 		if err != nil && err != io.EOF {
-			err = nil
 			return
 		}
 		if n == 0 {
+			err = nil
 			break
 		}
 
