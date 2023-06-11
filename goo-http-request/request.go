@@ -100,6 +100,7 @@ func (r *Request) Do(method, url string, reader io.Reader) (rst []byte, err erro
 		bts := make([]byte, 1024)
 		n, err = rsp.Body.Read(bts)
 		if err != nil && err != io.EOF {
+			err = nil
 			return
 		}
 		if n == 0 {
@@ -127,8 +128,8 @@ func (r *Request) handle(method, url string, data []byte) (rsp []byte, err error
 			WithField("header", r.Headers).
 			WithField("request-data", string(data)).
 			WithField("response", string(rsp))
-		if err != nil {
-			l.Error()
+		if err != nil && err != io.EOF {
+			l.Error(err)
 		} else {
 			l.Debug()
 		}
