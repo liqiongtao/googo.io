@@ -51,7 +51,7 @@ func Put(url string, data []byte) ([]byte, error) {
 	return New().Put(url, data)
 }
 
-func GPTStream(url string, data []byte, cb func(b []byte)) ([]byte, error) {
+func GPTStream(url string, data []byte, cb func(b []byte)) error {
 	return New().GPTStream(url, data, cb)
 }
 
