@@ -51,8 +51,8 @@ func Put(url string, data []byte) ([]byte, error) {
 	return New().Put(url, data)
 }
 
-func Stream(url string, data []byte, cb func(b []byte)) ([]byte, error) {
-	return New().Stream(url, data, cb)
+func GPTStream(url string, data []byte, cb func(b []byte)) ([]byte, error) {
+	return New().GPTStream(url, data, cb)
 }
 
 func Upload(url, fileField, fileName string, fh io.Reader, data map[string]string) (b []byte, err error) {

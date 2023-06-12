@@ -1,6 +1,7 @@
 package goo_http_request
 
 import (
+	"bufio"
 	"bytes"
 	"crypto/tls"
 	"crypto/x509"
@@ -13,12 +14,10 @@ import (
 )
 
 type Request struct {
-	Headers        map[string]string
-	Tls            *Tls
-	streamFlag     bool
-	streamCallback func(b []byte)
-	timeout        time.Duration
-	debug          bool
+	Headers map[string]string
+	Tls     *Tls
+	timeout time.Duration
+	debug   bool
 }
 
 func (r *Request) Debug() *Request {
@@ -107,10 +106,6 @@ func (r *Request) Do(method, url string, reader io.Reader) (rst []byte, err erro
 			break
 		}
 
-		if r.streamFlag {
-			r.streamCallback(bts[:n])
-		}
-
 		bf.Write(bts[:n])
 	}
 
@@ -157,10 +152,49 @@ func (r *Request) Put(url string, data []byte) ([]byte, error) {
 	return r.handle("PUT", url, data)
 }
 
-func (r *Request) Stream(url string, data []byte, cb func(b []byte)) ([]byte, error) {
-	r.streamFlag = true
-	r.streamCallback = cb
-	return r.handle("POST", url, data)
+func (r *Request) GPTStream(url string, data []byte, cb func(b []byte)) error {
+	req, err := http.NewRequest("POST", url, bytes.NewReader(data))
+	if err != nil {
+		return err
+	}
+
+	for k, v := range r.Headers {
+		req.Header.Set(k, v)
+	}
+
+	rsp, err := r.getClient().Do(req)
+	if err != nil {
+		return err
+	}
+
+	defer rsp.Body.Close()
+
+	var (
+		reader   = bufio.NewReader(rsp.Body)
+		headData = []byte("data: ")
+		done     = "[DONE]"
+	)
+
+	for {
+		b, err := reader.ReadBytes('\n')
+		if err != nil {
+			return err
+		}
+
+		b2 := bytes.TrimSpace(b)
+		if !bytes.HasPrefix(b2, headData) {
+			continue
+		}
+
+		cb(append(b, '\n'))
+
+		b3 := bytes.TrimPrefix(b2, headData)
+		if string(b3) == done {
+			break
+		}
+	}
+
+	return nil
 }
 
 func (r *Request) Upload(url, fileField, fileName string, fh io.Reader, data map[string]string) ([]byte, error) {
