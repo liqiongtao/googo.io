@@ -27,6 +27,11 @@ func Json2Params(b []byte) (p Params, err error) {
 	return
 }
 
+func (p Params) Set(key string, val interface{}) Params {
+	p.data.(map[string]interface{})[key] = val
+	return p
+}
+
 func (p Params) Get(key string) Params {
 	keys := strings.Split(key, ".")
 	for _, k := range keys {
