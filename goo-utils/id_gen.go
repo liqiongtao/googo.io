@@ -2,6 +2,7 @@ package goo_utils
 
 import (
 	"strconv"
+	"strings"
 	"sync"
 )
 
@@ -28,5 +29,5 @@ func GenId() int64 {
 }
 
 func GenIdStr() string {
-	return strconv.FormatInt(GenId(), 10)
+	return strings.ToLower(MD5([]byte(strconv.FormatInt(GenId(), 10))))
 }
