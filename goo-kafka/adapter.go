@@ -1,6 +1,6 @@
 package goo_kafka
 
-import "github.com/Shopify/sarama"
+import "github.com/IBM/sarama"
 
 // 生产者
 type iProducer interface {

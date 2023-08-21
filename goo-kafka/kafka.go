@@ -1,7 +1,7 @@
 package goo_kafka
 
 import (
-	"github.com/Shopify/sarama"
+	"github.com/IBM/sarama"
 	goo_context "github.com/liqiongtao/googo.io/goo-context"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 )

@@ -1,7 +1,7 @@
 package goo_kafka
 
 import (
-	"github.com/Shopify/sarama"
+	"github.com/IBM/sarama"
 )
 
 type MessageHandler func(msg *ProducerMessage, err error)
