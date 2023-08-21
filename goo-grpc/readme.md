@@ -28,3 +28,7 @@
     - `target` 格式 `etcd:///<service>`
 - 返回拦截
   - 
+
+#  grpc 版本要求
+
+最高使用 `v1.52.3`, 否则导致 `Target.Endpoint` 无效，因为高版本把属性定义为了方法
