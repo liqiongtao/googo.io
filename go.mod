@@ -19,8 +19,8 @@ require (
 	github.com/olivere/elastic/v7 v7.0.32
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/xuri/excelize/v2 v2.7.1
-	go.etcd.io/etcd/client/pkg/v3 v3.5.9
-	go.etcd.io/etcd/client/v3 v3.5.9
+	go.etcd.io/etcd/client/pkg/v3 v3.6.0-alpha.0
+	go.etcd.io/etcd/client/v3 v3.6.0-alpha.0.0.20230821135807-fe1f30e4df7b
 	go.mongodb.org/mongo-driver v1.12.1
 	go.uber.org/zap v1.25.0
 	golang.org/x/text v0.12.0
@@ -86,7 +86,7 @@ require (
 	github.com/xuri/efp v0.0.0-20230802181842-ad255f2331ca // indirect
 	github.com/xuri/nfp v0.0.0-20230819163627-dc951e3ffe1a // indirect
 	github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a // indirect
-	go.etcd.io/etcd/api/v3 v3.5.9 // indirect
+	go.etcd.io/etcd/api/v3 v3.6.0-alpha.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/arch v0.4.0 // indirect
 	golang.org/x/crypto v0.12.0 // indirect
