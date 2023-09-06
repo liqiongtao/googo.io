@@ -141,12 +141,28 @@ func fileMergeHandler(file string, files []string) (err error) {
 		strs []string
 	)
 
+	// 读取每一个文件的第一行字符串，如果有重复，继续读取该文件的下一行字符串
 	for n, r := range rs {
-		s, _ := r.ReadString('\n')
-		if strings.TrimSpace(s) == "" {
-			continue
+		for {
+			var s string
+			s, err = r.ReadString('\n')
+			if err != nil {
+				if err == io.EOF {
+					err = nil
+					break
+				}
+				goo_log.Error(err)
+				continue
+			}
+			if strings.TrimSpace(s) == "" {
+				continue
+			}
+			if _, ok := data[s]; ok {
+				continue
+			}
+			data[s] = n
+			break
 		}
-		data[s] = n
 	}
 
 	for {
@@ -181,22 +197,27 @@ func fileMergeHandler(file string, files []string) (err error) {
 		// 删除已经使用的str
 		delete(data, str)
 
-		var s string
-		s, err = rs[n].ReadString('\n')
-		if err != nil {
-			if io.EOF == err {
-				err = nil
+		// 读取该文件的下一行字符串，如果有重复，继续读取该文件的下下一行字符串
+		for {
+			var s string
+			s, err = rs[n].ReadString('\n')
+			if err != nil {
+				if err == io.EOF {
+					err = nil
+					break
+				}
+				goo_log.Error(err)
 				continue
 			}
-			goo_log.Error(err)
-			return
+			if strings.TrimSpace(s) == "" {
+				continue
+			}
+			if _, ok := data[s]; ok {
+				continue
+			}
+			data[s] = n
+			break
 		}
-
-		if strings.TrimSpace(s) == "" {
-			continue
-		}
-
-		data[s] = n
 	}
 
 	if l := len(strs); l > 0 {
