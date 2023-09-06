@@ -10,6 +10,7 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -217,4 +218,70 @@ func (r *Request) Upload(url, fileField, fileName string, fh io.Reader, data map
 	r.SetHeader("Content-Type", w.FormDataContentType())
 
 	return r.Do("POST", url, pr)
+}
+
+func (r *Request) Download(url, filename string) (err error) {
+	defer func() {
+		if !r.debug {
+			return
+		}
+		l := goo_log.WithTag(TAG).WithField("url", url).WithField("file", filename)
+		if err != nil {
+			l.Error("下载失败", err)
+			return
+		}
+		l.Debug("下载成功")
+	}()
+
+	var f *os.File
+	{
+		f, err = os.Create(filename + ".0")
+		if err != nil {
+			return
+		}
+		defer f.Close()
+	}
+
+	var req *http.Request
+	{
+		req, err = http.NewRequest("GET", url, nil)
+		if err != nil {
+			return
+		}
+	}
+
+	if r.timeout == 0 {
+		r.timeout = 5 * time.Minute
+	}
+
+	var resp *http.Response
+	{
+		resp, err = r.getClient().Do(req)
+		if err != nil {
+			return
+		}
+		defer resp.Body.Close()
+	}
+
+	for {
+		var (
+			n   int
+			bts = make([]byte, 1024)
+		)
+
+		n, err = resp.Body.Read(bts)
+		if err != nil && err != io.EOF {
+			return
+		}
+		if n == 0 {
+			err = nil
+			break
+		}
+
+		if _, err = f.Write(bts[:n]); err != nil {
+			return
+		}
+	}
+
+	return os.Rename(filename+".0", filename)
 }

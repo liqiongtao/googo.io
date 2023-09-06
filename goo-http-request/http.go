@@ -59,6 +59,10 @@ func Upload(url, fileField, fileName string, fh io.Reader, data map[string]strin
 	return New().Upload(url, fileField, fileName, fh, data)
 }
 
+func Download(url, filename string) error {
+	return New().Download(url, filename)
+}
+
 func SetHeader(name, value string) *Request {
 	return New().SetHeader(name, value)
 }
