@@ -1,12 +1,8 @@
 package goo_oss
 
 import (
-	"bytes"
-	"errors"
-	"fmt"
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	"strings"
 )
 
@@ -52,30 +48,19 @@ func (o *uploader) Options(opts ...oss.Option) *uploader {
 	return o
 }
 
-func (o *uploader) Upload(filename string, body []byte) (string, error) {
-	if filename == "" {
-		return "", errors.New("文件名为空")
+func (o *uploader) Upload(filename, filepath string) (string, error) {
+	var options []oss.Option
+
+	if strings.Contains(filename, ".js") {
+		options = append(options, oss.ContentType("application/javascript"))
+	} else if strings.Contains(filename, ".css") {
+		options = append(options, oss.ContentType("text/css"))
+	} else if strings.Contains(filename, ".html") {
+		options = append(options, oss.CacheControl("no-store"))
+		options = append(options, oss.SetHeader("Pragma", "no-cache"))
 	}
 
-	md5str := goo_utils.MD5(body)
-
-	{
-		index := strings.LastIndex(filename, "/")
-		if index == -1 {
-			filename = fmt.Sprintf("%s/%s/%s", md5str[0:2], md5str[2:4], filename)
-		} else {
-			filename = fmt.Sprintf("%s/%s/%s", md5str[0:2], md5str[2:4], filename[index+1:])
-		}
-	}
-
-	{
-		index := strings.Index(filename, ".")
-		filename = fmt.Sprintf("%s_%s.%s", filename[:index], md5str[8:24], filename[index+1:])
-	}
-
-	filename = strings.ToLower(filename)
-
-	if err := o.bucket.PutObject(filename, bytes.NewReader(body), o.options...); err != nil {
+	if err := o.bucket.PutObjectFromFile(filename, filepath, options...); err != nil {
 		goo_log.Error(err.Error())
 		return "", err
 	}
