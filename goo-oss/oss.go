@@ -2,6 +2,7 @@ package goo_oss
 
 import (
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
+	"io"
 )
 
 var __oss *uploader
@@ -18,6 +19,10 @@ func Options(opts ...oss.Option) *uploader {
 	return __oss.Options(opts...)
 }
 
-func Upload(filename, filepath string) (string, error) {
-	return __oss.Upload(filename, filepath)
+func Upload(filename string, r io.Reader) (string, error) {
+	return __oss.Upload(filename, r)
+}
+
+func UploadFile(filename, filepath string) (string, error) {
+	return __oss.UploadFile(filename, filepath)
 }

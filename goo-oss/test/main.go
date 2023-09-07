@@ -89,7 +89,7 @@ func main() {
 			filename = fmt.Sprintf("%s_%s.%s", filename[:index], md5str[8:24], filename[index+1:])
 		}
 
-		url, err := up.Upload(filename, args[i])
+		url, err := up.UploadFile(filename, args[i])
 		if err != nil {
 			fmt.Println(err.Error())
 			return

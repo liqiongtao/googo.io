@@ -3,6 +3,8 @@ package goo_oss
 import (
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	"io"
+	"os"
 	"strings"
 )
 
@@ -48,7 +50,7 @@ func (o *uploader) Options(opts ...oss.Option) *uploader {
 	return o
 }
 
-func (o *uploader) Upload(filename, filepath string) (string, error) {
+func (o *uploader) Upload(filename string, r io.Reader) (string, error) {
 	var options []oss.Option
 
 	if strings.Contains(filename, ".js") {
@@ -60,7 +62,7 @@ func (o *uploader) Upload(filename, filepath string) (string, error) {
 		options = append(options, oss.SetHeader("Pragma", "no-cache"))
 	}
 
-	if err := o.bucket.PutObjectFromFile(filename, filepath, options...); err != nil {
+	if err := o.bucket.PutObject(filename, r, options...); err != nil {
 		goo_log.Error(err.Error())
 		return "", err
 	}
@@ -78,6 +80,22 @@ func (o *uploader) Upload(filename, filepath string) (string, error) {
 
 	url := "https://" + o.conf.Bucket + "." + o.conf.Endpoint + filename
 	return url, nil
+}
+
+func (o *uploader) UploadFile(filename, filepath string) (string, error) {
+	if _, err := os.Stat(filepath); err != nil {
+		goo_log.Error(err.Error())
+		return "", err
+	}
+
+	f, err := os.Open(filepath)
+	if err != nil {
+		goo_log.Error(err.Error())
+		return "", err
+	}
+	defer f.Close()
+
+	return o.Upload(filename, f)
 }
 
 func (o *uploader) getClient() (*oss.Client, error) {
