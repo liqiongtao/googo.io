@@ -11,6 +11,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"os"
+	"path"
 	"time"
 )
 
@@ -232,6 +233,14 @@ func (r *Request) Download(url, filename string) (err error) {
 		}
 		l.Debug("下载成功")
 	}()
+
+	// 创建目录
+	{
+		dirname := path.Dir(filename)
+		if dirname != "" && dirname != "." && dirname != "./" {
+			os.MkdirAll(dirname, 0755)
+		}
+	}
 
 	var f *os.File
 	{
