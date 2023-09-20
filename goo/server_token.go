@@ -9,10 +9,10 @@ import (
 )
 
 type Token struct {
-	AppId     string
-	Data      goo_utils.M
-	NonceStr  string
-	Timestamp int64
+	AppId     string `json:"app_id"`
+	OpenId    int64  `json:"data"`
+	NonceStr  string `json:"nonce"`
+	Timestamp int64  `json:"ts"`
 }
 
 func (t *Token) Bytes() []byte {
@@ -24,10 +24,10 @@ func (t *Token) String() string {
 	return string(t.Bytes())
 }
 
-func CreateToken(appId string, data goo_utils.M) (tokenStr string, err error) {
+func CreateToken(appId string, openid int64) (tokenStr string, err error) {
 	token := &Token{
 		AppId:     appId,
-		Data:      data,
+		OpenId:    openid,
 		NonceStr:  goo_utils.NonceStr(),
 		Timestamp: time.Now().Unix(),
 	}
