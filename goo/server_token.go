@@ -10,7 +10,7 @@ import (
 
 type Token struct {
 	AppId     string
-	OpenId    int64
+	Data      goo_utils.M
 	NonceStr  string
 	Timestamp int64
 }
@@ -24,10 +24,10 @@ func (t *Token) String() string {
 	return string(t.Bytes())
 }
 
-func CreateToken(appId string, openId int64) (tokenStr string, err error) {
+func CreateToken(appId string, data goo_utils.M) (tokenStr string, err error) {
 	token := &Token{
 		AppId:     appId,
-		OpenId:    openId,
+		Data:      data,
 		NonceStr:  goo_utils.NonceStr(),
 		Timestamp: time.Now().Unix(),
 	}
@@ -53,17 +53,17 @@ func ParseToken(tokenStr, appId string) (token *Token, err error) {
 		tokenBuf = goo_utils.Base64Decode(tokenStr)
 		key      = goo_utils.MD5([]byte(appId))
 		iv       = key[8:24]
-		decBuf   []byte
+		b        []byte
 	)
 
-	decBuf, err = goo_utils.AESCBCDecrypt(tokenBuf, []byte(key), []byte(iv))
+	b, err = goo_utils.AESCBCDecrypt(tokenBuf, []byte(key), []byte(iv))
 	if err != nil {
 		goo_log.Error(err.Error())
 		return
 	}
 
 	token = new(Token)
-	if err = json.Unmarshal(decBuf, token); err != nil {
+	if err = json.Unmarshal(b, token); err != nil {
 		goo_log.Error(err.Error())
 		return
 	}
