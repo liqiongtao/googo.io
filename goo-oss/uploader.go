@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"time"
 )
 
 type uploader struct {
@@ -62,9 +63,19 @@ func (o *uploader) Upload(filename string, r io.Reader) (string, error) {
 		options = append(options, oss.SetHeader("Pragma", "no-cache"))
 	}
 
-	if err := o.bucket.PutObject(filename, r, options...); err != nil {
+	for i := 0; i < 3; i++ {
+		err := o.bucket.PutObject(filename, r, options...)
+		if err == nil {
+			break
+		}
+
 		goo_log.Error(err.Error())
-		return "", err
+
+		if i+1 == 3 {
+			return "", err
+		}
+
+		time.Sleep(time.Second)
 	}
 
 	if filename[0:1] != "/" {
