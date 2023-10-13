@@ -9,12 +9,15 @@ import (
 // 多字符切割，默认支持逗号，分号，\n
 func Split(s string, rs ...rune) []string {
 	return strings.FieldsFunc(s, func(r rune) bool {
+		if l := len(rs); l == 0 {
+			return r == ',' || r == '，' || r == ';' || r == '；' || r == '\n'
+		}
 		for _, rr := range rs {
 			if rr == r {
 				return true
 			}
 		}
-		return r == ',' || r == '，' || r == ';' || r == '；' || r == '\n'
+		return false
 	})
 }
 
