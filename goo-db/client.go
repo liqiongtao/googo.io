@@ -3,8 +3,10 @@ package goo_db
 import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/go-xorm/xorm"
+	_ "github.com/lib/pq"
 	goo_cron "github.com/liqiongtao/googo.io/goo-cron"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 type Client struct {
