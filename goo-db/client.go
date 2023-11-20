@@ -6,7 +6,6 @@ import (
 	_ "github.com/lib/pq"
 	goo_cron "github.com/liqiongtao/googo.io/goo-cron"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
-	_ "github.com/mattn/go-sqlite3"
 )
 
 type Client struct {
