@@ -17,7 +17,6 @@ require (
 	github.com/go-xorm/xorm v0.7.9
 	github.com/google/uuid v1.3.0
 	github.com/lib/pq v1.10.9
-	github.com/mattn/go-sqlite3 v1.10.0
 	github.com/olivere/elastic/v7 v7.0.32
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/xuri/excelize/v2 v2.6.0
