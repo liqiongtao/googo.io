@@ -2,6 +2,7 @@ package goo_oss
 
 import (
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
+	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	"io"
 )
 
@@ -13,6 +14,14 @@ func Init(conf Config) {
 
 func Client() *oss.Client {
 	return __oss.client
+}
+
+func Bucket() *oss.Bucket {
+	bucket, err := __oss.client.Bucket(__oss.conf.Bucket)
+	if err != nil {
+		goo_log.Error(err)
+	}
+	return bucket
 }
 
 func ContentType(value string) *uploader {
