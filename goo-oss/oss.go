@@ -8,7 +8,7 @@ func Init(conf Config) {
 	__oss, _ = New(conf)
 }
 
-func Client(conf Config) *oss.Client {
+func Client() *oss.Client {
 	return __oss.client
 }
 
