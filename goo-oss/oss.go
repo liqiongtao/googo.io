@@ -11,6 +11,10 @@ func Init(conf Config) {
 	__oss, _ = New(conf)
 }
 
+func Client() *oss.Client {
+	return __oss.client
+}
+
 func ContentType(value string) *uploader {
 	return __oss.ContentType(value)
 }
