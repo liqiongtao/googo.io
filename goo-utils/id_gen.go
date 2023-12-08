@@ -1,6 +1,7 @@
 package goo_utils
 
 import (
+	"strconv"
 	"sync"
 )
 
@@ -24,4 +25,8 @@ func GenId() int64 {
 		}
 	})
 	return __genId.GenId()
+}
+
+func GenIdStr() string {
+	return strconv.FormatInt(GenId(), 10)
 }
