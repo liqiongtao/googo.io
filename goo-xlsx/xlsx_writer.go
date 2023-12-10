@@ -29,7 +29,8 @@ func (x *xlsxWrite) Handler() *excelize.File {
 
 func (x *xlsxWrite) SetTitles(titles []string) error {
 	x.sheetRowNums[x.sheetName]++
-	if err := x.fh.SetSheetRow(x.sheetName, fmt.Sprintf("A%d", x.sheetRowNums[x.sheetName]), titles); err != nil {
+	fmt.Println(x.sheetRowNums[x.sheetName], x.sheetName)
+	if err := x.fh.SetSheetRow(x.sheetName, fmt.Sprintf("A%d", x.sheetRowNums[x.sheetName]), &titles); err != nil {
 		goo_log.Error(err)
 		return err
 	}
@@ -38,7 +39,7 @@ func (x *xlsxWrite) SetTitles(titles []string) error {
 
 func (x *xlsxWrite) SetData(data []interface{}) error {
 	x.sheetRowNums[x.sheetName]++
-	if err := x.fh.SetSheetRow(x.sheetName, fmt.Sprintf("A%d", x.sheetRowNums[x.sheetName]), data); err != nil {
+	if err := x.fh.SetSheetRow(x.sheetName, fmt.Sprintf("A%d", x.sheetRowNums[x.sheetName]), &data); err != nil {
 		goo_log.Error(err)
 		return err
 	}
@@ -48,7 +49,7 @@ func (x *xlsxWrite) SetData(data []interface{}) error {
 func (x *xlsxWrite) SetRows(data [][]interface{}) *xlsxWrite {
 	for _, i := range data {
 		x.sheetRowNums[x.sheetName]++
-		if err := x.fh.SetSheetRow(x.sheetName, fmt.Sprintf("A%d", x.sheetRowNums[x.sheetName]), i); err != nil {
+		if err := x.fh.SetSheetRow(x.sheetName, fmt.Sprintf("A%d", x.sheetRowNums[x.sheetName]), &i); err != nil {
 			goo_log.Error(err)
 			continue
 		}
