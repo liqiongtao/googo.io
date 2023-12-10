@@ -21,6 +21,10 @@ type xlsxWrite struct {
 	rows      []*[]interface{}
 }
 
+func (x *xlsxWrite) Handler() *excelize.File {
+	return x.fh
+}
+
 func (x *xlsxWrite) SetTitles(titles []string) *xlsxWrite {
 	x.titles = &titles
 	return x
@@ -39,6 +43,7 @@ func (x *xlsxWrite) SetRows(data [][]interface{}) *xlsxWrite {
 }
 
 func (x *xlsxWrite) SetSheetName(sheetName string) *xlsxWrite {
+	x.fh.NewSheet(sheetName)
 	x.sheetName = sheetName
 	return x
 }
