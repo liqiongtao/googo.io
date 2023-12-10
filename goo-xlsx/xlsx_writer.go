@@ -39,6 +39,7 @@ func (x *xlsxWrite) SetRows(data [][]interface{}) *xlsxWrite {
 }
 
 func (x *xlsxWrite) SetSheetName(sheetName string) *xlsxWrite {
+	x.fh.NewSheet(sheetName)
 	x.sheetName = sheetName
 	return x
 }
