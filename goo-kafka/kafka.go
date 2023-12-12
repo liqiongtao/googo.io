@@ -39,6 +39,21 @@ func Consumer() iConsumer {
 	return &consumer{client: __client}
 }
 
+// 主题列表
+func Topics() []string {
+	if __client == nil {
+		return []string{}
+	}
+
+	topics, err := __client.Topics()
+	if err != nil {
+		goo_log.WithTag("goo-kafka").Error(err)
+		return []string{}
+	}
+
+	return topics
+}
+
 // 分区数量
 func Partitions(topic string) []int32 {
 	if __client == nil {
