@@ -49,7 +49,7 @@ func (c *consumer) WithOffsetOldest() iConsumer {
 func (c *consumer) Consume(topic string, handler ConsumerHandler) {
 	consumer, err := sarama.NewConsumerFromClient(c.Client())
 	if err != nil {
-		goo_log.WithTag("goo-kafka-consumer").Error(err)
+		goo_log.WithTag("goo-kafka-consumer").WithField("topic", topic).Error(err)
 		return
 	}
 	defer consumer.Close()
@@ -60,7 +60,7 @@ func (c *consumer) Consume(topic string, handler ConsumerHandler) {
 
 	pc, err := consumer.ConsumePartition(topic, c.partition, c.offset)
 	if err != nil {
-		goo_log.WithTag("goo-kafka-consumer").Error(err)
+		goo_log.WithTag("goo-kafka-consumer").WithField("topic", topic).Error(err)
 		return
 	}
 	defer pc.Close()
@@ -83,7 +83,10 @@ func (c *consumer) Consume(topic string, handler ConsumerHandler) {
 func (c *consumer) ConsumeGroup(groupId string, topics []string, handler ConsumerHandler) {
 	cg, err := sarama.NewConsumerGroupFromClient(groupId, c.Client())
 	if err != nil {
-		goo_log.WithTag("goo-kafka-consumer-group").Error(err)
+		goo_log.WithTag("goo-kafka-consumer-group").
+			WithField("groupId", groupId).
+			WithField("topics", topics).
+			Error(err)
 		return
 	}
 
@@ -98,12 +101,18 @@ func (c *consumer) ConsumeGroup(groupId string, topics []string, handler Consume
 				return
 
 			case err := <-cg.Errors():
-				goo_log.WithTag("goo-kafka-consumer-group").Error(err)
+				goo_log.WithTag("goo-kafka-consumer-group").
+					WithField("groupId", groupId).
+					WithField("topics", topics).
+					Error(err)
 			}
 		}
 	})
 
 	if err := cg.Consume(goo_context.Cancel(), topics, g); err != nil {
-		goo_log.WithTag("goo-kafka-consumer-group").Error(err)
+		goo_log.WithTag("goo-kafka-consumer-group").
+			WithField("groupId", groupId).
+			WithField("topics", topics).
+			Error(err)
 	}
 }
