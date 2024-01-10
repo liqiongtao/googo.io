@@ -5,6 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	"github.com/xuri/excelize/v2"
+	"net/url"
 )
 
 func Writer() *xlsxWrite {
@@ -74,9 +75,10 @@ func (x *xlsxWrite) Save2File(filename string) (err error) {
 }
 
 func (x *xlsxWrite) Output(ctx *gin.Context, filename string) (err error) {
-	ctx.Header("Content-Type", "application/octet-stream")
-	ctx.Header("Content-Disposition", "attachment; filename="+filename)
 	ctx.Header("Content-Transfer-Encoding", "binary")
+	ctx.Header("Content-Type", "application/octet-stream")
+	ctx.Header("Content-Disposition", "attachment; filename="+url.PathEscape(filename))
+	ctx.Header("Access-Control-Expose-Headers", "Content-Disposition")
 
 	if err = x.fh.Write(ctx.Writer); err != nil {
 		goo_log.Error(err)
