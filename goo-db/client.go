@@ -37,11 +37,11 @@ func New(conf Config) (cli *Client, err error) {
 	cli.EngineGroup.SetMaxOpenConns(conf.MaxOpen)
 
 	if conf.AutoPing {
-		goo_cron.SecondX(5, func() {
+		goo_cron.Default().SecondX(5, func() {
 			if err := cli.Ping(); err != nil {
 				goo_log.WithTag("goo-db").Error(err)
 			}
-		})
+		}).Start()
 	}
 
 	return

@@ -73,7 +73,7 @@ func (fa *FileAdapter) Write(msg *Message) {
 
 func (fa *FileAdapter) writeHandle(b []byte) {
 	fa.mu.Lock()
-	defer func() { fa.mu.Unlock() }()
+	defer fa.mu.Unlock()
 
 	var (
 		nw       = time.Now()

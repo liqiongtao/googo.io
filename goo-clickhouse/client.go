@@ -28,7 +28,7 @@ func New(conf Config) (cli *client, err error) {
 	}
 
 	if conf.AutoPing {
-		goo_cron.SecondX(5, __client.ping)
+		goo_cron.Default().SecondX(5, __client.ping).Start()
 	}
 
 	return
