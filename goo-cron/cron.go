@@ -5,6 +5,7 @@ import (
 	goo_context "github.com/liqiongtao/googo.io/goo-context"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	"github.com/robfig/cron/v3"
+	"time"
 )
 
 type crontab struct {
@@ -27,6 +28,8 @@ func (c *crontab) Run() {
 
 	<-c.c.Stop().Done()
 	goo_log.WithTag("goo-cron").Debug("系统退出成功，全部任务执行结束")
+
+	time.Sleep(3 * time.Second)
 }
 
 func (c *crontab) Start() {
@@ -36,6 +39,8 @@ func (c *crontab) Start() {
 
 		<-c.c.Stop().Done()
 		goo_log.WithTag("goo-cron").Debug("系统退出成功，全部任务执行结束")
+
+		time.Sleep(3 * time.Second)
 	}()
 
 	c.c.Start()
