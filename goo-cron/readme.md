@@ -38,7 +38,7 @@ kill -9 `pidof /opt/s.s`
 for n in {1..60}; do
     sleep 1s
     pid=`pidof /opt/s.s`
-    if [ "$pid" == "" ]; then
+    if [ "\$pid" == "" ]; then
         nohup /opt/s.s >> logs/log.log 2>&1 &
         break
     fi
