@@ -32,9 +32,16 @@ c.Start()
 
 # shell 检查任务是否退出
 
+说明:
+
+- `kill -1` 终端断线，重新加载
+- `kill -2` 中断，同`ctrl+c`
+- `kill -3` 退出
+- `kill -9` 强制终止
+
 ```
 cd /opt
-kill -9 `pidof /opt/s.s`
+kill -3 `pidof /opt/s.s`
 for n in {1..60}; do
     sleep 1s
     pid=`pidof /opt/s.s`
