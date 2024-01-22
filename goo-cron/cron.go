@@ -1,6 +1,7 @@
 package goo_cron
 
 import (
+	"context"
 	"fmt"
 	goo_context "github.com/liqiongtao/googo.io/goo-context"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
@@ -22,14 +23,7 @@ func Default() *crontab {
 
 func (c *crontab) Run() {
 	c.c.Start()
-	c.Stop()
-}
 
-func (c *crontab) Start() {
-	c.c.Start()
-}
-
-func (c *crontab) Stop() {
 	<-goo_context.Cancel().Done()
 	goo_log.WithTag("goo-cron").Debug("系统退出，等待全部任务执行结束...")
 
@@ -37,6 +31,26 @@ func (c *crontab) Stop() {
 	goo_log.WithTag("goo-cron").Debug("系统退出成功，全部任务执行结束")
 
 	time.Sleep(time.Second)
+}
+
+func (c *crontab) Start() {
+	c.c.Start()
+}
+
+func (c *crontab) Stop() context.Context {
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		<-goo_context.Cancel().Done()
+		goo_log.WithTag("goo-cron").Debug("系统退出，等待全部任务执行结束...")
+
+		<-c.c.Stop().Done()
+		goo_log.WithTag("goo-cron").Debug("系统退出成功，全部任务执行结束")
+
+		time.Sleep(time.Second)
+		
+		cancel()
+	}()
+	return ctx
 }
 
 func (c *crontab) AddFunc(spec string, fn ...func()) *crontab {

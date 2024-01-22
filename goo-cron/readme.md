@@ -27,9 +27,7 @@ c.Second(func() {
 
 c.Start()
 
-<-goo_context.Cancel().Done()
-
-c.Stop()
+<- c.Stop().Done()
 ```
 
 # shell 检查任务是否退出
