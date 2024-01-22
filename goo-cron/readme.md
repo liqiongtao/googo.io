@@ -26,8 +26,9 @@ c.Second(func() {
 })
 
 c.Start()
-
-<- c.Stop().Done()
+defer func() {
+    <- c.Stop().Done()
+}
 ```
 
 # shell 检查任务是否退出
