@@ -28,6 +28,8 @@ c.Second(func() {
 c.Start()
 
 <-goo_context.Cancel().Done()
+
+c.Stop()
 ```
 
 # shell 检查任务是否退出
