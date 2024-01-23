@@ -6,7 +6,7 @@ import (
 )
 
 // 删除索引模版
-func (c *client) IndexTemplateDel(name string) (*esapi.Response, error) {
+func (c *ESClient) IndexTemplateDel(name string) (*esapi.Response, error) {
 	req := esapi.IndicesDeleteTemplateRequest{
 		Name: name,
 	}
@@ -45,7 +45,7 @@ func (c *client) IndexTemplateDel(name string) (*esapi.Response, error) {
 //        }
 //    }
 // }
-func (c *client) IndexTemplatePut(name string, b []byte) (*esapi.Response, error) {
+func (c *ESClient) IndexTemplatePut(name string, b []byte) (*esapi.Response, error) {
 	req := esapi.IndicesPutIndexTemplateRequest{
 		Name: name,
 		Body: bytes.NewReader(b),

@@ -8,13 +8,17 @@ import (
 	"time"
 )
 
-var __client *client
+var __client *ESClient
 
 func Init(conf Config) {
 	__client, _ = New(conf)
 }
 
-func New(conf Config) (*client, error) {
+func Client() *ESClient {
+	return __client
+}
+
+func New(conf Config) (*ESClient, error) {
 	cfg := elasticsearch.Config{
 		Addresses:         conf.Addresses,
 		Username:          conf.User,
@@ -33,5 +37,5 @@ func New(conf Config) (*client, error) {
 		return nil, err
 	}
 
-	return &client{cli}, nil
+	return &ESClient{cli}, nil
 }

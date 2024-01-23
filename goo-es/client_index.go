@@ -6,7 +6,7 @@ import (
 )
 
 // 添加、更新文档
-func (c *client) Index(index, docId string, b []byte) (*esapi.Response, error) {
+func (c *ESClient) Index(index, docId string, b []byte) (*esapi.Response, error) {
 	req := esapi.IndexRequest{
 		Index:      index,
 		DocumentID: docId,
@@ -17,7 +17,7 @@ func (c *client) Index(index, docId string, b []byte) (*esapi.Response, error) {
 }
 
 // 删除文档
-func (c *client) Delete(index, docId string) (*esapi.Response, error) {
+func (c *ESClient) Delete(index, docId string) (*esapi.Response, error) {
 	req := esapi.DeleteRequest{
 		Index:      index,
 		DocumentID: docId,
@@ -27,7 +27,7 @@ func (c *client) Delete(index, docId string) (*esapi.Response, error) {
 }
 
 // 删除文档
-func (c *client) DeleteByQuery(index []string, b []byte) (*esapi.Response, error) {
+func (c *ESClient) DeleteByQuery(index []string, b []byte) (*esapi.Response, error) {
 	req := esapi.DeleteByQueryRequest{
 		Index: index,
 		Body:  bytes.NewReader(b),

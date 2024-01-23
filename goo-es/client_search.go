@@ -51,7 +51,7 @@ import (
 //     "excludes" : ["list"]
 //   }
 // }
-func (c *client) Search(index []string, b []byte) (*esapi.Response, error) {
+func (c *ESClient) Search(index []string, b []byte) (*esapi.Response, error) {
 	req := esapi.SearchRequest{
 		Index: index,
 		Body:  bytes.NewReader(b),
