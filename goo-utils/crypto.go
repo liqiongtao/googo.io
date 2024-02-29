@@ -14,7 +14,13 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
+	"encoding/pem"
 	"errors"
+	"fmt"
+	"github.com/golang-jwt/jwt"
+	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	"github.com/square/go-jose"
 	"io"
 	"math/big"
 	"net/url"
@@ -65,6 +71,17 @@ func Base64Decode(str string) []byte {
 	var count = (4 - len(str)%4) % 4
 	str += strings.Repeat("=", count)
 	buf, _ := base64.StdEncoding.DecodeString(str)
+	return buf
+}
+
+func Base64UrlEncode(buf []byte) string {
+	return strings.TrimRight(base64.URLEncoding.EncodeToString(buf), "=")
+}
+
+func Base64UrlDecode(str string) []byte {
+	var count = (4 - len(str)%4) % 4
+	str += strings.Repeat("=", count)
+	buf, _ := base64.URLEncoding.DecodeString(str)
 	return buf
 }
 
@@ -276,4 +293,111 @@ func BaseXDecoding(strByte []byte, key ...string) []byte {
 	}
 	str, _ := url.PathUnescape(string(ret.Bytes()))
 	return []byte(str)
+}
+
+// 生成私钥、公钥、jwk公钥描述文件
+func RSA_SHA256() (privateKeyBytes []byte, publicKeyBytes []byte, jwkBytes []byte, err error) {
+	// 生成RSA密钥对
+	var privateKey *rsa.PrivateKey
+	privateKey, err = rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		goo_log.Error(err)
+		return
+	}
+
+	// 私钥
+	privateKeyBlock := &pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(privateKey),
+	}
+	privateKeyBytes = pem.EncodeToMemory(privateKeyBlock)
+
+	// 公钥
+	var publicKey []byte
+	publicKey, err = x509.MarshalPKIXPublicKey(&privateKey.PublicKey)
+	if err != nil {
+		goo_log.Error(err)
+		return
+	}
+	publicKeyBlock := &pem.Block{
+		Type:  "PUBLIC KEY",
+		Bytes: publicKey,
+	}
+	publicKeyBytes = pem.EncodeToMemory(publicKeyBlock)
+
+	// 构建 JWK 结构体
+	jwk := jose.JSONWebKey{
+		Key:       privateKey.Public(), // 使用公钥
+		Algorithm: "RS256",             // 指定签名算法
+	}
+	jwkBytes, err = json.MarshalIndent(jwk, "", "  ")
+	if err != nil {
+		goo_log.Error(err)
+		return
+	}
+
+	return
+}
+
+func JWTTokenCreate(data map[string]interface{}, privateKeyByte []byte) (string, error) {
+	// 从PEM格式解码公钥
+	block, _ := pem.Decode(privateKeyByte)
+	if block == nil || block.Type != "RSA PRIVATE KEY" {
+		goo_log.Error("failed to decode PEM block containing private key")
+		return "", errors.New("failed to decode PEM block containing private key")
+	}
+
+	privateKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+	if err != nil {
+		goo_log.Error(err)
+		return "", err
+	}
+
+	// 创建JWT
+	token := jwt.New(jwt.SigningMethodRS256)
+	claims := make(jwt.MapClaims)
+	for k, v := range data {
+		claims[k] = v
+	}
+	token.Claims = claims
+
+	token.Header["kid"] = "5fe5224e1ba6a55d02e89f6934b45f44"
+
+	// 使用私钥签名JWT
+	signedToken, err := token.SignedString(privateKey)
+	if err != nil {
+		goo_log.Error(err)
+		return "", err
+	}
+
+	return signedToken, nil
+}
+
+func JWT_TokenParse(signedToken string, publicKeyByte []byte) (*jwt.Token, error) {
+	// 从PEM格式解码公钥
+	block, _ := pem.Decode(publicKeyByte)
+	if block == nil || block.Type != "PUBLIC KEY" {
+		goo_log.Error("failed to decode PEM block containing public key")
+		return nil, errors.New("failed to decode PEM block containing public key")
+	}
+
+	publicKey, err := x509.ParsePKIXPublicKey(block.Bytes)
+	if err != nil {
+		goo_log.Error(err)
+		return nil, err
+	}
+
+	parsedToken, err := jwt.Parse(signedToken, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
+			goo_log.Error("unexpected signing method: %v", token.Header["alg"])
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return publicKey, nil
+	})
+	if err != nil {
+		goo_log.Error(err)
+		return nil, err
+	}
+
+	return parsedToken, nil
 }

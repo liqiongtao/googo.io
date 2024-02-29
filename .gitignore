@@ -21,3 +21,6 @@ logs/
 .DS_Store
 *.pid
 *.s
+*.pem
+*.json
+openid-configuration

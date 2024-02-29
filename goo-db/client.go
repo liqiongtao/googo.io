@@ -6,6 +6,7 @@ import (
 	_ "github.com/lib/pq"
 	goo_cron "github.com/liqiongtao/googo.io/goo-cron"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	"time"
 )
 
 type Client struct {
@@ -35,6 +36,11 @@ func New(conf Config) (cli *Client, err error) {
 	cli.EngineGroup.SetLogger(newLogger(conf.LogFilepath))
 	cli.EngineGroup.SetMaxIdleConns(conf.MaxIdle)
 	cli.EngineGroup.SetMaxOpenConns(conf.MaxOpen)
+	if conf.MaxLifetime > 0 {
+		cli.EngineGroup.SetConnMaxLifetime(time.Duration(conf.MaxLifetime) * time.Second)
+	} else {
+		cli.EngineGroup.SetConnMaxLifetime(600 * time.Second)
+	}
 
 	if conf.AutoPing {
 		goo_cron.Default().SecondX(5, func() {
