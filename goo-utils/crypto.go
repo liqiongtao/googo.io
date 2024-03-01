@@ -339,7 +339,7 @@ func RSA_SHA256() (privateKeyBytes []byte, publicKeyBytes []byte, jwkBytes []byt
 	return
 }
 
-func JWTTokenCreate(data map[string]interface{}, privateKeyByte []byte) (string, error) {
+func JWTTokenCreate(data map[string]interface{}, header map[string]interface{}, privateKeyByte []byte) (string, error) {
 	// 从PEM格式解码公钥
 	block, _ := pem.Decode(privateKeyByte)
 	if block == nil || block.Type != "RSA PRIVATE KEY" {
@@ -361,7 +361,11 @@ func JWTTokenCreate(data map[string]interface{}, privateKeyByte []byte) (string,
 	}
 	token.Claims = claims
 
-	token.Header["kid"] = "5fe5224e1ba6a55d02e89f6934b45f44"
+	if header != nil {
+		for k, v := range header {
+			token.Header[k] = v
+		}
+	}
 
 	// 使用私钥签名JWT
 	signedToken, err := token.SignedString(privateKey)
