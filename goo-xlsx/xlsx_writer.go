@@ -30,7 +30,6 @@ func (x *xlsxWrite) Handler() *excelize.File {
 
 func (x *xlsxWrite) SetTitles(titles []string) error {
 	x.sheetRowNums[x.sheetName]++
-	fmt.Println(x.sheetRowNums[x.sheetName], x.sheetName)
 	if err := x.fh.SetSheetRow(x.sheetName, fmt.Sprintf("A%d", x.sheetRowNums[x.sheetName]), &titles); err != nil {
 		goo_log.Error(err)
 		return err
