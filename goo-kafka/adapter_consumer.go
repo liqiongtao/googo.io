@@ -137,7 +137,7 @@ func (c *consumer) ConsumeGroup(groupId string, topics []string, handler Consume
 		l.Error(err)
 	}
 
-	time.Sleep(time.Second)
-
 	l.Debug("订阅消息退出")
+
+	time.Sleep(time.Second)
 }
