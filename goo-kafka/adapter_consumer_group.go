@@ -2,10 +2,12 @@ package goo_kafka
 
 import (
 	"github.com/IBM/sarama"
+	goo_log "github.com/liqiongtao/googo.io/goo-log"
 )
 
 // 分组
 type group struct {
+	id      string
 	handler ConsumerHandler
 }
 
@@ -18,11 +20,28 @@ func (group) Cleanup(sarama.ConsumerGroupSession) error {
 }
 
 func (g group) ConsumeClaim(sess sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
-	for msg := range claim.Messages() {
-		if err := g.handler(&ConsumerMessage{msg}, nil); err != nil {
-			continue
+	l := goo_log.WithTag("goo-kafka-consumer-group").
+		WithField("groupId", g.id).
+		WithField("topic", claim.Topic())
+
+	for {
+		select {
+		case <-sess.Context().Done():
+			l.Debug("Context被取消,停止消费")
+			return nil
+
+		case msg, ok := <-claim.Messages():
+			if !ok {
+				l.Debug("消息通道被关闭,停止消费")
+				return nil
+			}
+
+			if err := g.handler(&ConsumerMessage{msg}, nil); err != nil {
+				l.Error(err)
+				continue
+			}
+
+			sess.MarkMessage(msg, "")
 		}
-		sess.MarkMessage(msg, "")
 	}
-	return nil
 }

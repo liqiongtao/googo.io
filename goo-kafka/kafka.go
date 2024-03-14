@@ -2,9 +2,7 @@ package goo_kafka
 
 import (
 	"github.com/IBM/sarama"
-	goo_context "github.com/liqiongtao/googo.io/goo-context"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 )
 
 var (
@@ -14,13 +12,6 @@ var (
 // 初始化
 func Init(conf Config) error {
 	__client = &client{conf: conf}
-	goo_utils.AsyncFunc(func() {
-		select {
-		case <-goo_context.Cancel().Done():
-			__client.Close()
-			return
-		}
-	})
 	return __client.init()
 }
 

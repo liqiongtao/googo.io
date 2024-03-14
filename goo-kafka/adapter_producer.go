@@ -27,14 +27,15 @@ func (p *producer) SendMessage(topic string, message []byte) (partition int32, o
 	p.msg.Value = sarama.ByteEncoder(message)
 	p.msg.Key = sarama.StringEncoder(topic)
 
+	l := goo_log.WithTag("goo-kafka-producer").
+		WithField("topic", topic).
+		WithField("msg", string(message))
+
 	var producer sarama.SyncProducer
 
 	producer, err = sarama.NewSyncProducerFromClient(p.Client())
 	if err != nil {
-		goo_log.WithTag("goo-kafka-producer").
-			WithField("topic", topic).
-			WithField("msg", string(message)).
-			Error(err)
+		l.Error(err)
 		return
 	}
 	defer producer.Close()
@@ -48,14 +49,15 @@ func (p *producer) SendAsyncMessage(topic string, message []byte, cb MessageHand
 	p.msg.Value = sarama.ByteEncoder(message)
 	p.msg.Key = sarama.StringEncoder(topic)
 
+	l := goo_log.WithTag("goo-kafka-producer").
+		WithField("topic", topic).
+		WithField("msg", string(message))
+
 	var producer sarama.AsyncProducer
 
 	producer, err = sarama.NewAsyncProducerFromClient(p.Client())
 	if err != nil {
-		goo_log.WithTag("goo-kafka-producer").
-			WithField("topic", topic).
-			WithField("msg", string(message)).
-			Error(err)
+		l.Error(err)
 		return
 	}
 	defer producer.Close()

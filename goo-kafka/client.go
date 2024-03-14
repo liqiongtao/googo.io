@@ -28,11 +28,13 @@ func (cli *client) init() (err error) {
 	config.Producer.Return.Errors = true
 
 	config.Consumer.Return.Errors = true
-	config.Consumer.Offsets.AutoCommit.Enable = true              // 自动提交
-	config.Consumer.Offsets.AutoCommit.Interval = 1 * time.Second // 间隔
+	config.Consumer.Offsets.AutoCommit.Enable = true          // 自动提交
+	config.Consumer.Offsets.AutoCommit.Interval = time.Second // 间隔
 	config.Consumer.Offsets.Retry.Max = 3
 	config.Consumer.Offsets.Initial = sarama.OffsetNewest
 	config.Consumer.Group.Rebalance.Strategy = sarama.BalanceStrategySticky
+	config.Consumer.Group.Session.Timeout = 30 * time.Second
+	config.Consumer.Group.Heartbeat.Interval = 10 * time.Second
 
 	config.ChannelBufferSize = 1000
 	config.Version = sarama.V0_10_2_0
