@@ -95,8 +95,12 @@ func (s *Server) Serve() (err error) {
 		}
 
 		address := s.lis.Addr().String()
-		index := strings.LastIndex(address, ":")
-		cli.RegisterService(s.conf.ServiceName, fmt.Sprintf("%s:%s", s.conf.ServiceEndpoint, address[index+1:]))
+		if s.conf.ServiceEndpoint != "" {
+			index := strings.LastIndex(address, ":")
+			cli.RegisterService(s.conf.ServiceName, fmt.Sprintf("%s:%s", s.conf.ServiceEndpoint, address[index+1:]))
+		} else {
+			cli.RegisterService(s.conf.ServiceName, address)
+		}
 	})
 
 	go func() {
