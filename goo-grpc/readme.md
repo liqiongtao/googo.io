@@ -2,7 +2,8 @@
 
 - `Config` 配置信息
     - `ServiceName` 服务名称
-    - `Addr` 服务地址，必须明确 `ip:port`
+    - `ServiceEndpoint` 服务开放地址
+    - `Addr` 服务监听地址，必须明确 `ip:port`
 - 信号监控
     - `kill -USR1` 开启 `pprof` 监控
     - `kill -USR2` 停止 `pprof` 监控，可以获取监控文件
@@ -18,8 +19,8 @@
     - `grpc.ChainStreamInterceptor` 服务端流式拦截器
         - 同上
 - `Register2ETCD()` 服务注册到etcd
-  - `key` 格式: <service>/<leaseId>
-  - `value` 格式: json格式，示例 `{"Op":0,"Addr":"127.0.0.1:19001","Metadata":null}`
+    - `key` 格式: <service>/<leaseId>
+    - `value` 格式: json格式，示例 `{"Op":0,"Addr":"127.0.0.1:19001","Metadata":null}`
 
 # 客户端
 
@@ -29,6 +30,6 @@
 - 返回拦截
   - 
 
-#  grpc 版本要求
+# grpc 版本要求
 
 最高使用 `v1.52.3`, 否则导致 `Target.Endpoint` 无效，因为高版本把属性定义为了方法
