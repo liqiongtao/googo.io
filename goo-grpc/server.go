@@ -1,9 +1,11 @@
 package goo_grpc
 
 import (
+	"errors"
 	"fmt"
 	"github.com/facebookgo/grace/gracenet"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	"google.golang.org/grpc"
 	"io/ioutil"
 	"log"
@@ -12,6 +14,7 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 )
 
 type Server struct {
@@ -80,11 +83,21 @@ func (s *Server) Serve() (err error) {
 	}
 
 	// 服务注册
-	if defaultServerOptions.Register2Etcd {
-		if cli := defaultServerOptions.EtcdClient; cli != nil {
-			cli.RegisterService(s.conf.ServiceName, s.lis.Addr().String())
+	goo_utils.AsyncFunc(func() {
+		if !defaultServerOptions.Register2Etcd {
+			return
 		}
-	}
+
+		cli := defaultServerOptions.EtcdClient
+		if cli == nil {
+			goo_log.WithTag("goo-grpc").Error("no etcd client")
+			return
+		}
+
+		address := s.lis.Addr().String()
+		index := strings.LastIndex(address, ":")
+		cli.RegisterService(s.conf.ServiceName, fmt.Sprintf("%s:%s", s.conf.ServiceEndpoint, address[index+1:]))
+	})
 
 	go func() {
 		defer func() {
@@ -100,6 +113,8 @@ func (s *Server) Serve() (err error) {
 
 	s.storePID()
 	s.handleSignal()
+
+	time.Sleep(time.Second)
 
 	return
 }
@@ -120,10 +135,12 @@ func (s *Server) handleSignal() {
 
 		case syscall.SIGHUP: // kill -1
 			s.gracefulReStart()
+			goo_log.WithTag("goo-grpc").Warn("服务重启")
 			return
 
 		case syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT, syscall.SIGKILL: // kill -9 or ctrl+c
 			s.gracefulStop()
+			goo_log.WithTag("goo-grpc").Warn("服务退出")
 			return
 		}
 	}
@@ -158,13 +175,16 @@ func (s *Server) gracefulReStart() {
 // 平滑退出
 func (s *Server) gracefulStop() {
 	s.Server.GracefulStop()
+	if err := s.lis.Close(); err != nil && !errors.Is(err, net.ErrClosed) {
+		goo_log.WithTag("goo-grpc").Error(err)
+	}
 }
 
 func (s *Server) storePID() {
 	pid := fmt.Sprintf("%d", os.Getpid())
 	if err := ioutil.WriteFile(".pid", []byte(pid), 0644); err != nil {
-		log.Println(fmt.Sprintf("server store pid err: %s", err.Error()))
+		goo_log.WithTag("goo-grpc").Error(fmt.Sprintf("server store pid err: %s", err.Error()))
 		return
 	}
-	log.Println(fmt.Sprintf("server is running, address=%s, pid=%s", s.lis.Addr(), pid))
+	goo_log.WithTag("goo-grpc").DebugF(fmt.Sprintf("server is running, address=%s, pid=%s", s.lis.Addr(), pid))
 }

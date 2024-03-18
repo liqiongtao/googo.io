@@ -3,6 +3,7 @@ package goo_etcd
 import (
 	"context"
 	"crypto/tls"
+	goo_context "github.com/liqiongtao/googo.io/goo-context"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	"go.etcd.io/etcd/client/pkg/v3/transport"
 	clientv3 "go.etcd.io/etcd/client/v3"
@@ -22,14 +23,7 @@ type Client struct {
 }
 
 func New(conf Config) (cli *Client, err error) {
-	cli = &Client{ctx: context.TODO(), conf: conf}
-
-	defer func() {
-		if err != nil {
-			time.Sleep(5 * time.Second)
-			cli, _ = New(conf)
-		}
-	}()
+	cli = &Client{ctx: goo_context.Cancel(), conf: conf}
 
 	cfg := clientv3.Config{
 		Endpoints:   conf.Endpoints,

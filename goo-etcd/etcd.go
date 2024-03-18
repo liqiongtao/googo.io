@@ -1,13 +1,33 @@
 package goo_etcd
 
 import (
+	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	clientv3 "go.etcd.io/etcd/client/v3"
+	"time"
 )
 
 var __client *Client
 
 func Init(conf Config) {
-	__client, _ = New(conf)
+	var err error
+	__client, err = New(conf)
+
+	goo_utils.AsyncFunc(func() {
+		for {
+			select {
+			case <-__client.ctx.Done():
+				__client.Close()
+				time.Sleep(time.Second)
+				return
+
+			default:
+				if err != nil {
+					time.Sleep(5 * time.Second)
+					__client, err = New(conf)
+				}
+			}
+		}
+	})
 }
 
 func Default() *Client {
