@@ -1,6 +1,7 @@
 package goo_kafka
 
 import (
+	"context"
 	"errors"
 	"github.com/IBM/sarama"
 	goo_context "github.com/liqiongtao/googo.io/goo-context"
@@ -109,35 +110,43 @@ func (c *consumer) ConsumeGroup(groupId string, topics []string, handler Consume
 		l.Error(err)
 		return
 	}
-	defer func() {
-		if err := cg.Close(); err != nil {
-			l.Error(err)
-		}
-	}()
+	defer cg.Close()
+
+	var (
+		done = make(chan struct{})
+		flag bool
+	)
+
+	ctx, cancel := context.WithCancel(context.Background())
 
 	goo_utils.AsyncFunc(func() {
 		for {
 			select {
-			case <-goo_context.Cancel().Done():
-				if err := cg.Close(); err != nil {
-					l.Error(err)
-				}
-				return
-
 			case err := <-cg.Errors():
 				if err != nil {
 					l.Error(err)
+				}
+
+			default:
+				err := cg.Consume(ctx, topics, group{id: groupId, handler: handler})
+				if err != nil && !errors.Is(err, sarama.ErrClosedConsumerGroup) {
+					l.Error(err)
+				}
+				if flag {
+					done <- struct{}{}
+					return
 				}
 			}
 		}
 	})
 
-	g := group{id: groupId, handler: handler}
-	if err := cg.Consume(goo_context.Cancel(), topics, g); err != nil && !errors.Is(err, sarama.ErrClosedConsumerGroup) {
-		l.Error(err)
+	select {
+	case <-goo_context.Cancel().Done():
+		flag = true
+		cancel()
 	}
 
-	l.Debug("订阅消息退出")
+	<-done
 
 	time.Sleep(time.Second)
 }

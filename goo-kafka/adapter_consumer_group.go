@@ -22,17 +22,18 @@ func (group) Cleanup(sarama.ConsumerGroupSession) error {
 func (g group) ConsumeClaim(sess sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	l := goo_log.WithTag("goo-kafka-consumer-group").
 		WithField("groupId", g.id).
-		WithField("topic", claim.Topic())
+		WithField("topic", claim.Topic()).
+		WithField("partition", claim.Partition())
 
 	for {
 		select {
 		case <-sess.Context().Done():
-			l.Debug("Context被取消,停止消费")
+			l.Debug("关闭会话上下文")
 			return nil
 
 		case msg, ok := <-claim.Messages():
 			if !ok {
-				l.Debug("消息通道被关闭,停止消费")
+				l.Debug("消费通道关闭")
 				return nil
 			}
 
