@@ -44,6 +44,7 @@ func (cli *client) init() (err error) {
 	config.Consumer.Offsets.Retry.Max = 5
 	config.Consumer.Offsets.Initial = sarama.OffsetNewest
 	config.Consumer.Group.Rebalance.GroupStrategies = []sarama.BalanceStrategy{
+		sarama.NewBalanceStrategyRoundRobin(),
 		sarama.NewBalanceStrategySticky(),
 		sarama.NewBalanceStrategyRange(),
 	}
