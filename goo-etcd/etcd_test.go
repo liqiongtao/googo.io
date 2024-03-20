@@ -15,24 +15,24 @@ func TestInit(t *testing.T) {
 		Password:  "123456",
 	})
 
-	if _, err := Set("/xz/dsp/http-api/192.168.1.101:15001", "192.168.1.101:15001"); err != nil {
+	if _, err := Set("/goo/http-api/192.168.1.101:15001", "192.168.1.101:15001"); err != nil {
 		log.Fatalln(err)
 	}
-	if _, err := Set("/xz/dsp/http-api/192.168.1.101:15002", "192.168.1.101:15002"); err != nil {
+	if _, err := Set("/goo/http-api/192.168.1.101:15002", "192.168.1.101:15002"); err != nil {
 		log.Fatalln(err)
 	}
-	if _, err := SetTTL("/xz/dsp/http-api/192.168.1.101:15003", "192.168.1.101:15003", 3); err != nil {
+	if _, err := SetTTL("/goo/http-api/192.168.1.101:15003", "192.168.1.101:15003", 3); err != nil {
 		log.Fatalln(err)
 	}
 
 	for i := 0; i < 2; i++ {
-		fmt.Println(GetString("/xz/dsp/http-api/"))
-		fmt.Println(GetArray("/xz/dsp/http-api/"))
-		fmt.Println(GetMap("/xz/dsp/http-api/"))
+		fmt.Println(GetString("/goo/http-api/"))
+		fmt.Println(GetArray("/goo/http-api/"))
+		fmt.Println(GetMap("/goo/http-api/"))
 		time.Sleep(5 * time.Second)
 	}
 
-	Del("/xz/dsp/http-api/192.168.1.101:15002")
+	Del("/goo/http-api/192.168.1.101:15002")
 }
 
 func TestRegisterService(t *testing.T) {
@@ -42,7 +42,7 @@ func TestRegisterService(t *testing.T) {
 		Password:  "123456",
 	})
 
-	err := RegisterService("/xz/dsp/http-api/node-1", "192.168.1.101:15002")
+	err := RegisterService("/goo/http-api/node-1", "192.168.1.101:15002")
 	fmt.Println(err)
 
 	<-goo_context.Cancel().Done()
@@ -57,12 +57,12 @@ func TestWatch(t *testing.T) {
 
 	go func() {
 		for i := 0; i < 100; i++ {
-			SetTTL(fmt.Sprintf("/xz/dsp/http-api/node-%d", i), fmt.Sprintf("192.168.1.%d", i), 5)
+			SetTTL(fmt.Sprintf("/goo/http-api/node-%d", i), fmt.Sprintf("192.168.1.%d", i), 5)
 			time.Sleep(time.Second)
 		}
 	}()
 
-	ch := Watch("/xz/dsp/http-api")
+	ch := Watch("/goo/http-api")
 	for i := range ch {
 		fmt.Println(i)
 	}
