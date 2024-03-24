@@ -48,8 +48,11 @@ func (cli *client) init() (err error) {
 		sarama.NewBalanceStrategySticky(),
 		sarama.NewBalanceStrategyRange(),
 	}
-	config.Consumer.Group.Heartbeat.Interval = 10 * time.Second
-	config.Consumer.Group.Session.Timeout = 30 * time.Second
+	config.Consumer.Group.Heartbeat.Interval = 60 * time.Second
+	config.Consumer.Group.Session.Timeout = 600 * time.Second
+	if cli.conf.SessionTimeout > 0 {
+		config.Consumer.Group.Session.Timeout = time.Duration(cli.conf.SessionTimeout) * time.Second
+	}
 	config.Consumer.Group.InstanceId = id
 
 	cli.Client, err = sarama.NewClient(cli.conf.Addrs, config)
