@@ -30,7 +30,7 @@ func ReadBySheet(r io.Reader, sheet string, fn func(n int, row []string) error) 
 	for rows.Next() {
 		n++
 		row, _ := rows.Columns()
-		if er := fn(n, row); er != nil {
+		if err = fn(n, row); err != nil {
 			return err
 		}
 	}
