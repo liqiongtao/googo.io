@@ -100,7 +100,6 @@ func OffsetInfo(topic, groupId string) (data []map[string]int64) {
 		nextOffset, msg := pom.NextOffset()
 		if msg != "" {
 			l.Error(msg)
-			pom.Close()
 			continue
 		}
 
@@ -115,8 +114,6 @@ func OffsetInfo(topic, groupId string) (data []map[string]int64) {
 			"nextOffset": nextOffset,
 			"backlog":    backlog,
 		})
-
-		pom.Close()
 	}
 
 	return
