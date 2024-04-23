@@ -82,6 +82,7 @@ func OffsetInfo(topic, groupId string) (data []map[string]int64) {
 		l.Error(err)
 		return
 	}
+	defer om.Close()
 
 	for _, partition := range partitions {
 		offset, err := __client.GetOffset(topic, partition, -1)
@@ -99,6 +100,7 @@ func OffsetInfo(topic, groupId string) (data []map[string]int64) {
 		nextOffset, msg := pom.NextOffset()
 		if msg != "" {
 			l.Error(msg)
+			pom.Close()
 			continue
 		}
 
@@ -113,6 +115,8 @@ func OffsetInfo(topic, groupId string) (data []map[string]int64) {
 			"nextOffset": nextOffset,
 			"backlog":    backlog,
 		})
+
+		pom.Close()
 	}
 
 	return
