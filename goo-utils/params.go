@@ -18,12 +18,12 @@ type Params struct {
 	data interface{}
 }
 
-func New() Params {
+func NewParams() Params {
 	return Params{data: map[string]interface{}{}}
 }
 
 func Json2Params(b []byte) (p Params, err error) {
-	p = New()
+	p = NewParams()
 
 	if err = json.Unmarshal(b, &p.data); err != nil {
 		goo_log.WithField("params", string(b)).Error(err)
