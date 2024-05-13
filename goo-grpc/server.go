@@ -35,8 +35,8 @@ func New(conf Config, opt ...ServerOption) *Server {
 	}
 
 	serverOptions := append(opts.ServerOptions, []grpc.ServerOption{
-		grpc.MaxRecvMsgSize(20 * 1024 * 1024),
-		grpc.MaxSendMsgSize(20 * 1024 * 1024),
+		grpc.MaxRecvMsgSize(100 * 1024 * 1024),
+		grpc.MaxSendMsgSize(100 * 1024 * 1024),
 		// 单向拦截 - 链式
 		grpc.ChainUnaryInterceptor(
 			serverUnaryInterceptorLog(),
