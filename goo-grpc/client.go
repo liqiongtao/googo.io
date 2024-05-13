@@ -15,7 +15,7 @@ func Dial(addr string, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
 			Timeout:             100 * time.Millisecond,
 			PermitWithoutStream: true,
 		}),
-		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(100*1024*1024), grpc.MaxCallSendMsgSize(100*1024*1024)),
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(MaxRecvMsgSize), grpc.MaxCallSendMsgSize(MaxSendMsgSize)),
 		grpc.WithChainUnaryInterceptor(clientUnaryInterceptorLog()),
 		grpc.WithChainStreamInterceptor(clientStreamInterceptorLog()),
 	)
@@ -30,7 +30,7 @@ func DialContext(ctx context.Context, addr string, opts ...grpc.DialOption) (*gr
 			Timeout:             100 * time.Millisecond,
 			PermitWithoutStream: true,
 		}),
-		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(100*1024*1024), grpc.MaxCallSendMsgSize(100*1024*1024)),
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(MaxRecvMsgSize), grpc.MaxCallSendMsgSize(MaxSendMsgSize)),
 		grpc.WithChainUnaryInterceptor(clientUnaryInterceptorLog()),
 		grpc.WithChainStreamInterceptor(clientStreamInterceptorLog()),
 	)
