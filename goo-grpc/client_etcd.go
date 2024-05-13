@@ -26,6 +26,7 @@ func DialWithEtcd(serviceName string, cli *goo_etcd.Client) (*grpc.ClientConn, e
 			Timeout:             100 * time.Millisecond,
 			PermitWithoutStream: true,
 		}),
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(100*1024*1024), grpc.MaxCallSendMsgSize(100*1024*1024)),
 		grpc.WithChainUnaryInterceptor(clientUnaryInterceptorLog()),
 		grpc.WithChainStreamInterceptor(clientStreamInterceptorLog()),
 	}
@@ -48,6 +49,7 @@ func DialContextWithEtcd(ctx context.Context, serviceName string, cli *goo_etcd.
 			Timeout:             100 * time.Millisecond,
 			PermitWithoutStream: true,
 		}),
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(100*1024*1024), grpc.MaxCallSendMsgSize(100*1024*1024)),
 		grpc.WithChainUnaryInterceptor(clientUnaryInterceptorLog()),
 		grpc.WithChainStreamInterceptor(clientStreamInterceptorLog()),
 	}
