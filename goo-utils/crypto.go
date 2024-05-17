@@ -40,7 +40,7 @@ func SHA1(buf []byte) string {
 }
 
 func SHA256(buf, key []byte) string {
-	h := hmac.New(sha256.New, key)
+	h := sha256.New()
 	h.Write(buf)
 	return hex.EncodeToString(h.Sum(nil))
 }
