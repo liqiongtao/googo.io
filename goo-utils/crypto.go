@@ -39,7 +39,7 @@ func SHA1(buf []byte) string {
 	return hex.EncodeToString(h.Sum(nil))
 }
 
-func SHA256(buf, key []byte) string {
+func SHA256(buf []byte) string {
 	h := sha256.New()
 	h.Write(buf)
 	return hex.EncodeToString(h.Sum(nil))
