@@ -17,6 +17,7 @@ func (p *producer) Client() sarama.Client {
 
 // 指定分区
 func (p *producer) WithPartition(partition int32) iProducer {
+	p.Config().Producer.Partitioner = sarama.NewManualPartitioner
 	p.msg.Partition = partition
 	return p
 }
@@ -25,7 +26,9 @@ func (p *producer) WithPartition(partition int32) iProducer {
 func (p *producer) SendMessage(topic string, message []byte) (partition int32, offset int64, err error) {
 	p.msg.Topic = topic
 	p.msg.Value = sarama.ByteEncoder(message)
-	p.msg.Key = sarama.StringEncoder(topic)
+	if p.msg.Key.Length() == 0 {
+		p.msg.Key = sarama.StringEncoder(topic)
+	}
 
 	l := goo_log.WithTag("goo-kafka-producer").
 		WithField("topic", topic).

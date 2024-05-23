@@ -29,6 +29,8 @@ func (cli *client) init() (err error) {
 
 	// 等所有follower都成功后再返回
 	config.Producer.RequiredAcks = sarama.WaitForAll
+	// 分区策略为Manual，指定分区发送消息
+	//config.Producer.Partitioner = sarama.NewManualPartitioner
 	// 分区策略为Hash，解决相同key的消息落在一个分区
 	//config.Producer.Partitioner = sarama.NewHashPartitioner
 	// 分区策略为Random，解决消费组分布式部署
