@@ -26,7 +26,7 @@ func (p *producer) WithPartition(partition int32) iProducer {
 func (p *producer) SendMessage(topic string, message []byte) (partition int32, offset int64, err error) {
 	p.msg.Topic = topic
 	p.msg.Value = sarama.ByteEncoder(message)
-	if p.msg.Key.Length() == 0 {
+	if p.msg.Key == nil || p.msg.Key.Length() == 0 {
 		p.msg.Key = sarama.StringEncoder(topic)
 	}
 
@@ -50,7 +50,9 @@ func (p *producer) SendMessage(topic string, message []byte) (partition int32, o
 func (p *producer) SendAsyncMessage(topic string, message []byte, cb MessageHandler) (err error) {
 	p.msg.Topic = topic
 	p.msg.Value = sarama.ByteEncoder(message)
-	p.msg.Key = sarama.StringEncoder(topic)
+	if p.msg.Key == nil || p.msg.Key.Length() == 0 {
+		p.msg.Key = sarama.StringEncoder(topic)
+	}
 
 	l := goo_log.WithTag("goo-kafka-producer").
 		WithField("topic", topic).
