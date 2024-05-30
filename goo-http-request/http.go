@@ -1,7 +1,9 @@
 package goo_http_request
 
 import (
+	"fmt"
 	"io"
+	"net/http"
 )
 
 func New(opts ...Option) *Request {
@@ -65,6 +67,22 @@ func Download(url, filename string) error {
 
 func SetHeader(name, value string) *Request {
 	return New().SetHeader(name, value)
+}
+
+func Exists(url string) (bool, error) {
+	resp, err := http.Head(url)
+	if err != nil {
+		return false, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusOK {
+		return true, nil
+	} else if resp.StatusCode == http.StatusNotFound {
+		return false, nil
+	} else {
+		return false, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
 }
 
 func Debug() *Request {
