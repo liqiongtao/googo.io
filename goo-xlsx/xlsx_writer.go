@@ -65,6 +65,10 @@ func (x *xlsxWrite) SetSheetName(sheetName string) *xlsxWrite {
 }
 
 func (x *xlsxWrite) Save2File(filename string) (err error) {
+	if x.sheetRowNums["Sheet1"] == 0 {
+		x.fh.DeleteSheet("Sheet1")
+	}
+
 	if err = x.fh.SaveAs(filename); err != nil {
 		goo_log.Error(err)
 		return
@@ -78,6 +82,10 @@ func (x *xlsxWrite) Output(ctx *gin.Context, filename string) (err error) {
 	ctx.Header("Content-Type", "application/octet-stream")
 	ctx.Header("Content-Disposition", "attachment; filename="+url.PathEscape(filename))
 	ctx.Header("Access-Control-Expose-Headers", "Content-Disposition")
+
+	if x.sheetRowNums["Sheet1"] == 0 {
+		x.fh.DeleteSheet("Sheet1")
+	}
 
 	if err = x.fh.Write(ctx.Writer); err != nil {
 		goo_log.Error(err)
