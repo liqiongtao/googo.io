@@ -22,6 +22,14 @@ func (p *producer) WithPartition(partition int32) iProducer {
 	return p
 }
 
+// 指定Key
+func (p *producer) WithKey(key string) iProducer {
+	if key != "" {
+		p.msg.Key = sarama.StringEncoder(key)
+	}
+	return p
+}
+
 // 发送消息 - 同步
 func (p *producer) SendMessage(topic string, message []byte) (partition int32, offset int64, err error) {
 	p.msg.Topic = topic
