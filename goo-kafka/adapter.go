@@ -13,6 +13,9 @@ type iProducer interface {
 	// 发送消息到指定分区
 	WithPartition(partition int32) iProducer
 
+	// 指定Key
+	WithKey(key string) iProducer
+
 	// 发送消息 - 同步
 	SendMessage(topic string, message []byte) (partition int32, offset int64, err error)
 
