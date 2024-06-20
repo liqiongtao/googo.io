@@ -35,3 +35,35 @@ func DateTime2Ts(dateTime string) int64 {
 	ti, _ := time.ParseInLocation("2006-01-02 15:04:05", dateTime, time.Local)
 	return ti.Unix()
 }
+
+func Str2Time(str string) (ti time.Time, err error) {
+	ti, err = time.ParseInLocation("2006-1-2 15:4:5", str, time.Local)
+	if err != nil {
+		ti, err = time.ParseInLocation("2006/1/2 15:4:5", str, time.Local)
+	}
+	if err != nil {
+		ti, err = time.ParseInLocation("2006121545", str, time.Local)
+	}
+	if err != nil {
+		ti, err = time.ParseInLocation("200612_1545", str, time.Local)
+	}
+	if err != nil {
+		ti, err = time.ParseInLocation("2006-1-2 15:4", str, time.Local)
+	}
+	if err != nil {
+		ti, err = time.ParseInLocation("2006/1/2 15:4", str, time.Local)
+	}
+	if err != nil {
+		ti, err = time.ParseInLocation("2006-1-2", str, time.Local)
+	}
+	if err != nil {
+		ti, err = time.ParseInLocation("2006/1/2", str, time.Local)
+	}
+	if err != nil {
+		ti, err = time.ParseInLocation("15:4:5", str, time.Local)
+	}
+	if err != nil {
+		ti, err = time.ParseInLocation("15:4", str, time.Local)
+	}
+	return
+}
