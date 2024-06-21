@@ -42,6 +42,12 @@ func Str2Time(str string) (ti time.Time, err error) {
 		ti, err = time.ParseInLocation("2006/1/2 15:4:5", str, time.Local)
 	}
 	if err != nil {
+		ti, err = time.ParseInLocation("1/2/2006 15:4:5", str, time.Local)
+	}
+	if err != nil {
+		ti, err = time.ParseInLocation("1/2/06 15:4:5", str, time.Local)
+	}
+	if err != nil {
 		ti, err = time.ParseInLocation("2006121545", str, time.Local)
 	}
 	if err != nil {
@@ -54,10 +60,22 @@ func Str2Time(str string) (ti time.Time, err error) {
 		ti, err = time.ParseInLocation("2006/1/2 15:4", str, time.Local)
 	}
 	if err != nil {
+		ti, err = time.ParseInLocation("1/2/2006 15:4", str, time.Local)
+	}
+	if err != nil {
+		ti, err = time.ParseInLocation("1/2/06 15:4", str, time.Local)
+	}
+	if err != nil {
 		ti, err = time.ParseInLocation("2006-1-2", str, time.Local)
 	}
 	if err != nil {
 		ti, err = time.ParseInLocation("2006/1/2", str, time.Local)
+	}
+	if err != nil {
+		ti, err = time.ParseInLocation("1/2/2006", str, time.Local)
+	}
+	if err != nil {
+		ti, err = time.ParseInLocation("1/2/06", str, time.Local)
 	}
 	if err != nil {
 		ti, err = time.ParseInLocation("15:4:5", str, time.Local)

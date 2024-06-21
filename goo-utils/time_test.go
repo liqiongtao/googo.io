@@ -31,4 +31,6 @@ func TestStr2Time(t *testing.T) {
 	fmt.Println(Str2Time("10:01"))
 	fmt.Println(Str2Time("10:1"))
 	fmt.Println(Str2Time("10:1"))
+
+	fmt.Println(Str2Time("5/15/24 08:42"))
 }
