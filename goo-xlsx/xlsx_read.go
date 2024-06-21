@@ -39,7 +39,7 @@ func ReadBySheet(r io.Reader, sheet string, fn func(n int, row []string) error) 
 }
 
 func Read(r io.Reader, fn func(n int, row []string) error) error {
-	return Read(r, fn)
+	return ReadBySheet(r, "", fn)
 }
 
 func ReadFile(file string, fn func(n int, row []string) error) error {
