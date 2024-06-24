@@ -50,7 +50,7 @@ func (cli *client) init() (err error) {
 		sarama.NewBalanceStrategySticky(),
 		sarama.NewBalanceStrategyRange(),
 	}
-	config.Consumer.Group.Heartbeat.Interval = 100 * time.Second
+	config.Consumer.Group.Heartbeat.Interval = 600 * time.Second
 	config.Consumer.Group.Session.Timeout = 1800 * time.Second
 	config.Consumer.Group.Rebalance.Timeout = 1800 * time.Second
 	if cli.conf.SessionTimeout > 0 {
