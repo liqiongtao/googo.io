@@ -23,7 +23,7 @@ func (cli *client) init() (err error) {
 		config.Net.SASL.Password = cli.conf.Password
 	}
 
-	config.ClientID = id
+	config.ClientID = "goo-" + id
 	config.ChannelBufferSize = 1024
 	config.Version = sarama.V3_0_0_0
 
@@ -53,10 +53,16 @@ func (cli *client) init() (err error) {
 	config.Consumer.Group.Heartbeat.Interval = 5 * time.Second
 	config.Consumer.Group.Session.Timeout = 15 * time.Second
 	config.Consumer.Group.Rebalance.Timeout = 12 * time.Second
+	if cli.conf.HeartbeatInterval > 0 {
+		config.Consumer.Group.Heartbeat.Interval = time.Duration(cli.conf.HeartbeatInterval) * time.Second
+	}
 	if cli.conf.SessionTimeout > 0 {
 		config.Consumer.Group.Session.Timeout = time.Duration(cli.conf.SessionTimeout) * time.Second
 	}
-	config.Consumer.Group.InstanceId = id
+	if cli.conf.RebalanceTimeout > 0 {
+		config.Consumer.Group.Rebalance.Timeout = time.Duration(cli.conf.RebalanceTimeout) * time.Second
+	}
+	config.Consumer.Group.InstanceId = "goo-" + id
 
 	cli.Client, err = sarama.NewClient(cli.conf.Addrs, config)
 	if err != nil {
