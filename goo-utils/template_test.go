@@ -46,9 +46,10 @@ func TestTemplate2(t *testing.T) {
 
 	sqlstr := `
 SELECT * FROM u_user 
-	WHERE enterprise_id = {{.enterpriseId|Args}} 
-	and id IN ({{.ids|Args}})
-	and name like {{.name|LikeArgs}}
+	WHERE 1=1
+	{{if ne .enterpriseId 0}} and enterprise_id = {{.enterpriseId|args}} {{end}}
+	{{if ne (.ids|len) 0}} and id IN ({{.ids|args}}) {{end}}
+	{{if ne .name ""}} and name like {{.name|like|args}} {{end}}
 `
 	fmt.Println(Template(sqlstr, m))
 }

@@ -35,8 +35,8 @@ func Template(text string, data interface{}) (string, []interface{}, error) {
 
 	tpl := template.New("")
 	tpl.Funcs(template.FuncMap{
-		"Args": argsFunc,
-		"LikeArgs": func(value interface{}) string {
+		"args": argsFunc,
+		"like": func(value interface{}) string {
 			return argsFunc(fmt.Sprintf("%%%s%%", value))
 		},
 	})
