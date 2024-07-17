@@ -36,3 +36,19 @@ I like {{.Name}}
 
 	fmt.Println(Template(tplUser, m))
 }
+
+func TestTemplate2(t *testing.T) {
+	m := M{
+		"enterpriseId": 66,
+		"name":         "123",
+		"ids":          []int64{1, 2, 3},
+	}
+
+	sqlstr := `
+SELECT * FROM u_user 
+	WHERE enterprise_id = {{.enterpriseId|Args}} 
+	and id IN ({{.ids|Args}})
+	and name like {{.name|LikeArgs}}
+`
+	fmt.Println(Template(sqlstr, m))
+}
