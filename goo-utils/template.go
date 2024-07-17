@@ -52,5 +52,13 @@ func Template(text string, data interface{}) (string, []interface{}, error) {
 		return "", []interface{}{}, err
 	}
 
-	return b.String(), args, nil
+	var lines []string
+	for _, str := range strings.Split(b.String(), "\n") {
+		if strings.TrimSpace(str) == "" {
+			continue
+		}
+		lines = append(lines, str)
+	}
+
+	return strings.Join(lines, "\n"), args, nil
 }

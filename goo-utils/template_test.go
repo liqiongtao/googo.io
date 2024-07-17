@@ -41,9 +41,9 @@ func TestTemplate2(t *testing.T) {
 	m := M{
 		"enterpriseId": 63,
 		"name":         "hnatao",
-		"ids":          []int64{1, 2},
-		"beginDate":    "2024-07-01",
-		"endDate":      "2024-07-01",
+		//"ids":          []int64{1, 2},
+		"beginDate": "2024-07-01",
+		"endDate":   "2024-07-01",
 	}
 
 	sqlstr := `
