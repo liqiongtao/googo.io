@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
-	"html/template"
 	"strings"
+	"text/template"
 )
 
 func Template(text string, data interface{}) (string, []interface{}, error) {
