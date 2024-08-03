@@ -2,7 +2,6 @@ package goo_es
 
 import (
 	"bytes"
-	"github.com/liqiongtao/googo.io/goo"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	"io"
@@ -40,7 +39,7 @@ func (c *ESClient) Query(index []string, filter []goo_utils.M, offset, size int)
 		},
 	}
 
-	res, err := goo.ES().Search(index, m.Json())
+	res, err := c.Search(index, m.Json())
 	if err != nil {
 		goo_log.Error("[ES]", err)
 		return []goo_utils.Params{}
