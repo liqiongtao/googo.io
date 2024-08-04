@@ -10,7 +10,7 @@ import (
 func (c *ESClient) Loop(index []string, filter []goo_utils.M, fn func(p goo_utils.Params) error) {
 	size := 500
 	for n := 0; n < 100; n++ {
-		list := c.Query(index, filter, n*size, size)
+		_, list := c.Query(index, filter, n*size, size)
 		l := len(list)
 
 		goo_log.Debug("[ES]", "查询数量", l, n, n*size, size)
@@ -28,7 +28,7 @@ func (c *ESClient) Loop(index []string, filter []goo_utils.M, fn func(p goo_util
 	}
 }
 
-func (c *ESClient) Query(index []string, filter []goo_utils.M, offset, size int) []goo_utils.Params {
+func (c *ESClient) Query(index []string, filter []goo_utils.M, offset, size int) (int64, []goo_utils.Params) {
 	m := goo_utils.M{
 		"from": offset,
 		"size": size,
@@ -42,21 +42,21 @@ func (c *ESClient) Query(index []string, filter []goo_utils.M, offset, size int)
 	res, err := c.Search(index, m.Json())
 	if err != nil {
 		goo_log.Error("[ES]", err)
-		return []goo_utils.Params{}
+		return 0, []goo_utils.Params{}
 	}
 	defer res.Body.Close()
 
 	var b bytes.Buffer
 	if _, er := io.Copy(&b, res.Body); er != nil {
 		goo_log.Error("[ES]", er.Error())
-		return []goo_utils.Params{}
+		return 0, []goo_utils.Params{}
 	}
 
 	p, er := goo_utils.Byte(b.Bytes()).Params()
 	if er != nil {
 		goo_log.Error("[ES]", er.Error())
-		return []goo_utils.Params{}
+		return 0, []goo_utils.Params{}
 	}
 
-	return p.Get("hits.hits").Array()
+	return p.Get("hits.total.value").Int64(), p.Get("hits.hits").Array()
 }
