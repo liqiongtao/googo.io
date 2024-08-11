@@ -28,7 +28,7 @@ func (g group) ConsumeClaim(sess sarama.ConsumerGroupSession, claim sarama.Consu
 	for {
 		select {
 		case <-sess.Context().Done():
-			l.Debug("关闭会话上下文")
+			l.Debug("关闭会话上下文", sess.Context().Err())
 			return nil
 
 		case msg, ok := <-claim.Messages():
