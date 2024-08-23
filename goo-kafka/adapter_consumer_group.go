@@ -9,6 +9,7 @@ import (
 type group struct {
 	id      string
 	handler ConsumerHandler
+	config  Config
 }
 
 func (g group) Setup(sarama.ConsumerGroupSession) error {
@@ -19,7 +20,7 @@ func (group) Cleanup(sarama.ConsumerGroupSession) error {
 	return nil
 }
 
-func (g group) ConsumeClaim(sess sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
+func (g group) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	l := goo_log.WithTag("goo-kafka-consumer-group").
 		WithField("groupId", g.id).
 		WithField("topic", claim.Topic()).
@@ -27,22 +28,22 @@ func (g group) ConsumeClaim(sess sarama.ConsumerGroupSession, claim sarama.Consu
 
 	for {
 		select {
-		case <-sess.Context().Done():
-			l.Debug("关闭会话上下文", sess.Context().Err())
+		case <-session.Context().Done():
+			l.Debug("关闭会话上下文", session.Context().Err())
 			return nil
 
 		case msg, ok := <-claim.Messages():
 			if !ok {
-				l.Debug("消费通道关闭")
+				l.Debug("消费通道关闭", msg)
 				return nil
 			}
 
-			if err := g.handler(&ConsumerMessage{msg}, nil); err != nil {
+			if err := g.handler(&ConsumerMessage{ConsumerMessage: msg, GroupSession: session}, nil); err != nil {
 				l.Error(err)
 				continue
 			}
 
-			sess.MarkMessage(msg, "")
+			session.MarkMessage(msg, "")
 		}
 	}
 }

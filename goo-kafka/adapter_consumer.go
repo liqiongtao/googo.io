@@ -94,7 +94,7 @@ func (c *consumer) Consume(topic string, handler ConsumerHandler) {
 				l.Debug("消息通道被关闭,停止消费")
 				return
 			}
-			handler(&ConsumerMessage{msg}, nil)
+			handler(&ConsumerMessage{ConsumerMessage: msg}, nil)
 		}
 	}
 }
@@ -128,7 +128,7 @@ func (c *consumer) ConsumeGroup(groupId string, topics []string, handler Consume
 				}
 
 			default:
-				err := cg.Consume(ctx, topics, group{id: groupId, handler: handler})
+				err := cg.Consume(ctx, topics, group{id: groupId, handler: handler, config: c.conf})
 				if err != nil && !errors.Is(err, sarama.ErrClosedConsumerGroup) {
 					l.Error(err)
 				}

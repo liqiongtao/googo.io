@@ -14,6 +14,14 @@ type ConsumerHandler func(msg *ConsumerMessage, consumerErr *ConsumerError) erro
 
 type ConsumerMessage struct {
 	*sarama.ConsumerMessage
+	GroupSession sarama.ConsumerGroupSession
+}
+
+func (msg ConsumerMessage) Commit() {
+	if msg.GroupSession == nil {
+		return
+	}
+	msg.GroupSession.MarkMessage(msg.ConsumerMessage, "")
 }
 
 type ConsumerError struct {
