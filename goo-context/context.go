@@ -2,23 +2,59 @@ package goo_context
 
 import (
 	"context"
+	"encoding/json"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	"os"
 	"os/signal"
 	"syscall"
 )
 
-var (
-	__signal chan os.Signal
-	__ctx    context.Context
-	__cancel context.CancelFunc
-)
+type Context struct {
+	context.Context
+	Log *goo_log.Entry
+	v   map[string]any
+}
 
-func init() {
-	__signal = make(chan os.Signal)
-	__ctx, __cancel = context.WithCancel(context.TODO())
+func (ctx *Context) WithValue(key string, value any) *Context {
+	if ctx.v == nil {
+		ctx.v = map[string]any{}
+	}
+	ctx.v[key] = value
+	return ctx
+}
 
-	signal.Notify(__signal, syscall.SIGHUP, syscall.SIGUSR1, syscall.SIGUSR2,
+func (ctx *Context) Value(key string) any {
+	if ctx.v == nil {
+		ctx.v = map[string]any{}
+	}
+	if v, ok := ctx.v[key]; ok {
+		return v
+	}
+	return nil
+}
+
+func (ctx *Context) Values() map[string]any {
+	if ctx.v == nil {
+		ctx.v = map[string]any{}
+	}
+	return ctx.v
+}
+
+func (ctx *Context) Json() []byte {
+	v := ctx.Values()
+	b, _ := json.Marshal(&v)
+	return b
+}
+
+func (ctx *Context) String() string {
+	return string(ctx.Json())
+}
+
+func WithCancel() *Context {
+	sig := make(chan os.Signal)
+	ctx, cancel := context.WithCancel(context.TODO())
+
+	signal.Notify(sig, syscall.SIGHUP, syscall.SIGUSR1, syscall.SIGUSR2,
 		syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT, syscall.SIGKILL)
 
 	go func() {
@@ -28,7 +64,7 @@ func init() {
 			}
 		}()
 
-		for ch := range __signal {
+		for ch := range sig {
 			switch ch {
 			case syscall.SIGUSR1: // kill -USR1
 
@@ -37,12 +73,17 @@ func init() {
 			case syscall.SIGHUP: // kill -1
 
 			case syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT, syscall.SIGKILL: // kill -9 or ctrl+c
-				__cancel()
+				cancel()
 			}
 		}
 	}()
+
+	return &Context{Context: ctx}
 }
 
-func Cancel() context.Context {
-	return __ctx
+func WithLog(ctx *Context) *Context {
+	if ctx.Log == nil {
+		ctx.Log = goo_log.WithTag("goo-log")
+	}
+	return ctx
 }
