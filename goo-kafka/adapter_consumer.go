@@ -110,7 +110,16 @@ func (c *consumer) ConsumeGroup(groupId string, topics []string, handler Consume
 		l.Error(err)
 		return
 	}
-	defer cg.Close()
+	defer func() {
+		if c.client != nil {
+			c.client.Close()
+			l.Debug("client 退出")
+		}
+	}()
+	defer func() {
+		cg.Close()
+		l.Debug("consumer-group 退出")
+	}()
 
 	var (
 		done = make(chan struct{})
