@@ -23,7 +23,7 @@ type Client struct {
 }
 
 func New(conf Config) (cli *Client, err error) {
-	cli = &Client{ctx: goo_context.Cancel(), conf: conf}
+	cli = &Client{ctx: goo_context.WithCancel().Context, conf: conf}
 
 	cfg := clientv3.Config{
 		Endpoints:   conf.Endpoints,

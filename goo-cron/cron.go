@@ -24,7 +24,7 @@ func Default() *crontab {
 func (c *crontab) Run() {
 	c.c.Start()
 
-	<-goo_context.Cancel().Done()
+	<-goo_context.WithCancel().Done()
 	goo_log.WithTag("goo-cron").Debug("系统退出，等待全部任务执行结束...")
 
 	<-c.c.Stop().Done()
@@ -40,14 +40,14 @@ func (c *crontab) Start() {
 func (c *crontab) Stop() context.Context {
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
-		<-goo_context.Cancel().Done()
+		<-goo_context.WithCancel().Done()
 		goo_log.WithTag("goo-cron").Debug("系统退出，等待全部任务执行结束...")
 
 		<-c.c.Stop().Done()
 		goo_log.WithTag("goo-cron").Debug("系统退出成功，全部任务执行结束")
 
 		time.Sleep(time.Second)
-		
+
 		cancel()
 	}()
 	return ctx

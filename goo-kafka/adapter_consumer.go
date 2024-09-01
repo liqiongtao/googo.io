@@ -80,7 +80,7 @@ func (c *consumer) Consume(topic string, handler ConsumerHandler) {
 
 	for {
 		select {
-		case <-goo_context.Cancel().Done():
+		case <-goo_context.WithCancel().Done():
 			l.Debug("Context被取消,停止消费")
 			return
 
@@ -141,7 +141,7 @@ func (c *consumer) ConsumeGroup(groupId string, topics []string, handler Consume
 	})
 
 	select {
-	case <-goo_context.Cancel().Done():
+	case <-goo_context.WithCancel().Done():
 		flag = true
 		cancel()
 	}

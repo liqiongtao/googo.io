@@ -2,7 +2,7 @@
 
 ```
 func main() {
-	goo_db.Init(goo_context.Cancel(), goo_db.Config{
+	goo_db.Init(goo_context.WithCancel(), goo_db.Config{
 		Name:   "",
 		Driver: "mysql",
 		Master:      "root:123456@tcp(192.168.1.100:3306)/ttxian",
@@ -29,7 +29,7 @@ func main() {
 	wg.Add(1)
 	goo_utils.AsyncFunc(func() {
 		defer wg.Done()
-		<-goo_context.Cancel().Done()
+		<-goo_context.WithCancel().Done()
 	})
 	wg.Wait()
 }
@@ -39,7 +39,7 @@ func main() {
 
 ```
 func main() {
-	goo_redis.Init(goo_context.Cancel(), goo_redis.Config{
+	goo_redis.Init(goo_context.WithCancel(), goo_redis.Config{
 		Name:     "",
 		Addr:     "192.168.1.100:6379",
 		Password: "123456",
@@ -60,7 +60,7 @@ func main() {
 	wg.Add(1)
 	goo_utils.AsyncFunc(func() {
 		defer wg.Done()
-		<-goo_context.Cancel().Done()
+		<-goo_context.WithCancel().Done()
 	})
 	wg.Wait()
 }
