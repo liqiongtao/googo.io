@@ -1,9 +1,11 @@
 package goo_utils
 
 import (
+	"context"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	"runtime"
 	"sync"
+	"time"
 )
 
 // 捕获panic
@@ -19,6 +21,22 @@ func AsyncFunc(fn func()) {
 		defer Recovery()
 		fn()
 	}()
+}
+
+// 异步执行（安全）
+func AsyncFuncWithTimeout(fn func(), d time.Duration) {
+	ctx, cancel := context.WithCancel(context.TODO())
+
+	go func() {
+		defer Recovery()
+		defer func() { cancel() }()
+		fn()
+	}()
+
+	select {
+	case <-ctx.Done():
+	case <-time.Tick(d):
+	}
 }
 
 // 异步并发执行（安全）
