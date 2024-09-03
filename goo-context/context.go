@@ -81,9 +81,8 @@ func WithCancel() *Context {
 	return &Context{Context: ctx}
 }
 
-func WithLog(ctx *Context) *Context {
-	if ctx.Log == nil {
-		ctx.Log = goo_log.WithTag("goo-log")
+func WithLog() *Context {
+	return &Context{
+		Log: goo_log.Default().WithTag(),
 	}
-	return ctx
 }

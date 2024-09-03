@@ -18,7 +18,7 @@ func TestWithCancel(t *testing.T) {
 }
 
 func TestWithValue(t *testing.T) {
-	ctx := WithLog(&Context{})
+	ctx := WithLog()
 	ctx.WithValue("name", "hantao")
 	ctx.WithValue("addr", "beijing")
 	ctx.Log.Debug(ctx.Values())
@@ -26,11 +26,11 @@ func TestWithValue(t *testing.T) {
 }
 
 func TestWithLog(t *testing.T) {
-	ctx := WithLog(&Context{})
+	ctx := WithLog()
 	debug(ctx)
 	error(ctx)
 
-	ctx2 := WithLog(&Context{})
+	ctx2 := WithLog()
 	debug(ctx2)
 	error(ctx2)
 }
