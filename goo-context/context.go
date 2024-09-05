@@ -86,3 +86,7 @@ func WithLog() *Context {
 		Log: goo_log.Default().WithTag(),
 	}
 }
+
+func Default() *Context {
+	return &Context{}
+}
