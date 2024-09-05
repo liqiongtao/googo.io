@@ -6,7 +6,7 @@ import (
 	"io"
 )
 
-var __oss *uploader
+var __oss *Uploader
 
 func Init(conf Config) {
 	__oss, _ = New(conf)
@@ -24,11 +24,11 @@ func Bucket() *oss.Bucket {
 	return bucket
 }
 
-func ContentType(value string) *uploader {
+func ContentType(value string) *Uploader {
 	return __oss.ContentType(value)
 }
 
-func Options(opts ...oss.Option) *uploader {
+func Options(opts ...oss.Option) *Uploader {
 	return __oss.Options(opts...)
 }
 

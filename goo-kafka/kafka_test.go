@@ -1,6 +1,7 @@
 package goo_kafka
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -13,36 +14,34 @@ var (
 
 func TestProducer(t *testing.T) {
 	Init(Config{
-		User:     "",
-		Password: "",
-		Addrs:    []string{"127.0.0.1:9002"},
+		User:     "admin",
+		Password: "7fdacd2183ab",
+		Addrs:    []string{"kafka.in:20092"},
 	})
 
 	//for i := 0; i < 8; i++ {
 	//	Producer().SendMessage(topic, []byte(fmt.Sprintf("1-%d", i)))
 	//}
 
-	Producer().SendMessage(topic, []byte("2-2"))
+	Producer().SendMessage(topic, []byte("3"))
 }
 
 func TestConsumer(t *testing.T) {
 	Init(Config{
-		User:              "",
-		Password:          "",
-		Addrs:             []string{"127.0.0.1:9002"},
-		HeartbeatInterval: 1,
-		SessionTimeout:    10,
-		RebalanceTimeout:  5,
+		User:              "admin",
+		Password:          "7fdacd2183ab",
+		Addrs:             []string{"kafka.in:20092"},
+		HeartbeatInterval: 10,
+		SessionTimeout:    30,
+		RebalanceTimeout:  45,
 	})
 
 	Consumer().ConsumeGroup(groupId, []string{topic}, func(msg *ConsumerMessage, consumerErr *ConsumerError) error {
-		fmt.Println(time.Now().Format("15:04:05"), string(msg.Value), msg.Timestamp, msg.BlockTimestamp)
-
-		time.Sleep(60 * time.Second)
+		fmt.Println(time.Now().Format("15:04:05"), string(msg.Value))
 
 		switch string(msg.Value) {
-		case "1-1", "1-4", "1-7", "1-8", "1-5":
-			msg.Commit()
+		case "1":
+			return errors.New("异常")
 		}
 
 		return nil
@@ -51,12 +50,12 @@ func TestConsumer(t *testing.T) {
 
 func TestConsumer2(t *testing.T) {
 	Init(Config{
-		User:              "",
-		Password:          "",
-		Addrs:             []string{"127.0.0.1:9002"},
-		HeartbeatInterval: 1,
-		SessionTimeout:    12,
-		RebalanceTimeout:  15,
+		User:              "admin",
+		Password:          "7fdacd2183ab",
+		Addrs:             []string{"kafka.in:20092"},
+		HeartbeatInterval: 10,
+		SessionTimeout:    30,
+		RebalanceTimeout:  45,
 	})
 
 	Consumer().ConsumeGroup(groupId, []string{topic}, func(msg *ConsumerMessage, consumerErr *ConsumerError) error {
@@ -76,12 +75,12 @@ func TestConsumer2(t *testing.T) {
 
 func TestConsumer3(t *testing.T) {
 	Init(Config{
-		User:              "",
-		Password:          "",
-		Addrs:             []string{"127.0.0.1:9002"},
-		HeartbeatInterval: 1,
-		SessionTimeout:    15,
-		RebalanceTimeout:  15,
+		User:              "admin",
+		Password:          "7fdacd2183ab",
+		Addrs:             []string{"kafka.in:20092"},
+		HeartbeatInterval: 10,
+		SessionTimeout:    30,
+		RebalanceTimeout:  45,
 	})
 
 	Consumer().ConsumeGroup(groupId, []string{topic}, func(msg *ConsumerMessage, consumerErr *ConsumerError) error {
