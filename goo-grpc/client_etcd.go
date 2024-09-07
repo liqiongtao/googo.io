@@ -11,13 +11,13 @@ import (
 	"time"
 )
 
-func DialWithEtcd(serviceName string, cli *goo_etcd.Client) (*grpc.ClientConn, error) {
+func DialWithEtcd(serviceName string, cli *goo_etcd.Client, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
 	builder, err := resolver.NewBuilder(cli.Client)
 	if err != nil {
 		return nil, err
 	}
 
-	opts := []grpc.DialOption{
+	opts = append(opts,
 		grpc.WithInsecure(),
 		grpc.WithResolvers(builder),
 		grpc.WithDefaultServiceConfig(fmt.Sprintf(`{"LoadBalancingPolicy": "%s"}`, roundrobin.Name)),
@@ -29,19 +29,18 @@ func DialWithEtcd(serviceName string, cli *goo_etcd.Client) (*grpc.ClientConn, e
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(MaxRecvMsgSize), grpc.MaxCallSendMsgSize(MaxSendMsgSize)),
 		grpc.WithChainUnaryInterceptor(clientUnaryInterceptorLog()),
 		grpc.WithChainStreamInterceptor(clientStreamInterceptorLog()),
-	}
+	)
 
 	return grpc.Dial(builder.Scheme()+":///"+serviceName, opts...)
 }
 
-func DialContextWithEtcd(ctx context.Context, serviceName string, cli *goo_etcd.Client) (*grpc.ClientConn, error) {
+func DialContextWithEtcd(ctx context.Context, serviceName string, cli *goo_etcd.Client, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
 	builder, err := resolver.NewBuilder(cli.Client)
 	if err != nil {
 		return nil, err
 	}
 
-	opts := []grpc.DialOption{
-		grpc.WithInsecure(),
+	opts = append(opts, grpc.WithInsecure(),
 		grpc.WithResolvers(builder),
 		grpc.WithDefaultServiceConfig(fmt.Sprintf(`{"LoadBalancingPolicy": "%s"}`, roundrobin.Name)),
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
@@ -52,7 +51,7 @@ func DialContextWithEtcd(ctx context.Context, serviceName string, cli *goo_etcd.
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(MaxRecvMsgSize), grpc.MaxCallSendMsgSize(MaxSendMsgSize)),
 		grpc.WithChainUnaryInterceptor(clientUnaryInterceptorLog()),
 		grpc.WithChainStreamInterceptor(clientStreamInterceptorLog()),
-	}
+	)
 
 	return grpc.DialContext(ctx, builder.Scheme()+":///"+serviceName, opts...)
 }
