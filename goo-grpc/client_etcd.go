@@ -17,18 +17,21 @@ func DialWithEtcd(serviceName string, cli *goo_etcd.Client, opts ...grpc.DialOpt
 		return nil, err
 	}
 
-	opts = append(opts,
-		grpc.WithInsecure(),
-		grpc.WithResolvers(builder),
-		grpc.WithDefaultServiceConfig(fmt.Sprintf(`{"LoadBalancingPolicy": "%s"}`, roundrobin.Name)),
-		grpc.WithKeepaliveParams(keepalive.ClientParameters{
-			Time:                10 * time.Second,
-			Timeout:             100 * time.Millisecond,
-			PermitWithoutStream: true,
-		}),
-		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(MaxRecvMsgSize), grpc.MaxCallSendMsgSize(MaxSendMsgSize)),
-		grpc.WithChainUnaryInterceptor(clientUnaryInterceptorLog()),
-		grpc.WithChainStreamInterceptor(clientStreamInterceptorLog()),
+	opts = append(
+		[]grpc.DialOption{
+			grpc.WithInsecure(),
+			grpc.WithResolvers(builder),
+			grpc.WithDefaultServiceConfig(fmt.Sprintf(`{"LoadBalancingPolicy": "%s"}`, roundrobin.Name)),
+			grpc.WithKeepaliveParams(keepalive.ClientParameters{
+				Time:                10 * time.Second,
+				Timeout:             100 * time.Millisecond,
+				PermitWithoutStream: true,
+			}),
+			grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(MaxRecvMsgSize), grpc.MaxCallSendMsgSize(MaxSendMsgSize)),
+			grpc.WithChainUnaryInterceptor(clientUnaryInterceptorLog()),
+			grpc.WithChainStreamInterceptor(clientStreamInterceptorLog()),
+		},
+		opts...,
 	)
 
 	return grpc.Dial(builder.Scheme()+":///"+serviceName, opts...)
@@ -40,17 +43,21 @@ func DialContextWithEtcd(ctx context.Context, serviceName string, cli *goo_etcd.
 		return nil, err
 	}
 
-	opts = append(opts, grpc.WithInsecure(),
-		grpc.WithResolvers(builder),
-		grpc.WithDefaultServiceConfig(fmt.Sprintf(`{"LoadBalancingPolicy": "%s"}`, roundrobin.Name)),
-		grpc.WithKeepaliveParams(keepalive.ClientParameters{
-			Time:                10 * time.Second,
-			Timeout:             100 * time.Millisecond,
-			PermitWithoutStream: true,
-		}),
-		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(MaxRecvMsgSize), grpc.MaxCallSendMsgSize(MaxSendMsgSize)),
-		grpc.WithChainUnaryInterceptor(clientUnaryInterceptorLog()),
-		grpc.WithChainStreamInterceptor(clientStreamInterceptorLog()),
+	opts = append(
+		[]grpc.DialOption{
+			grpc.WithInsecure(),
+			grpc.WithResolvers(builder),
+			grpc.WithDefaultServiceConfig(fmt.Sprintf(`{"LoadBalancingPolicy": "%s"}`, roundrobin.Name)),
+			grpc.WithKeepaliveParams(keepalive.ClientParameters{
+				Time:                10 * time.Second,
+				Timeout:             100 * time.Millisecond,
+				PermitWithoutStream: true,
+			}),
+			grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(MaxRecvMsgSize), grpc.MaxCallSendMsgSize(MaxSendMsgSize)),
+			grpc.WithChainUnaryInterceptor(clientUnaryInterceptorLog()),
+			grpc.WithChainStreamInterceptor(clientStreamInterceptorLog()),
+		},
+		opts...,
 	)
 
 	return grpc.DialContext(ctx, builder.Scheme()+":///"+serviceName, opts...)

@@ -8,7 +8,7 @@ import (
 )
 
 func Dial(addr string, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
-	opts = append(opts,
+	opts = append([]grpc.DialOption{
 		grpc.WithInsecure(),
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
 			Time:                10 * time.Second,
@@ -18,12 +18,12 @@ func Dial(addr string, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(MaxRecvMsgSize), grpc.MaxCallSendMsgSize(MaxSendMsgSize)),
 		grpc.WithChainUnaryInterceptor(clientUnaryInterceptorLog()),
 		grpc.WithChainStreamInterceptor(clientStreamInterceptorLog()),
-	)
+	}, opts...)
 	return grpc.Dial(addr, opts...)
 }
 
 func DialContext(ctx context.Context, addr string, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
-	opts = append(opts,
+	opts = append([]grpc.DialOption{
 		grpc.WithInsecure(),
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
 			Time:                10 * time.Second,
@@ -33,6 +33,6 @@ func DialContext(ctx context.Context, addr string, opts ...grpc.DialOption) (*gr
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(MaxRecvMsgSize), grpc.MaxCallSendMsgSize(MaxSendMsgSize)),
 		grpc.WithChainUnaryInterceptor(clientUnaryInterceptorLog()),
 		grpc.WithChainStreamInterceptor(clientStreamInterceptorLog()),
-	)
+	}, opts...)
 	return grpc.DialContext(ctx, addr, opts...)
 }
