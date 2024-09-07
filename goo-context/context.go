@@ -15,6 +15,16 @@ type Context struct {
 	v   map[string]any
 }
 
+func (ctx *Context) WithLog() *Context {
+	ctx.Log = goo_log.Default().WithTag()
+	return ctx
+}
+
+func (ctx *Context) WithParent(parent context.Context) *Context {
+	ctx.Context = parent
+	return ctx
+}
+
 func (ctx *Context) WithValue(key string, value any) *Context {
 	if ctx.v == nil {
 		ctx.v = map[string]any{}
@@ -78,13 +88,15 @@ func WithCancel() *Context {
 		}
 	}()
 
-	return &Context{Context: ctx}
+	return WithParent(ctx)
 }
 
 func WithLog() *Context {
-	return &Context{
-		Log: goo_log.Default().WithTag(),
-	}
+	return Default().WithLog()
+}
+
+func WithParent(parent context.Context) *Context {
+	return Default().WithParent(parent)
 }
 
 func Default() *Context {

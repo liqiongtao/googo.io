@@ -29,52 +29,52 @@ func clientStreamInterceptorLog() grpc.StreamClientInterceptor {
 // 服务端 - 单向拦截器 - 日志
 func serverUnaryInterceptorLog() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
-		l := goo_log.WithTag("goo-grpc").
-			WithField("method", info.FullMethod)
+		log := goo_log.WithTag("goo-grpc").WithField("method", info.FullMethod)
+		ctx = context.WithValue(ctx, "log", log)
 
 		if v, ok := req.(*pb_goo_v1.Request); ok {
 			var vv interface{}
 			if err = json.Unmarshal(v.Data, &vv); err == nil {
-				l.WithField("request", vv)
+				log.WithField("request", vv)
 			} else {
-				l.WithField("request", req)
+				log.WithField("request", req)
 			}
 		} else {
-			l.WithField("request", req)
+			log.WithField("request", req)
 		}
 
 		if md, ok := metadata.FromIncomingContext(ctx); ok {
-			l.WithField("metadata", md)
+			log.WithField("metadata", md)
 		}
 
 		var startTime = time.Now()
 
 		defer func() {
-			l.WithField("duration", fmt.Sprintf("%dms", time.Since(startTime)/1e6))
+			log.WithField("duration", fmt.Sprintf("%dms", time.Since(startTime)/1e6))
 
 			if rst, ok := resp.(*pb_goo_v1.Response); ok && rst != nil {
 				var v interface{}
-				if err := json.Unmarshal(rst.Data, &v); err != nil {
-					l.WithField("response", map[string]interface{}{
+				if err = json.Unmarshal(rst.Data, &v); err != nil {
+					log.WithField("response", map[string]interface{}{
 						"code":    rst.Code,
 						"message": rst.Message,
 						"data":    v,
 					})
 				}
 			} else {
-				l.WithField("response", resp)
+				log.WithField("response", resp)
 			}
 
 			if err == nil {
-				l.Debug()
+				log.Debug()
 				return
 			}
 
 			if s, _ := status.FromError(err); s != nil {
-				l.WithField("response", s.Proto())
+				log.WithField("response", s.Proto())
 			}
 
-			l.Error()
+			log.Error()
 		}()
 
 		resp, err = handler(ctx, req)
@@ -85,23 +85,22 @@ func serverUnaryInterceptorLog() grpc.UnaryServerInterceptor {
 // 服务端 - 流式拦截器 - 日志
 func serverStreamInterceptorLog() grpc.StreamServerInterceptor {
 	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) (err error) {
-		l := goo_log.WithTag("goo-grpc").
-			WithField("method", info.FullMethod)
+		log := goo_log.WithTag("goo-grpc").WithField("method", info.FullMethod)
 
 		if md, ok := metadata.FromIncomingContext(ss.Context()); ok {
-			l.WithField("metadata", md)
+			log.WithField("metadata", md)
 		}
 
 		var startTime = time.Now()
 
 		defer func() {
-			l.WithField("duration", fmt.Sprintf("%dms", time.Since(startTime)/1e6))
+			log.WithField("duration", fmt.Sprintf("%dms", time.Since(startTime)/1e6))
 
 			if err != nil {
-				l.Error(err)
+				log.Error(err)
 				return
 			}
-			l.Debug()
+			log.Debug()
 		}()
 
 		err = handler(srv, ss)
