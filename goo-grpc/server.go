@@ -28,26 +28,28 @@ type Server struct {
 	pprof *PProf
 }
 
+var defaultServerOptions serverOptions
+
 func New(conf Config, opt ...ServerOption) *Server {
-	opts := defaultServerOptions
+	defaultServerOptions := newDefaultServerOptions(conf)
 	for _, o := range opt {
-		o.apply(&opts)
+		o.apply(&defaultServerOptions)
 	}
 
-	serverOptions := append(opts.ServerOptions, []grpc.ServerOption{
+	serverOptions := append(defaultServerOptions.ServerOptions, []grpc.ServerOption{
 		grpc.MaxRecvMsgSize(MaxRecvMsgSize),
 		grpc.MaxSendMsgSize(MaxSendMsgSize),
 		// 单向拦截 - 链式
 		grpc.ChainUnaryInterceptor(
 			serverUnaryInterceptorLog(),
 			serverUnaryInterceptorRecovery(),
-			serverUnaryInterceptorAuth(opts.AuthFunc),
+			serverUnaryInterceptorAuth(defaultServerOptions.AuthFunc),
 		),
 		// 流式拦截 - 链式
 		grpc.ChainStreamInterceptor(
 			serverStreamInterceptorLog(),
 			serverStreamInterceptorRecovery(),
-			serverStreamInterceptorAuth(opts.AuthFunc),
+			serverStreamInterceptorAuth(defaultServerOptions.AuthFunc),
 		),
 		// todo:: 服务未找到
 		//grpc.UnknownServiceHandler(func(srv interface{}, stream grpc.ServerStream) error {
