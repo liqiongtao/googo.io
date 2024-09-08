@@ -22,7 +22,7 @@ func newDefaultServerOptions(cfg Config) serverOptions {
 		// 服务端在设定的时间范围内未收到客户端任何活动，例如stream在时间内未收到数据信息，则会发送ping 信息检查链接是否可用；
 		// 及时发现及时重试；
 		// 当设置值小于1秒时，会被强制设置成1秒
-		Time: 5 * time.Second,
+		Time: 5 * time.Minute,
 		// 服务端发送ping请求后，等待配置的时间，若客户端在这个时间内未有任何响应则将该链接关闭回收
 		// 默认是20秒
 		Timeout: 20 * time.Second,
@@ -38,7 +38,7 @@ func newDefaultServerOptions(cfg Config) serverOptions {
 		// MinTime 是客户端在发送 keepalive ping 之前应等待的最短时间；
 		// 即两个keepalive ping 之间的最小间隔，若小于这个间隔，则会关闭与客户端的链接
 		// 默认是5分钟
-		MinTime: 60 * time.Second,
+		MinTime: 5 * time.Minute,
 		// 没有 active stream, 也允许 ping
 		// 如果为 false，并且客户端在没有活动流时发送 ping，服务器将发送 GoAway 并关闭连接
 		PermitWithoutStream: true,

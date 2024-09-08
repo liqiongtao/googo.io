@@ -11,8 +11,8 @@ func Dial(addr string, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
 	opts = append([]grpc.DialOption{
 		grpc.WithInsecure(),
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
-			Time:                10 * time.Second,
-			Timeout:             100 * time.Millisecond,
+			Time:                5 * time.Minute,
+			Timeout:             20 * time.Second,
 			PermitWithoutStream: true,
 		}),
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(MaxRecvMsgSize), grpc.MaxCallSendMsgSize(MaxSendMsgSize)),
@@ -26,8 +26,8 @@ func DialContext(ctx context.Context, addr string, opts ...grpc.DialOption) (*gr
 	opts = append([]grpc.DialOption{
 		grpc.WithInsecure(),
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
-			Time:                10 * time.Second,
-			Timeout:             100 * time.Millisecond,
+			Time:                5 * time.Minute,
+			Timeout:             20 * time.Second,
 			PermitWithoutStream: true,
 		}),
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(MaxRecvMsgSize), grpc.MaxCallSendMsgSize(MaxSendMsgSize)),
