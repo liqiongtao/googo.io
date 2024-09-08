@@ -21,5 +21,5 @@ func main() {
 	fmt.Println(time.Now().Format("15:04:05"))
 
 	rsp, err := cli.GetName(context.TODO(), &pb_grpc_v1.GetName_Request{})
-	fmt.Println(rsp, err)
+	fmt.Println(time.Now().Format("15:04:05"), rsp, err)
 }

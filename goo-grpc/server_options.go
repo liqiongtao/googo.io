@@ -12,13 +12,13 @@ func newDefaultServerOptions(cfg Config) serverOptions {
 		// 最大空闲链接时间，即空闲链接在配置的时间内，未收到新的心跳和请求，则会将链接关闭，比向客户端发送一个GoAway；
 		// 空闲链接的定义：最近未完成的RPC数变为0 的时间，或链接建立以来；
 		// 默认是无穷
-		MaxConnectionIdle: 5 * time.Minute,
+		MaxConnectionIdle: 10 * time.Minute,
 		// 最长链接时间，当stream超过这个时间会发一个GoAway；为了防止短时间内发送大量的GoAway 会根据 MaxConnectionAge 时间间隔随机+/- 10%
 		// 默认是无穷
-		MaxConnectionAge: 60 * time.Second,
+		MaxConnectionAge: 45 * time.Minute,
 		// 是对MaxConnectionAge 的一个补充，超过了最长链接时间后延长的时间
 		// 默认是无穷
-		MaxConnectionAgeGrace: 60 * time.Second,
+		MaxConnectionAgeGrace: 5 * time.Minute,
 		// 服务端在设定的时间范围内未收到客户端任何活动，例如stream在时间内未收到数据信息，则会发送ping 信息检查链接是否可用；
 		// 及时发现及时重试；
 		// 当设置值小于1秒时，会被强制设置成1秒
@@ -26,6 +26,15 @@ func newDefaultServerOptions(cfg Config) serverOptions {
 		// 服务端发送ping请求后，等待配置的时间，若客户端在这个时间内未有任何响应则将该链接关闭回收
 		// 默认是20秒
 		Timeout: 20 * time.Second,
+	}
+	if cfg.MaxConnectionIdle > 0 {
+		keepaliveParams.MaxConnectionIdle = cfg.MaxConnectionIdle
+	}
+	if cfg.MaxConnectionAge > 0 {
+		keepaliveParams.MaxConnectionAge = cfg.MaxConnectionAge
+	}
+	if cfg.MaxConnectionAgeGrace > 0 {
+		keepaliveParams.MaxConnectionAgeGrace = cfg.MaxConnectionAgeGrace
 	}
 	if cfg.KeepaliveTime > 0 {
 		keepaliveParams.Time = cfg.KeepaliveTime

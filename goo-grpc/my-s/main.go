@@ -17,6 +17,7 @@ func main() {
 
 	pb_grpc_v1.RegisterGetterServer(s.Server, Server{})
 
+	// 启动
 	s.Serve()
 }
 
