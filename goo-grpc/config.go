@@ -12,10 +12,10 @@ type Config struct {
 	// 监听地址
 	Addr string `json:"addr" yaml:"addr"`
 
-	// 超时时间
+	// 超时时间(单位秒)
 	KeepaliveTime    time.Duration `json:"keepalive_time" yaml:"keepalive_time"`
 	KeepaliveTimeout time.Duration `json:"keepalive_timeout" yaml:"keepalive_timeout"`
 
-	// ping包最短等待时间
+	// ping包最短等待时间(单位秒)
 	EnforcementPolicyMinTime time.Duration `json:"enforcement_policy_min_time" yaml:"enforcement_policy_min_time"`
 }

@@ -28,10 +28,10 @@ func newDefaultServerOptions(cfg Config) serverOptions {
 		Timeout: 20 * time.Second,
 	}
 	if cfg.KeepaliveTime > 0 {
-		keepaliveParams.Time = cfg.KeepaliveTime
+		keepaliveParams.Time = cfg.KeepaliveTime * time.Second
 	}
 	if cfg.KeepaliveTimeout > 0 {
-		keepaliveParams.Timeout = cfg.KeepaliveTimeout
+		keepaliveParams.Timeout = cfg.KeepaliveTimeout * time.Second
 	}
 
 	enforcementPolicy := keepalive.EnforcementPolicy{
@@ -44,7 +44,7 @@ func newDefaultServerOptions(cfg Config) serverOptions {
 		PermitWithoutStream: true,
 	}
 	if cfg.EnforcementPolicyMinTime > 0 {
-		enforcementPolicy.MinTime = cfg.EnforcementPolicyMinTime
+		enforcementPolicy.MinTime = cfg.EnforcementPolicyMinTime * time.Second
 	}
 
 	return serverOptions{
