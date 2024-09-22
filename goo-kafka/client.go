@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/IBM/sarama"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goo_redis "github.com/liqiongtao/googo.io/goo-redis"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	"os"
 	"strconv"
@@ -13,9 +14,10 @@ import (
 type client struct {
 	conf Config
 	sarama.Client
+	redis *goo_redis.Client
 }
 
-func (c client) init() (err error) {
+func (c *client) init() (err error) {
 	id := strconv.Itoa(os.Getpid())
 	config := sarama.NewConfig()
 
@@ -84,4 +86,8 @@ func (c *client) Close() {
 
 func (c *client) GetKey(topic, msg string) string {
 	return fmt.Sprintf("goo:mq:%s:%s", time.Now().Format("20060102"), goo_utils.MD5([]byte(topic+msg)))
+}
+
+func (c *client) Redis() *goo_redis.Client {
+	return c.redis
 }

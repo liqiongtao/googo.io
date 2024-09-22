@@ -56,15 +56,14 @@ func (p *producer) SendMessage(topic string, message []byte) (partition int32, o
 		WithField("msg", string(message))
 
 	// 添加缓存
-	if redis := p.client.conf.Redis; redis != nil {
+	if p.redis != nil {
 		if p.focus {
-			redis.Del(key)
+			p.redis.Del(key)
 		}
-		if redis.Exists(key).Val() > 0 {
+		if p.redis.Exists(key).Val() > 0 {
 			log.Debug("消息发送失败，Key已存在")
 			return
 		}
-		redis.Set(key, time.Now().Format("2006-01-02 15:04:05"), time.Hour)
 	}
 
 	var producer sarama.SyncProducer
@@ -96,15 +95,15 @@ func (p *producer) SendAsyncMessage(topic string, message []byte, cb MessageHand
 		WithField("msg", string(message))
 
 	// 添加缓存
-	if redis := p.client.conf.Redis; redis != nil {
+	if p.redis != nil {
 		if p.focus {
-			redis.Del(key)
+			p.redis.Del(key)
 		}
-		if redis.Exists(key).Val() > 0 {
+		if p.redis.Exists(key).Val() > 0 {
 			log.Debug("消息发送失败，Key已存在")
 			return
 		}
-		redis.Set(key, time.Now().Format("2006-01-02 15:04:05"), time.Hour)
+		p.redis.Set(key, time.Now().Format("2006-01-02 15:04:05"), time.Hour)
 	}
 
 	var producer sarama.AsyncProducer

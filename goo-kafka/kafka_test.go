@@ -23,12 +23,14 @@ func TestProducer(t *testing.T) {
 		User:     "admin",
 		Password: "",
 		Addrs:    []string{"kafka.in:20092"},
-		Redis:    redis,
-	})
+	}, RedisOption(redis))
 
-	for i := 0; i < 20; i++ {
-		go Producer().WithKey("test:5").SendMessage(topic, []byte(fmt.Sprintf("%d", i)))
-	}
+	//for i := 0; i < 20; i++ {
+	//	go Producer().WithKey("test:5").SendMessage(topic, []byte(fmt.Sprintf("%d", i)))
+	//}
+
+	Producer(FocusOption()).SendMessage(topic, []byte("100"))
+	//Producer(FocusOption()).WithKey("test:1").SendMessage(topic, []byte("100"))
 
 	time.Sleep(3 * time.Second)
 }
@@ -47,8 +49,7 @@ func TestConsumer(t *testing.T) {
 		HeartbeatInterval: 10,
 		SessionTimeout:    30,
 		RebalanceTimeout:  45,
-		Redis:             redis,
-	})
+	}, RedisOption(redis))
 
 	Consumer().ConsumeGroup(groupId, []string{topic}, func(msg *ConsumerMessage, consumerErr *ConsumerError) error {
 		fmt.Println(time.Now().Format("15:04:05"), string(msg.Value))

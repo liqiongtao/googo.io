@@ -58,16 +58,16 @@ func (c *consumer) WithOffsetOldest() IConsumer {
 
 // 消费消息，默认处理最新消息
 func (c *consumer) Consume(topic string, handler ConsumerHandler) {
-	l := goo_log.WithTag("goo-kafka-consumer").WithField("topic", topic)
+	log := goo_log.WithTag("goo-kafka-consumer").WithField("topic", topic)
 
 	consumer, err := sarama.NewConsumerFromClient(c.Client())
 	if err != nil {
-		l.Error(err)
+		log.Error(err)
 		return
 	}
 	defer func() {
 		if err := consumer.Close(); err != nil {
-			l.Error(err)
+			log.Error(err)
 		}
 	}()
 
@@ -77,39 +77,54 @@ func (c *consumer) Consume(topic string, handler ConsumerHandler) {
 
 	pc, err := consumer.ConsumePartition(topic, c.partition, c.offset)
 	if err != nil {
-		l.Error(err)
+		log.Error(err)
 		return
 	}
 	defer func() {
 		if err := pc.Close(); err != nil {
-			l.Error(err)
+			log.Error(err)
 		}
 	}()
 
 	for {
 		select {
 		case <-goo_context.WithCancel().Done():
-			l.Debug("Context被取消,停止消费")
+			log.Debug("Context被取消,停止消费")
 			return
 
 		case err := <-pc.Errors():
 			if err != nil {
-				l.Error(err)
+				log.Error(err)
 			}
 
 		case msg, ok := <-pc.Messages():
 			if !ok {
-				l.Debug("消息通道被关闭,停止消费")
+				log.Debug("消息通道被关闭,停止消费")
 				return
 			}
 
-			// 删除缓存
-			if redis := c.client.conf.Redis; redis != nil {
-				key := string(msg.Key)
-				redis.Del(key)
+			key := string(msg.Key)
+			if key == "" {
+				key = c.GetKey(topic, string(msg.Value))
+			}
+			log.WithField("key", key)
+
+			// 建立缓存
+			if c.redis != nil {
+				if c.redis.Exists(key).Val() > 0 {
+					continue
+				}
+				c.redis.Set(key, time.Now().Format("2006-01-02 15:04:05"), time.Hour)
 			}
 
-			handler(&ConsumerMessage{ConsumerMessage: msg}, nil)
+			if err = handler(&ConsumerMessage{ConsumerMessage: msg}, nil); err != nil {
+				log.Error(err)
+			}
+
+			// 删除缓存
+			if c.redis != nil {
+				c.redis.Del(key)
+			}
 		}
 	}
 }
@@ -120,7 +135,7 @@ func (c *consumer) ConsumeGroup(groupId string, topics []string, handler Consume
 		WithField("groupId", groupId).
 		WithField("topics", topics)
 
-	cg, err := sarama.NewConsumerGroupFromClient(groupId, c.Client())
+	cg, err := sarama.NewConsumerGroupFromClient(groupId, c.client.Client)
 	if err != nil {
 		l.Error(err)
 		return
@@ -152,7 +167,7 @@ func (c *consumer) ConsumeGroup(groupId string, topics []string, handler Consume
 				}
 
 			default:
-				err := cg.Consume(ctx, topics, group{id: groupId, handler: handler, config: c.conf})
+				err := cg.Consume(ctx, topics, group{id: groupId, handler: handler, client: c.client})
 				if err != nil && !errors.Is(err, sarama.ErrClosedConsumerGroup) {
 					l.Error(err)
 				}

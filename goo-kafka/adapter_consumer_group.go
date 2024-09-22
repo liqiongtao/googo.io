@@ -4,13 +4,14 @@ import (
 	"fmt"
 	"github.com/IBM/sarama"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	"time"
 )
 
 // 分组
 type group struct {
+	*client
 	id      string
 	handler ConsumerHandler
-	config  Config
 }
 
 func (g group) Setup(sarama.ConsumerGroupSession) error {
@@ -38,7 +39,19 @@ func (g group) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.Co
 			}
 
 			key := string(msg.Key)
+			if key == "" {
+				key = g.GetKey(claim.Topic(), string(msg.Value))
+			}
 			log.WithField("key", key)
+
+			// 建立缓存
+			if g.redis != nil {
+				if g.redis.Exists(key).Val() > 0 {
+					session.MarkMessage(msg, "")
+					continue
+				}
+				g.redis.Set(key, time.Now().Format("2006-01-02 15:04:05"), time.Hour)
+			}
 
 			if err := g.handler(&ConsumerMessage{ConsumerMessage: msg, GroupSession: session}, nil); err != nil {
 				log.Error(err)
@@ -46,10 +59,11 @@ func (g group) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.Co
 			}
 
 			// 删除缓存
-			if redis := g.config.Redis; redis != nil && key != "" {
-				redis.Del(key)
+			if g.redis != nil {
+				g.redis.Del(key)
 			}
 
+			// 提交
 			session.MarkMessage(msg, "")
 		}
 	}
