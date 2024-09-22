@@ -38,7 +38,7 @@ func (p *producer) SendMessage(topic string, message []byte) (partition int32, o
 	p.msg.Topic = topic
 	p.msg.Value = sarama.ByteEncoder(message)
 	if p.msg.Key == nil || p.msg.Key.Length() == 0 {
-		key := fmt.Sprintf("goo:kafka:%s:%s", time.Now().Format("20060102"), goo_utils.MD5([]byte(topic+string(message))))
+		key := fmt.Sprintf("goo:mq:%s:%s", time.Now().Format("20060102"), goo_utils.MD5([]byte(topic+string(message))))
 		p.msg.Key = sarama.StringEncoder(key)
 	}
 
@@ -79,7 +79,7 @@ func (p *producer) SendAsyncMessage(topic string, message []byte, cb MessageHand
 	p.msg.Topic = topic
 	p.msg.Value = sarama.ByteEncoder(message)
 	if p.msg.Key == nil || p.msg.Key.Length() == 0 {
-		key := fmt.Sprintf("goo:kafka:%s:%s", time.Now().Format("20060102"), goo_utils.MD5([]byte(topic+string(message))))
+		key := fmt.Sprintf("goo:mq:%s:%s", time.Now().Format("20060102"), goo_utils.MD5([]byte(topic+string(message))))
 		p.msg.Key = sarama.StringEncoder(key)
 	}
 

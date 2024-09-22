@@ -1,6 +1,7 @@
 package goo_kafka
 
 import (
+	"fmt"
 	"github.com/IBM/sarama"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 )
@@ -29,26 +30,24 @@ func (g group) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.Co
 	for {
 		select {
 		case <-session.Context().Done():
-			log.Debug("关闭会话上下文", session.Context().Err())
-			return nil
+			return fmt.Errorf("关闭会话上下文: %s", session.Context().Err())
 
 		case msg, ok := <-claim.Messages():
+			if !ok {
+				return fmt.Errorf("消费通道关闭: groupId=%s topic=%s partition=%d", g.id, claim.Topic(), claim.Partition())
+			}
+
 			key := string(msg.Key)
 			log.WithField("key", key)
-
-			// 删除缓存
-			if redis := g.config.Redis; redis != nil {
-				redis.Del(key)
-			}
-
-			if !ok {
-				log.Debug("消费通道关闭", msg)
-				return nil
-			}
 
 			if err := g.handler(&ConsumerMessage{ConsumerMessage: msg, GroupSession: session}, nil); err != nil {
 				log.Error(err)
 				continue
+			}
+
+			// 删除缓存
+			if redis := g.config.Redis; redis != nil && key != "" {
+				redis.Del(key)
 			}
 
 			session.MarkMessage(msg, "")
