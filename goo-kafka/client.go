@@ -1,8 +1,10 @@
 package goo_kafka
 
 import (
+	"fmt"
 	"github.com/IBM/sarama"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	"os"
 	"strconv"
 	"time"
@@ -13,14 +15,14 @@ type client struct {
 	sarama.Client
 }
 
-func (cli *client) init() (err error) {
+func (c client) init() (err error) {
 	id := strconv.Itoa(os.Getpid())
 	config := sarama.NewConfig()
 
-	if cli.conf.User != "" {
+	if c.conf.User != "" {
 		config.Net.SASL.Enable = true
-		config.Net.SASL.User = cli.conf.User
-		config.Net.SASL.Password = cli.conf.Password
+		config.Net.SASL.User = c.conf.User
+		config.Net.SASL.Password = c.conf.Password
 	}
 
 	config.ClientID = id
@@ -55,18 +57,18 @@ func (cli *client) init() (err error) {
 	config.Consumer.Group.Session.Timeout = 60 * time.Second
 	// rebalance.timeout = session.timeout * 1.5
 	config.Consumer.Group.Rebalance.Timeout = 90 * time.Second
-	if cli.conf.HeartbeatInterval > 0 {
-		config.Consumer.Group.Heartbeat.Interval = time.Duration(cli.conf.HeartbeatInterval) * time.Second
+	if c.conf.HeartbeatInterval > 0 {
+		config.Consumer.Group.Heartbeat.Interval = time.Duration(c.conf.HeartbeatInterval) * time.Second
 	}
-	if cli.conf.SessionTimeout > 0 {
-		config.Consumer.Group.Session.Timeout = time.Duration(cli.conf.SessionTimeout) * time.Second
+	if c.conf.SessionTimeout > 0 {
+		config.Consumer.Group.Session.Timeout = time.Duration(c.conf.SessionTimeout) * time.Second
 	}
-	if cli.conf.RebalanceTimeout > 0 {
-		config.Consumer.Group.Rebalance.Timeout = time.Duration(cli.conf.RebalanceTimeout) * time.Second
+	if c.conf.RebalanceTimeout > 0 {
+		config.Consumer.Group.Rebalance.Timeout = time.Duration(c.conf.RebalanceTimeout) * time.Second
 	}
 	config.Consumer.Group.InstanceId = id
 
-	cli.Client, err = sarama.NewClient(cli.conf.Addrs, config)
+	c.Client, err = sarama.NewClient(c.conf.Addrs, config)
 	if err != nil {
 		goo_log.WithTag("goo-kafka").Error(err)
 	}
@@ -74,8 +76,12 @@ func (cli *client) init() (err error) {
 	return
 }
 
-func (cli *client) Close() {
-	if !cli.Client.Closed() {
-		cli.Client.Close()
+func (c *client) Close() {
+	if !c.Client.Closed() {
+		c.Client.Close()
 	}
+}
+
+func (c *client) GetKey(topic, msg string) string {
+	return fmt.Sprintf("goo:mq:%s:%s", time.Now().Format("20060102"), goo_utils.MD5([]byte(topic+msg)))
 }

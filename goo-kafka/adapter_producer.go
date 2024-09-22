@@ -1,10 +1,8 @@
 package goo_kafka
 
 import (
-	"fmt"
 	"github.com/IBM/sarama"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	"time"
 )
 
@@ -12,6 +10,14 @@ type producer struct {
 	*client
 	msg   *sarama.ProducerMessage
 	focus bool // 是否强制发送
+}
+
+func (p *producer) init() error {
+	return nil
+}
+
+func (p *producer) Close() {
+	return
 }
 
 func (p *producer) Client() sarama.Client {
@@ -38,8 +44,7 @@ func (p *producer) SendMessage(topic string, message []byte) (partition int32, o
 	p.msg.Topic = topic
 	p.msg.Value = sarama.ByteEncoder(message)
 	if p.msg.Key == nil || p.msg.Key.Length() == 0 {
-		key := fmt.Sprintf("goo:mq:%s:%s", time.Now().Format("20060102"), goo_utils.MD5([]byte(topic+string(message))))
-		p.msg.Key = sarama.StringEncoder(key)
+		p.msg.Key = sarama.StringEncoder(p.GetKey(topic, string(message)))
 	}
 
 	keyByte, _ := p.msg.Key.Encode()
@@ -79,8 +84,7 @@ func (p *producer) SendAsyncMessage(topic string, message []byte, cb MessageHand
 	p.msg.Topic = topic
 	p.msg.Value = sarama.ByteEncoder(message)
 	if p.msg.Key == nil || p.msg.Key.Length() == 0 {
-		key := fmt.Sprintf("goo:mq:%s:%s", time.Now().Format("20060102"), goo_utils.MD5([]byte(topic+string(message))))
-		p.msg.Key = sarama.StringEncoder(key)
+		p.msg.Key = sarama.StringEncoder(p.GetKey(topic, string(message)))
 	}
 
 	keyByte, _ := p.msg.Key.Encode()

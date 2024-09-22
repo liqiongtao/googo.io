@@ -19,6 +19,14 @@ type consumer struct {
 	offset int64
 }
 
+func (c *consumer) init() error {
+	return nil
+}
+
+func (c *consumer) Close() {
+	return
+}
+
 func (c *consumer) Client() sarama.Client {
 	return c.client.Client
 }
