@@ -21,12 +21,19 @@ func Client() *client {
 }
 
 // 生产者
-func Producer() iProducer {
-	return &producer{client: __client, msg: &sarama.ProducerMessage{}}
+func Producer(opts ...Option) IProducer {
+	var focus bool
+	for _, opt := range opts {
+		switch opt.Name {
+		case FocusName:
+			focus = opt.Value.(bool)
+		}
+	}
+	return &producer{client: __client, msg: &sarama.ProducerMessage{}, focus: focus}
 }
 
 // 消费者
-func Consumer() iConsumer {
+func Consumer() IConsumer {
 	return &consumer{client: __client}
 }
 

@@ -3,7 +3,7 @@ package goo_kafka
 import "github.com/IBM/sarama"
 
 // 生产者
-type iProducer interface {
+type IProducer interface {
 	init() error
 
 	Close()
@@ -11,10 +11,10 @@ type iProducer interface {
 	Client() sarama.Client
 
 	// 发送消息到指定分区
-	WithPartition(partition int32) iProducer
+	WithPartition(partition int32) IProducer
 
 	// 指定Key
-	WithKey(key string) iProducer
+	WithKey(key string) IProducer
 
 	// 发送消息 - 同步
 	SendMessage(topic string, message []byte) (partition int32, offset int64, err error)
@@ -24,7 +24,7 @@ type iProducer interface {
 }
 
 // 消费者
-type iConsumer interface {
+type IConsumer interface {
 	init() error
 
 	Close()
@@ -32,16 +32,16 @@ type iConsumer interface {
 	Client() sarama.Client
 
 	// 从指定分区消费
-	WithPartition(partition int32) iConsumer
+	WithPartition(partition int32) IConsumer
 
 	// 从指定位置开始
-	WithOffset(offset int64) iConsumer
+	WithOffset(offset int64) IConsumer
 
 	// 从最新位置开始
-	WithOffsetNewest() iConsumer
+	WithOffsetNewest() IConsumer
 
 	// 从头开始
-	WithOffsetOldest() iConsumer
+	WithOffsetOldest() IConsumer
 
 	// 消费
 	Consume(topic string, handler ConsumerHandler)

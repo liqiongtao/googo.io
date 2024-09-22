@@ -21,7 +21,7 @@ func (group) Cleanup(sarama.ConsumerGroupSession) error {
 }
 
 func (g group) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
-	l := goo_log.WithTag("goo-kafka-consumer-group").
+	log := goo_log.WithTag("goo-kafka-consumer-group").
 		WithField("groupId", g.id).
 		WithField("topic", claim.Topic()).
 		WithField("partition", claim.Partition())
@@ -29,17 +29,25 @@ func (g group) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.Co
 	for {
 		select {
 		case <-session.Context().Done():
-			l.Debug("关闭会话上下文", session.Context().Err())
+			log.Debug("关闭会话上下文", session.Context().Err())
 			return nil
 
 		case msg, ok := <-claim.Messages():
+			key := string(msg.Key)
+			log.WithField("key", key)
+
+			// 删除缓存
+			if redis := g.config.Redis; redis != nil {
+				redis.Del(key)
+			}
+
 			if !ok {
-				l.Debug("消费通道关闭", msg)
+				log.Debug("消费通道关闭", msg)
 				return nil
 			}
 
 			if err := g.handler(&ConsumerMessage{ConsumerMessage: msg, GroupSession: session}, nil); err != nil {
-				l.Error(err)
+				log.Error(err)
 				continue
 			}
 

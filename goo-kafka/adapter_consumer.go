@@ -24,26 +24,26 @@ func (c *consumer) Client() sarama.Client {
 }
 
 // 设置 分区
-func (c *consumer) WithPartition(partition int32) iConsumer {
+func (c *consumer) WithPartition(partition int32) IConsumer {
 	c.hasSetPartition = true
 	c.partition = partition
 	return c
 }
 
 // 设置 起始位置
-func (c *consumer) WithOffset(offset int64) iConsumer {
+func (c *consumer) WithOffset(offset int64) IConsumer {
 	c.offset = offset
 	return c
 }
 
 // 设置 起始位置 = 最新位置
-func (c *consumer) WithOffsetNewest() iConsumer {
+func (c *consumer) WithOffsetNewest() IConsumer {
 	c.offset = sarama.OffsetNewest
 	return c
 }
 
 // 设置 起始位置 = 从头开始
-func (c *consumer) WithOffsetOldest() iConsumer {
+func (c *consumer) WithOffsetOldest() IConsumer {
 	c.offset = sarama.OffsetOldest
 	return c
 }
@@ -94,6 +94,13 @@ func (c *consumer) Consume(topic string, handler ConsumerHandler) {
 				l.Debug("消息通道被关闭,停止消费")
 				return
 			}
+
+			// 删除缓存
+			if redis := c.client.conf.Redis; redis != nil {
+				key := string(msg.Key)
+				redis.Del(key)
+			}
+
 			handler(&ConsumerMessage{ConsumerMessage: msg}, nil)
 		}
 	}
