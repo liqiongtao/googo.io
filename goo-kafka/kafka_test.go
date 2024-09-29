@@ -47,16 +47,16 @@ func (t *TestMessage) Deserialize(b []byte) {
 }
 
 func TestProducer(t *testing.T) {
+	redis, _ := goo_redis.New(goo_redis.Config{
+		Addr:     "redis.in:20063",
+		Password: "",
+		DB:       0,
+	})
 	Init(Config{
 		User:     "admin",
 		Password: "",
 		Addrs:    []string{"kafka.in:20092"},
-		RedisConfig: goo_redis.Config{
-			Addr:     "redis.in:20063",
-			Password: "",
-			DB:       0,
-		},
-	})
+	}, RedisOption(redis))
 
 	for i := 0; i < 20; i++ {
 		Producer().SendMessage(&TestMessage{Id: 200 + i})
