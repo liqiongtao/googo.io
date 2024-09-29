@@ -19,14 +19,6 @@ type consumer struct {
 	offset int64
 }
 
-func (c *consumer) init() error {
-	return nil
-}
-
-func (c *consumer) Close() {
-	return
-}
-
 func (c *consumer) Client() sarama.Client {
 	return c.client.Client
 }
@@ -103,25 +95,15 @@ func (c *consumer) Consume(topic string, handler ConsumerHandler) {
 				return
 			}
 
-			key := string(msg.Key)
-			if key == "" {
-				key = c.GetKey(topic, string(msg.Value))
-			}
-			log.WithField("key", key)
+			ctx := goo_context.WithLog()
+			ctx.Log.WithTag("goo-kafka-consumer").WithField("msg", msg)
 
-			// 建立缓存
-			if c.redis != nil {
-				if c.redis.Exists(key).Val() > 0 {
-					continue
-				}
-				c.redis.Set(key, time.Now().Format("2006-01-02 15:04:05"), time.Hour)
-			}
-
-			if err = handler(&ConsumerMessage{ConsumerMessage: msg}, nil); err != nil {
+			if err = handler(ctx, &ConsumerMessage{ConsumerMessage: msg}, nil); err != nil {
 				log.Error(err)
 			}
 
 			// 删除缓存
+			key := string(msg.Key)
 			if c.redis != nil {
 				c.redis.Del(key)
 			}

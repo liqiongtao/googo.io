@@ -3,7 +3,6 @@ package goo_kafka
 import (
 	"github.com/IBM/sarama"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
-	goo_redis "github.com/liqiongtao/googo.io/goo-redis"
 )
 
 var (
@@ -11,14 +10,8 @@ var (
 )
 
 // 初始化
-func Init(conf Config, opts ...Option) error {
+func Init(conf Config) error {
 	__client = &client{conf: conf}
-	for _, opt := range opts {
-		switch opt.Name {
-		case RedisName:
-			__client.redis = opt.Value.(*goo_redis.Client)
-		}
-	}
 	return __client.init()
 }
 
@@ -36,7 +29,7 @@ func Producer(opts ...Option) IProducer {
 			focus = opt.Value.(bool)
 		}
 	}
-	return &producer{client: __client, msg: &sarama.ProducerMessage{}, focus: focus}
+	return &producer{client: __client, focus: focus}
 }
 
 // 消费者

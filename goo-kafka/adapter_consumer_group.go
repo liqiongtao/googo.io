@@ -1,9 +1,11 @@
 package goo_kafka
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/IBM/sarama"
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goo_context "github.com/liqiongtao/googo.io/goo-context"
+	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	"time"
 )
 
@@ -23,11 +25,6 @@ func (group) Cleanup(sarama.ConsumerGroupSession) error {
 }
 
 func (g group) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
-	log := goo_log.WithTag("goo-kafka-consumer-group").
-		WithField("groupId", g.id).
-		WithField("topic", claim.Topic()).
-		WithField("partition", claim.Partition())
-
 	for {
 		select {
 		case <-session.Context().Done():
@@ -37,34 +34,106 @@ func (g group) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.Co
 			if !ok {
 				return fmt.Errorf("消费通道关闭: groupId=%s topic=%s partition=%d", g.id, claim.Topic(), claim.Partition())
 			}
-
-			key := string(msg.Key)
-			if key == "" {
-				key = g.GetKey(claim.Topic(), string(msg.Value))
-			}
-			log.WithField("key", key)
-
-			// 建立缓存
-			if g.redis != nil {
-				if g.redis.Exists(key).Val() > 0 {
-					session.MarkMessage(msg, "")
-					continue
-				}
-				g.redis.Set(key, time.Now().Format("2006-01-02 15:04:05"), time.Hour)
-			}
-
-			if err := g.handler(&ConsumerMessage{ConsumerMessage: msg, GroupSession: session}, nil); err != nil {
-				log.Error(err)
-				continue
-			}
-
-			// 删除缓存
-			if g.redis != nil {
-				g.redis.Del(key)
-			}
-
-			// 提交
-			session.MarkMessage(msg, "")
+			g.doHandler(msg, session)
 		}
 	}
+}
+
+func (g group) doHandler(msg *sarama.ConsumerMessage, session sarama.ConsumerGroupSession) (err error) {
+	// 消息key
+	key := string(msg.Key)
+
+	// 消息试题
+	m := goo_utils.M{
+		"topic":     msg.Topic,
+		"key":       key,
+		"partition": msg.Partition,
+		"offset":    msg.Offset,
+		"timestamp": msg.Timestamp.Format("2006-01-02 15:04:05"),
+	}
+
+	// 填充数据
+	{
+		// body
+		if len(msg.Value) > 0 {
+			var body interface{}
+			if err = json.Unmarshal(msg.Value, &body); err == nil {
+				m["body"] = body
+			} else {
+				m["body"] = string(msg.Value)
+			}
+		}
+
+		// headers
+		for _, i := range msg.Headers {
+			var headers = map[string]string{}
+			headers[string(i.Key)] = string(i.Value)
+			m["headers"] = headers
+		}
+	}
+
+	// 定义上下文
+	ctx := goo_context.WithLog()
+	ctx.Log.WithTag("goo-kafka-consumer-group", g.id).WithField("msg", m)
+
+	// uniq key
+	{
+		var uniqKey string
+		if key != "" {
+			uniqKey = fmt.Sprintf("%s:%s", g.id, key)
+		} else {
+			uniqKey = fmt.Sprintf("%s:%s:%s", g.id, msg.Topic, goo_utils.MD5([]byte(g.id+msg.Topic+string(msg.Value))))
+		}
+		if g.redis != nil {
+			ok := g.redis.SetNX(uniqKey, goo_utils.M{
+				"topic":     msg.Topic,
+				"body":      m["body"],
+				"headers":   m["headers"],
+				"timestamp": m["timestamp"],
+			}.String(), 300*time.Second).Val()
+			if !ok {
+				ctx.Log.Warn("消息消费失败，并发消费")
+				return
+			}
+			defer func() {
+				g.redis.Del(uniqKey)
+			}()
+		}
+	}
+
+	// 建立缓存
+	if g.redis != nil && key != "" {
+		g.redis.Set(key, goo_utils.M{
+			"topic":     msg.Topic,
+			"body":      m["body"],
+			"headers":   m["headers"],
+			"timestamp": m["timestamp"],
+		}.String(), time.Hour)
+	}
+
+	// 打印日志
+	t1 := time.Now()
+	defer func() {
+		ctx.Log.WithField("执行时间", fmt.Sprintf("%f", float64(time.Now().Sub(t1).Milliseconds())/1e3))
+		if err != nil {
+			ctx.Log.Error("消息消费失败", err)
+			return
+		}
+		ctx.Log.Debug("消息消费成功")
+	}()
+
+	// 执行业务方法
+	if err = g.handler(ctx, &ConsumerMessage{ConsumerMessage: msg, GroupSession: session}, nil); err != nil {
+		return
+	}
+
+	// 提交
+	session.MarkMessage(msg, "")
+
+	// 删除缓存
+	if g.redis != nil && key != "" {
+		g.redis.Del(key)
+	}
+
+	return
 }
