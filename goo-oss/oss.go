@@ -13,11 +13,11 @@ func Init(conf Config) {
 }
 
 func Client() *oss.Client {
-	return __oss.client
+	return __oss.Client
 }
 
 func Bucket() *oss.Bucket {
-	bucket, err := __oss.client.Bucket(__oss.conf.Bucket)
+	bucket, err := __oss.Client.Bucket(__oss.conf.Bucket)
 	if err != nil {
 		goo_log.Error(err)
 	}

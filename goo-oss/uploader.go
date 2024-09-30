@@ -11,8 +11,8 @@ import (
 
 type Uploader struct {
 	conf    Config
-	client  *oss.Client
-	bucket  *oss.Bucket
+	Client  *oss.Client
+	Bucket  *oss.Bucket
 	options []oss.Option
 }
 
@@ -28,7 +28,7 @@ func New(conf Config) (*Uploader, error) {
 		return nil, err
 	}
 
-	o.client = client
+	o.Client = client
 
 	bucket, err := o.getBucket()
 	if err != nil {
@@ -36,7 +36,7 @@ func New(conf Config) (*Uploader, error) {
 		return nil, err
 	}
 
-	o.bucket = bucket
+	o.Bucket = bucket
 
 	return o, nil
 }
@@ -64,7 +64,7 @@ func (o *Uploader) Upload(filename string, r io.Reader) (string, error) {
 	}
 
 	for i := 0; i < 3; i++ {
-		err := o.bucket.PutObject(filename, r, options...)
+		err := o.Bucket.PutObject(filename, r, options...)
 		if err == nil {
 			break
 		}
@@ -114,5 +114,5 @@ func (o *Uploader) getClient() (*oss.Client, error) {
 }
 
 func (o *Uploader) getBucket() (*oss.Bucket, error) {
-	return o.client.Bucket(o.conf.Bucket)
+	return o.Client.Bucket(o.conf.Bucket)
 }
