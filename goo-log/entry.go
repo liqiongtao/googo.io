@@ -109,6 +109,7 @@ func (entry *Entry) output(level Level, v ...interface{}) {
 
 	if entry.l.adapter != nil {
 		entry.l.adapter.Write(entry.msg)
+		entry.Trace = []string{}
 	}
 }
 
