@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package pb.test.v1;
+option go_package = "test/v1;pb_test_v1";
+
+service Getter {
+  rpc GetName (GetName.Request) returns (GetName.Response);
+}
+
+message GetName {
+  message Request {
+    string Name = 1;
+  }
+  message Response {
+    string Name = 1;
+  }
+}

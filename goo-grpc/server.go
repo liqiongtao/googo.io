@@ -3,10 +3,6 @@ package goo_grpc
 import (
 	"errors"
 	"fmt"
-	"github.com/facebookgo/grace/gracenet"
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
-	"google.golang.org/grpc"
 	"io/ioutil"
 	"log"
 	"net"
@@ -15,6 +11,11 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/facebookgo/grace/gracenet"
+	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
+	"google.golang.org/grpc"
 )
 
 type Server struct {
@@ -41,13 +42,13 @@ func New(conf Config, opt ...ServerOption) *Server {
 		grpc.MaxSendMsgSize(MaxSendMsgSize),
 		// 单向拦截 - 链式
 		grpc.ChainUnaryInterceptor(
-			serverUnaryInterceptorLog(),
+			serverUnaryInterceptorLog(defaultServerOptions.NoLogMethods),
 			serverUnaryInterceptorRecovery(),
 			serverUnaryInterceptorAuth(defaultServerOptions.AuthFunc),
 		),
 		// 流式拦截 - 链式
 		grpc.ChainStreamInterceptor(
-			serverStreamInterceptorLog(),
+			serverStreamInterceptorLog(defaultServerOptions.NoLogMethods),
 			serverStreamInterceptorRecovery(),
 			serverStreamInterceptorAuth(defaultServerOptions.AuthFunc),
 		),

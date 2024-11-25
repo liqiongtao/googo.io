@@ -1,10 +1,11 @@
 package goo_grpc
 
 import (
+	"time"
+
 	goo_etcd "github.com/liqiongtao/googo.io/goo-etcd"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
-	"time"
 )
 
 func newDefaultServerOptions(cfg Config) serverOptions {
@@ -64,6 +65,7 @@ func newDefaultServerOptions(cfg Config) serverOptions {
 			grpc.KeepaliveParams(keepaliveParams),
 			grpc.KeepaliveEnforcementPolicy(enforcementPolicy),
 		},
+		NoLogMethods: map[string]struct{}{},
 	}
 }
 
@@ -75,6 +77,9 @@ type serverOptions struct {
 	Register2Etcd bool
 
 	ServerOptions []grpc.ServerOption
+
+	// 不打印日志的方法
+	NoLogMethods map[string]struct{}
 }
 
 // 定义配置项抽象
@@ -106,5 +111,14 @@ func AuthFuncOption(authFunc AuthFunc) ServerOption {
 func ServerOptions(opt ...grpc.ServerOption) ServerOption {
 	return newFuncOption(func(opts *serverOptions) {
 		opts.ServerOptions = append(opts.ServerOptions, opt...)
+	})
+}
+
+// 配置项 - 不打印日志的方法
+func NoLogMethodsOption(methods []string) ServerOption {
+	return newFuncOption(func(opts *serverOptions) {
+		for _, method := range methods {
+			opts.NoLogMethods[method] = struct{}{}
+		}
 	})
 }
