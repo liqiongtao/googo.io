@@ -34,7 +34,7 @@ func main() {
 	goo_utils.AsyncFunc(func() {
 		uuid := goo_utils.UUID()
 		for {
-			ctx := metadata.NewIncomingContext(context.TODO(), metadata.New(map[string]string{"trace-id": uuid}))
+			ctx := metadata.NewOutgoingContext(context.TODO(), metadata.New(map[string]string{"trace-id": uuid}))
 
 			rsp, err := c.GetName(ctx, &pb_grpc_v1.GetName_Request{Name: "hnatao"})
 			if s := status.Convert(err); s.Code() != codes.OK {
