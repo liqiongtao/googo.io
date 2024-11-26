@@ -31,7 +31,17 @@ type MyController struct {
 }
 
 func (m MyController) DoHandle(ctx goo.Context) *goo.Response {
-	ctx.Set("name", "hnatao")
-	ctx.Log().Debug("request_id:", ctx.Query("request_id"))
+	m.setName(ctx)
+
+	ctx.Log().
+		WithField("name", ctx.GetString("name")).
+		WithField("request_id", ctx.GetString("request_id")).
+		Debug()
+
 	return goo.Success("ok")
+}
+
+func (m MyController) setName(ctx goo.Context) {
+	ctx.Set("name", "hnatao")
+	ctx.Set("request_id", ctx.Query("request_id"))
 }
