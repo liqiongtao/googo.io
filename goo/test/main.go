@@ -2,10 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"github.com/liqiongtao/googo.io/goo"
 	goo_http_request "github.com/liqiongtao/googo.io/goo-http-request"
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	"time"
 )
@@ -23,9 +21,7 @@ func main() {
 		goo.ServerNameOption("my-test"),
 	)
 
-	ctx := MyContext{}
-
-	s.GET("/", goo.Handler(&ctx, MyController{}))
+	s.GET("/", goo.Handler(MyController{}))
 
 	s.Run("127.0.0.1:18901")
 }
@@ -35,23 +31,7 @@ type MyController struct {
 }
 
 func (m MyController) DoHandle(ctx goo.Context) *goo.Response {
-	ctx.Log().Debug("request_id:", ctx.GinContext().Query("request_id"))
+	ctx.Set("name", "hnatao")
+	ctx.Log().Debug("request_id:", ctx.Query("request_id"))
 	return goo.Success("ok")
-}
-
-// 定义上下文
-type MyContext struct {
-	*gin.Context
-}
-
-func (c *MyContext) GinContext() *gin.Context {
-	return c.Context
-}
-
-func (c *MyContext) SetGinContext(ctx *gin.Context) {
-	c.Context = ctx
-}
-
-func (c *MyContext) Log() *goo_log.Entry {
-	return goo_log.WithField("trace_id", goo.RequestId(c.Context))
 }

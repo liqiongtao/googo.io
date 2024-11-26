@@ -14,9 +14,9 @@ type iController interface {
 }
 
 // 定义控制器调用实现
-func Handler(ctx Context, controller iController) gin.HandlerFunc {
+func Handler(controller iController) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		ctx.SetGinContext(c)
+		ctx := Context{c}
 
 		beginTime := time.Now()
 		resp := controller.DoHandle(ctx)
