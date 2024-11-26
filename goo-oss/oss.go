@@ -8,8 +8,9 @@ import (
 
 var __oss *Uploader
 
-func Init(conf Config) {
-	__oss, _ = New(conf)
+func Init(conf Config) (err error) {
+	__oss, err = New(conf)
+	return
 }
 
 func Default() *Uploader {
