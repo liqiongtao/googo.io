@@ -162,7 +162,7 @@ func (s *Server) log(c *gin.Context) {
 
 	ctx := c.Copy()
 	for k, v := range ctx.Keys {
-		if k == "__response" {
+		if strings.HasPrefix(k, "__") {
 			continue
 		}
 		l.WithField(k, v)
