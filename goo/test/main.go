@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"github.com/liqiongtao/googo.io/goo"
 	goo_http_request "github.com/liqiongtao/googo.io/goo-http-request"
+	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	"time"
 )
@@ -26,14 +28,21 @@ func main() {
 	s.Run("127.0.0.1:18901")
 }
 
-// 定义控制器
-type MyController struct {
+type Controller struct {
 }
 
-func (m MyController) DoHandle(ctx goo.Context) *goo.Response {
+func (c Controller) Log(ctx *gin.Context) *goo_log.Entry {
+	return goo_log.WithField("trace_id", goo.RequestId(ctx))
+}
+
+type MyController struct {
+	Controller
+}
+
+func (m MyController) DoHandle(ctx *gin.Context) *goo.Response {
 	m.setName(ctx)
 
-	ctx.Log().
+	m.Log(ctx).
 		WithField("name", ctx.GetString("name")).
 		WithField("request_id", ctx.GetString("request_id")).
 		Debug()
@@ -41,7 +50,7 @@ func (m MyController) DoHandle(ctx goo.Context) *goo.Response {
 	return goo.Success("ok")
 }
 
-func (m MyController) setName(ctx goo.Context) {
+func (m MyController) setName(ctx *gin.Context) {
 	ctx.Set("name", "hnatao")
 	ctx.Set("request_id", ctx.Query("request_id"))
 }

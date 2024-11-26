@@ -10,16 +10,14 @@ import (
 
 // 定义控制器抽象类
 type iController interface {
-	DoHandle(ctx Context) *Response
+	DoHandle(ctx *gin.Context) *Response
 }
 
 // 定义控制器调用实现
 func Handler(controller iController) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		ctx := Context{c}
-
 		beginTime := time.Now()
-		resp := controller.DoHandle(ctx)
+		resp := controller.DoHandle(c)
 
 		if resp == nil {
 			return
