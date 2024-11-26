@@ -35,6 +35,7 @@ type MyController struct {
 }
 
 func (m MyController) DoHandle(ctx goo.Context) *goo.Response {
+	ctx.Log().Debug("request_id:", ctx.GinContext().Query("request_id"))
 	return goo.Success("ok")
 }
 
