@@ -7,15 +7,21 @@ import (
 
 var __client *Client
 
-func Init(conf Config) {
-	__client, _ = New(conf)
+func Init(conf Config) (err error) {
+	__client, err = New(conf)
 
 	goo_utils.AsyncFunc(func() {
+		if __client == nil {
+			return
+		}
+
 		select {
 		case <-__client.ctx.Done():
 			__client.Close()
 		}
 	})
+
+	return
 }
 
 func Default() *Client {
