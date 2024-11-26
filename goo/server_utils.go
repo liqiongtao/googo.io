@@ -23,7 +23,12 @@ func RequestId(c *gin.Context) string {
 	if v := c.Query("trace_id"); v != "" {
 		return v
 	}
-	return uuid.New().String()
+	if v := c.GetString("__trace_id"); v != "" {
+		return v
+	}
+	traceId := uuid.New().String()
+	c.Set("__trace_id", traceId)
+	return traceId
 }
 
 // 客户端IP
