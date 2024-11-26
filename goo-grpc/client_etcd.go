@@ -26,8 +26,13 @@ func DialWithEtcd(serviceName string, cli *goo_etcd.Client, opts ...grpc.DialOpt
 			grpc.WithResolvers(builder),
 			grpc.WithDefaultServiceConfig(`{"loadBalancingConfig": [{"round_robin":{}}]}`),
 			grpc.WithKeepaliveParams(keepalive.ClientParameters{
-				Time:                30 * time.Second,
-				Timeout:             10 * time.Second,
+				// 客户端在该时间内未收到任何数据时发送 ping
+				// 建议设置比服务端的 Time (5分钟) 小一些，确保客户端的连接不会因为服务端的 idle 检测而断开
+				Time: 4 * time.Minute,
+				// ping 请求的超时时间
+				// 建议设置比服务端的 Timeout (20秒) 小一些
+				Timeout: 15 * time.Second,
+				// 允许在没有活动流的情况下发送ping
 				PermitWithoutStream: true,
 			}),
 			grpc.WithDefaultCallOptions(
@@ -58,8 +63,13 @@ func DialContextWithEtcd(ctx context.Context, serviceName string, cli *goo_etcd.
 			grpc.WithResolvers(builder),
 			grpc.WithDefaultServiceConfig(`{"loadBalancingConfig": [{"round_robin":{}}]}`),
 			grpc.WithKeepaliveParams(keepalive.ClientParameters{
-				Time:                30 * time.Second,
-				Timeout:             10 * time.Second,
+				// 客户端在该时间内未收到任何数据时发送 ping
+				// 建议设置比服务端的 Time (5分钟) 小一些，确保客户端的连接不会因为服务端的 idle 检测而断开
+				Time: 4 * time.Minute,
+				// ping 请求的超时时间
+				// 建议设置比服务端的 Timeout (20秒) 小一些
+				Timeout: 15 * time.Second,
+				// 允许在没有活动流的情况下发送ping
 				PermitWithoutStream: true,
 			}),
 			grpc.WithDefaultCallOptions(

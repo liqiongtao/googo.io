@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"github.com/liqiongtao/googo.io/goo"
 	pb_goo_v1 "github.com/liqiongtao/googo.io/goo-proto/v1"
 	"google.golang.org/grpc/status"
@@ -14,7 +15,7 @@ type gateway struct {
 	conf Config
 }
 
-func (g gateway) DoHandle(c goo.Context) *goo.Response {
+func (g gateway) DoHandle(c *gin.Context) *goo.Response {
 	service := c.Param("service")
 	method := c.Param("method")
 
