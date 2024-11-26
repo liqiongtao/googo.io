@@ -76,10 +76,6 @@ func (s *Server) noAccess(c *gin.Context) {
 
 // 设置字段
 func (s *Server) setFields(c *gin.Context) {
-	c.Set("__begin_time", time.Now())
-	c.Set("__server_name", defaultOptions.serverName)
-	c.Set("__env", defaultOptions.env.Tag())
-
 	c.Next()
 }
 
@@ -134,7 +130,7 @@ func (s *Server) log(c *gin.Context) {
 		return
 	}
 
-	beginTime := c.GetTime("__begin_time")
+	beginTime := time.Now()
 
 	header := gin.H{}
 	if v := c.GetHeader("Authorization"); v != "" {
@@ -145,17 +141,17 @@ func (s *Server) log(c *gin.Context) {
 	}
 
 	req := gin.H{
-		"method":    c.Request.Method,
-		"uri":       c.Request.RequestURI,
-		"header":    header,
-		"client-ip": ClientIP(c),
-		"trace-id":  RequestId(c),
+		"method": c.Request.Method,
+		"uri":    c.Request.RequestURI,
+		"header": header,
 	}
 	if v := RequestBody(c); v != nil {
 		req["body"] = v
 	}
 
 	l := goo_log.WithTag("goo-api").
+		WithField("client-ip", ClientIP(c)).
+		WithField("trace-id", RequestId(c)).
 		WithField("request", req)
 
 	c.Next()

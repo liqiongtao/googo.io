@@ -18,6 +18,7 @@ func Handler(ctx Context, controller iController) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx.SetGinContext(c)
 
+		beginTime := time.Now()
 		resp := controller.DoHandle(ctx)
 
 		if resp == nil {
@@ -27,7 +28,6 @@ func Handler(ctx Context, controller iController) gin.HandlerFunc {
 		c.Set("__response", resp.Copy())
 
 		// 计算执行时间
-		beginTime := c.GetTime("__begin_time")
 		if !beginTime.IsZero() {
 			c.Header("X-Response-Duration", fmt.Sprintf("%dms", time.Since(beginTime)/1e6))
 		}

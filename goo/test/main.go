@@ -1,12 +1,23 @@
 package main
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/liqiongtao/googo.io/goo"
+	goo_http_request "github.com/liqiongtao/googo.io/goo-http-request"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
+	"time"
 )
 
 func main() {
+	goo_utils.AsyncFunc(func() {
+		time.Sleep(3 * time.Second)
+		for i := 0; i < 10; i++ {
+			go goo_http_request.Get(fmt.Sprintf("http://127.0.0.1:18901?request_id=%d", i))
+		}
+	})
+
 	s := goo.NewServer(
 		goo.EnvOption(goo.DEVELOPMENT),
 		goo.ServerNameOption("my-test"),
@@ -24,10 +35,6 @@ type MyController struct {
 }
 
 func (m MyController) DoHandle(ctx goo.Context) *goo.Response {
-	ctx.Log().Debug("1")
-	ctx.Log().Debug("2")
-	ctx.Log().Debug("3")
-	ctx.Log().Debug("4")
 	return goo.Success("ok")
 }
 
