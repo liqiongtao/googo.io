@@ -6,4 +6,5 @@ type Config struct {
 	Endpoint        string `json:"endpoint" yaml:"endpoint"`
 	Bucket          string `json:"bucket" yaml:"bucket"`
 	Domain          string `json:"domain" yaml:"domain"`
+	Prefix          string `json:"prefix" yaml:"prefix"`
 }
