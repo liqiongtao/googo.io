@@ -12,6 +12,10 @@ func Init(conf Config) {
 	__oss, _ = New(conf)
 }
 
+func Default() *Uploader {
+	return __oss
+}
+
 func Client() *oss.Client {
 	return __oss.Client
 }
