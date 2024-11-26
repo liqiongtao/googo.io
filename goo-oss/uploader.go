@@ -1,6 +1,7 @@
 package goo_oss
 
 import (
+	"fmt"
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	"io"
@@ -62,6 +63,9 @@ func (o *Uploader) Upload(filename string, r io.Reader) (string, error) {
 		options = append(options, oss.CacheControl("no-store"))
 		options = append(options, oss.SetHeader("Pragma", "no-cache"))
 	}
+
+	// 拼接前缀
+	filename = strings.ReplaceAll(fmt.Sprintf("%s%s", o.conf.Prefix, filename), "//", "")
 
 	for i := 0; i < 3; i++ {
 		err := o.Bucket.PutObject(filename, r, options...)
