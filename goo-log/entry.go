@@ -27,7 +27,9 @@ func NewEntry(l *Logger) *Entry {
 }
 
 func (entry *Entry) WithTag(tags ...string) *Entry {
-	entry.Tags = append(entry.Tags, tags...)
+	if len(tags) > 0 {
+		entry.Tags = append(entry.Tags, tags...)
+	}
 	return entry
 }
 
