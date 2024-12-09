@@ -9,7 +9,7 @@ import (
 
 func (c *ESClient) Loop(index []string, filter []goo_utils.M, fn func(p goo_utils.Params) error) {
 	size := 500
-	for n := 0; n < 100; n++ {
+	for n := 0; n < 1000; n++ {
 		_, list := c.Query(index, filter, n*size, size)
 		l := len(list)
 
