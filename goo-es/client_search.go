@@ -70,7 +70,7 @@ func (c *ESClient) PageSearch(index []string, body []byte, fn func(p goo_utils.P
 	var (
 		ctx            = context.Background()
 		scrollDuration = 2 * time.Second
-		size           = 1000
+		size           = 500
 		scrollId       string
 	)
 
