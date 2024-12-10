@@ -100,7 +100,7 @@ func (c *ESClient) PageSearch(index []string, body []byte, fn func(p goo_utils.P
 
 		if res.IsError() {
 			c.log().Error(fmt.Errorf("error getting initial response: %s", res.String()))
-			continue
+			return err
 		}
 
 		// 获取数据
