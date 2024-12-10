@@ -68,7 +68,6 @@ func (c *ESClient) Search(index []string, body []byte) (*esapi.Response, error) 
 // 分页查询，用于大数量查询，普通查询，默认最多返回10000条
 func (c *ESClient) PageSearch(index []string, body []byte, fn func(p goo_utils.Params) error) error {
 	var (
-		ctx            = context.Background()
 		scrollDuration = 2 * time.Second
 		size           = 500
 		scrollId       string
@@ -86,12 +85,12 @@ func (c *ESClient) PageSearch(index []string, body []byte, fn func(p goo_utils.P
 				Body:   bytes.NewReader(body),
 				Scroll: scrollDuration,
 				Size:   &size, // 每次获取的文档数量
-			}.Do(ctx, c.Client())
+			}.Do(context.Background(), c.Client())
 		} else {
 			res, err = esapi.ScrollRequest{
 				ScrollID: scrollId,
 				Scroll:   scrollDuration,
-			}.Do(ctx, c.Client())
+			}.Do(context.Background(), c.Client())
 		}
 
 		if err != nil {
