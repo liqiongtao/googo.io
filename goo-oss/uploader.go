@@ -68,6 +68,9 @@ func (o *Uploader) Upload(filename string, r io.Reader) (string, error) {
 	filename = fmt.Sprintf("%s/%s", o.conf.Prefix, filename)
 	filename = strings.ReplaceAll(filename, "///", "/")
 	filename = strings.ReplaceAll(filename, "//", "/")
+	if filename[0:1] == "/" {
+		filename = filename[1:]
+	}
 
 	for i := 0; i < 3; i++ {
 		err := o.Bucket.PutObject(filename, r, options...)
