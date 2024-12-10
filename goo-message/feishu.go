@@ -3,6 +3,7 @@ package goo_message
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	goo_http_request "github.com/liqiongtao/googo.io/goo-http-request"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	"runtime"
@@ -28,15 +29,25 @@ func FeiShu(hookUrl string, text string) error {
 			"text": text,
 		},
 	}
-	b, _ := json.Marshal(&data)
-
-	buf, err := goo_http_request.PostJson(hookUrl, b)
+	b, err := json.Marshal(&data)
 	if err != nil {
+		fmt.Println("[goo-msg][1001]", text, err)
 		return err
 	}
 
-	rst, _ := goo_utils.Byte(buf).Params()
+	buf, err := goo_http_request.PostJson(hookUrl, b)
+	if err != nil {
+		fmt.Println("[goo-msg][1002]", text, err)
+		return err
+	}
+
+	rst, err := goo_utils.Byte(buf).Params()
+	if err != nil {
+		fmt.Println("[goo-msg][1003]", text, err)
+		return err
+	}
 	if msg := rst.Get("StatusMessage").String(); msg != "success" {
+		fmt.Println("[goo-msg][1004]", text, msg)
 		return errors.New(msg)
 	}
 
