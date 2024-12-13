@@ -3,6 +3,7 @@ package goo_log
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"time"
 )
 
@@ -43,6 +44,11 @@ func (msg *Message) JSON() []byte {
 		}
 	}
 
-	buf, _ := json.Marshal(&data)
+	buf, err := json.Marshal(&data)
+	if err != nil {
+		log.Println("[goo-log][message2json]", data, err)
+		return []byte{}
+	}
+
 	return buf
 }
