@@ -50,11 +50,11 @@ func FeiShu(hookUrl string, text string) error {
 
 	rst, err := goo_utils.Byte(buf).Params()
 	if err != nil {
-		fmt.Println("[goo-msg][1003]", text, err)
+		fmt.Println("[goo-msg][1003]", text, string(buf), err)
 		return err
 	}
 	if msg := rst.Get("StatusMessage").String(); msg != "success" {
-		fmt.Println("[goo-msg][1004]", text, msg)
+		fmt.Println("[goo-msg][1004]", text, string(buf))
 		return errors.New(msg)
 	}
 
