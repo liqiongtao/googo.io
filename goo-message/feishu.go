@@ -8,6 +8,7 @@ import (
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	"runtime"
 	"sync"
+	"time"
 )
 
 var (
@@ -23,12 +24,15 @@ func FeiShu(hookUrl string, text string) error {
 	}
 
 	__feiShuOnce.Do(func() {
-		__fieShuCH = make(chan struct{}, runtime.NumCPU()*2)
+		__fieShuCH = make(chan struct{}, runtime.NumCPU())
 	})
 
 	// 控制并发
 	__fieShuCH <- struct{}{}
-	defer func() { <-__fieShuCH }()
+	defer func() {
+		time.Sleep(1 * time.Second)
+		<-__fieShuCH
+	}()
 
 	// 去重
 	{
@@ -76,10 +80,13 @@ func FeiShu(hookUrl string, text string) error {
 		fmt.Println("[goo-msg][1003]", text, string(buf), err)
 		return err
 	}
-	if msg := rst.Get("StatusMessage").String(); msg != "success" {
+
+	msg := rst.Get("msg").String()
+	switch msg {
+	case "success":
+		return nil
+	default:
 		fmt.Println("[goo-msg][1004]", text, string(buf))
 		return errors.New(msg)
 	}
-
-	return nil
 }
