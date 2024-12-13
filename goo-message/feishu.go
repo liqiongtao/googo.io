@@ -9,14 +9,12 @@ import (
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	"runtime"
 	"sync"
-	"time"
 )
 
 var (
 	__fieShuCH   chan struct{}
 	__feiShuOnce sync.Once
 	__feiShuMu   sync.Mutex
-	__feiShuUniq = map[string]any{}
 )
 
 func FeiShu(hookUrl string, text string) error {
@@ -30,30 +28,7 @@ func FeiShu(hookUrl string, text string) error {
 
 	// 控制并发
 	__fieShuCH <- struct{}{}
-	defer func() {
-		time.Sleep(1 * time.Second)
-		<-__fieShuCH
-	}()
-
-	// 去重
-	{
-		key := goo_utils.MD5([]byte(text))
-
-		__feiShuMu.Lock()
-		if _, ok := __feiShuUniq[key]; ok {
-			__feiShuMu.Unlock()
-			return nil
-		}
-
-		__feiShuUniq[key] = struct{}{}
-		__feiShuMu.Unlock()
-
-		defer func() {
-			__feiShuMu.Lock()
-			delete(__feiShuUniq, key)
-			__feiShuMu.Unlock()
-		}()
-	}
+	defer func() { <-__fieShuCH }()
 
 	data := map[string]interface{}{
 		"msg_type": "text",
