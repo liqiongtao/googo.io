@@ -23,6 +23,10 @@ func FeiShu(hookUrl string, text string) error {
 	__fieShuCH <- struct{}{}
 	defer func() { <-__fieShuCH }()
 
+	if text == "" {
+		return nil
+	}
+
 	data := map[string]interface{}{
 		"msg_type": "text",
 		"content": map[string]interface{}{
@@ -39,6 +43,9 @@ func FeiShu(hookUrl string, text string) error {
 	if err != nil {
 		fmt.Println("[goo-msg][1002]", text, err)
 		return err
+	}
+	if len(buf) == 0 {
+		return nil
 	}
 
 	rst, err := goo_utils.Byte(buf).Params()

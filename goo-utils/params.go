@@ -25,6 +25,10 @@ func NewParams() Params {
 func Json2Params(b []byte) (p Params, err error) {
 	p = NewParams()
 
+	if len(b) == 0 {
+		return
+	}
+
 	if err = json.Unmarshal(b, &p.data); err != nil {
 		goo_log.WithField("params", string(b)).Error(err)
 	}
