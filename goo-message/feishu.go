@@ -86,6 +86,8 @@ func FeiShu(hookUrl string, text string) error {
 	switch msg {
 	case "success":
 		return nil
+	case "too many request":
+		return nil
 	default:
 		fmt.Println("[goo-msg][1004]", text, string(buf))
 		return errors.New(msg)
