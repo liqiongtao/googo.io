@@ -1,6 +1,7 @@
 package goo_message
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -71,7 +72,7 @@ func FeiShu(hookUrl string, text string) error {
 		fmt.Println("[goo-msg][1002]", text, err)
 		return err
 	}
-	if len(buf) == 0 {
+	if len(buf) == 0 || bytes.Contains(buf, []byte("服务异常，请联系")) {
 		return nil
 	}
 
