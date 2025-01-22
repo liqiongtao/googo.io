@@ -21,6 +21,10 @@ func main() {
 	s := goo.NewServer(
 		goo.EnvOption(goo.DEVELOPMENT),
 		goo.ServerNameOption("my-test"),
+		goo.ResponseHookFuncOption(func(res *goo.Response) {
+			res.Message = "成功"
+			fmt.Println("---1-----", res.Message)
+		}),
 	)
 
 	s.GET("/", goo.Handler(MyController{}))

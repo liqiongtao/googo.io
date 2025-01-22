@@ -19,6 +19,10 @@ func Handler(controller iController) gin.HandlerFunc {
 		beginTime := time.Now()
 		resp := controller.DoHandle(c)
 
+		if defaultOptions.responseHookFunc != nil {
+			defaultOptions.responseHookFunc(resp)
+		}
+
 		if resp == nil {
 			return
 		}

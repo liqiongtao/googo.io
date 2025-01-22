@@ -15,6 +15,7 @@ var defaultOptions = &options{
 		"X-Client-Id", "X-Client-Token", "X-User-Agent", "X-Trace-Id",
 	},
 	encryptionExcludeUris: map[string]struct{}{},
+	responseHookFunc:      func(res *Response) {},
 }
 
 type options struct {
@@ -26,6 +27,8 @@ type options struct {
 	corsHeaders  []string
 	noAccessPath map[string]struct{}
 	noLogPath    map[string]struct{}
+
+	responseHookFunc func(res *Response)
 
 	encryption            *Encryption
 	encryptionEnable      bool
@@ -102,5 +105,12 @@ func EnableEncryptionOption(encryptKey, encryptSecret string, excludeUris ...str
 		for _, uri := range excludeUris {
 			opts.encryptionExcludeUris[uri] = struct{}{}
 		}
+	})
+}
+
+// Response钩子函数
+func ResponseHookFuncOption(hookFunc func(res *Response)) Option {
+	return newFuncOption(func(opts *options) {
+		opts.responseHookFunc = hookFunc
 	})
 }
