@@ -20,7 +20,7 @@ func Handler(controller iController) gin.HandlerFunc {
 		resp := controller.DoHandle(c)
 
 		if defaultOptions.responseHookFunc != nil {
-			defaultOptions.responseHookFunc(resp)
+			defaultOptions.responseHookFunc(c, resp)
 		}
 
 		if resp == nil {

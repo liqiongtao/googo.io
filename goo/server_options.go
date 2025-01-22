@@ -1,5 +1,7 @@
 package goo
 
+import "github.com/gin-gonic/gin"
+
 var defaultOptions = &options{
 	noAccessPath: map[string]struct{}{
 		"/favicon.ico": {},
@@ -15,7 +17,7 @@ var defaultOptions = &options{
 		"X-Client-Id", "X-Client-Token", "X-User-Agent", "X-Trace-Id",
 	},
 	encryptionExcludeUris: map[string]struct{}{},
-	responseHookFunc:      func(res *Response) {},
+	responseHookFunc:      func(c *gin.Context, res *Response) {},
 }
 
 type options struct {
@@ -28,7 +30,7 @@ type options struct {
 	noAccessPath map[string]struct{}
 	noLogPath    map[string]struct{}
 
-	responseHookFunc func(res *Response)
+	responseHookFunc func(c *gin.Context, res *Response)
 
 	encryption            *Encryption
 	encryptionEnable      bool
@@ -109,7 +111,7 @@ func EnableEncryptionOption(encryptKey, encryptSecret string, excludeUris ...str
 }
 
 // Response钩子函数
-func ResponseHookFuncOption(hookFunc func(res *Response)) Option {
+func ResponseHookFuncOption(hookFunc func(c *gin.Context, res *Response)) Option {
 	return newFuncOption(func(opts *options) {
 		opts.responseHookFunc = hookFunc
 	})
