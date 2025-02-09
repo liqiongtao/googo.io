@@ -1,7 +1,6 @@
 package goo_utils
 
 import (
-	"context"
 	"golang.org/x/sync/singleflight"
 	"sync"
 )
@@ -11,7 +10,7 @@ var (
 	_sfGroup singleflight.Group // 用于控制并发重复调用
 )
 
-func CacheDatafunc(ctx context.Context, key string, queryFunc func() (interface{}, error)) (interface{}, error) {
+func CacheDatafunc(key string, queryFunc func() (interface{}, error)) (interface{}, error) {
 	// 1. 检查缓存
 	if v, ok := _v.Load(key); ok {
 		return v, nil

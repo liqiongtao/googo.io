@@ -1,7 +1,6 @@
 package goo_utils
 
 import (
-	"context"
 	goo_context "github.com/liqiongtao/googo.io/goo-context"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	"testing"
@@ -19,7 +18,7 @@ func TestCacheDatafunc(t *testing.T) {
 func cacheData1() {
 	key := "key-1"
 
-	data, err := CacheDatafunc(context.TODO(), key, func() (interface{}, error) {
+	data, err := CacheDatafunc(key, func() (interface{}, error) {
 		time.Sleep(time.Second)
 		return time.Now().Format("15:04:05"), nil
 	})
