@@ -136,10 +136,5 @@ func (g group) doHandler(msg *sarama.ConsumerMessage, session sarama.ConsumerGro
 	// 提交
 	session.MarkMessage(msg, "")
 
-	// 删除缓存
-	if g.redis != nil && key != "" {
-		g.redis.Del(key)
-	}
-
 	return
 }
