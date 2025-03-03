@@ -114,11 +114,17 @@ func (g group) doHandler(msg *sarama.ConsumerMessage, session sarama.ConsumerGro
 	// 打印日志
 	t1 := time.Now()
 	defer func() {
+		// 删除缓存
+		if g.redis != nil && key != "" {
+			g.redis.Expire(key, 5*time.Second)
+		}
+
 		ctx.Log.WithField("执行时间", fmt.Sprintf("%f", float64(time.Now().Sub(t1).Milliseconds())/1e3))
 		if err != nil {
 			ctx.Log.Error("消息消费失败", err)
 			return
 		}
+
 		ctx.Log.Debug("消息消费成功")
 	}()
 
