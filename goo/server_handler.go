@@ -52,9 +52,11 @@ func Handler(controller iController) gin.HandlerFunc {
 			return
 		}
 
-		if _, ok := defaultOptions.encryptionExcludeUris[c.Request.RequestURI]; ok {
-			c.JSON(200, resp)
-			return
+		for v := range defaultOptions.encryptionExcludeUris {
+			if v == c.Request.RequestURI || strings.HasPrefix(c.Request.RequestURI, v) {
+				c.JSON(200, resp)
+				return
+			}
 		}
 
 		b, err := json.Marshal(&resp.Data)

@@ -99,9 +99,11 @@ func (s *Server) encrypt(c *gin.Context) {
 		return
 	}
 
-	if _, ok := defaultOptions.encryptionExcludeUris[c.Request.RequestURI]; ok {
-		c.Next()
-		return
+	for v := range defaultOptions.encryptionExcludeUris {
+		if v == c.Request.RequestURI || strings.HasPrefix(c.Request.RequestURI, v) {
+			c.Next()
+			return
+		}
 	}
 
 	var buf bytes.Buffer
