@@ -32,7 +32,7 @@ type options struct {
 
 	responseHookFunc func(c *gin.Context, res *Response)
 
-	encryption            *Encryption
+	encryptionFn          func(c *gin.Context) *Encryption
 	encryptionEnable      bool
 	encryptionExcludeUris map[string]struct{}
 }
@@ -103,7 +103,19 @@ func NoLogPathsOption(noLogPaths ...string) Option {
 func EnableEncryptionOption(encryptKey, encryptSecret string, excludeUris ...string) Option {
 	return newFuncOption(func(opts *options) {
 		opts.encryptionEnable = true
-		opts.encryption = &Encryption{Key: encryptKey, Secret: encryptSecret}
+		opts.encryptionFn = func(c *gin.Context) *Encryption {
+			return &Encryption{Key: encryptKey, Secret: encryptSecret}
+		}
+		for _, uri := range excludeUris {
+			opts.encryptionExcludeUris[uri] = struct{}{}
+		}
+	})
+}
+
+func EnableEncryptionOptionWith(fn func(c *gin.Context) *Encryption, excludeUris ...string) Option {
+	return newFuncOption(func(opts *options) {
+		opts.encryptionEnable = true
+		opts.encryptionFn = fn
 		for _, uri := range excludeUris {
 			opts.encryptionExcludeUris[uri] = struct{}{}
 		}

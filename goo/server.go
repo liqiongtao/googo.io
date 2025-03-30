@@ -93,8 +93,7 @@ func (s *Server) encrypt(c *gin.Context) {
 		return
 	}
 
-	switch strings.ToLower(c.Request.Header.Get("Content-Type")) {
-	case "multipart/form-data":
+	if strings.Contains(strings.ToLower(c.Request.Header.Get("Content-Type")), "multipart/form-data") {
 		c.Next()
 		return
 	}
@@ -109,7 +108,7 @@ func (s *Server) encrypt(c *gin.Context) {
 	var buf bytes.Buffer
 	io.Copy(&buf, c.Request.Body)
 
-	b, err := defaultOptions.encryption.Decode(buf.String())
+	b, err := defaultOptions.encryptionFn(c).Decode(buf.String())
 	if err != nil {
 		s.abortWithStatus50X(c, 5002, "解码失败，原因："+err.Error())
 		return
