@@ -6,6 +6,8 @@ import (
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	"github.com/xuri/excelize/v2"
 	"net/url"
+	"os"
+	"strconv"
 )
 
 func Writer() *xlsxWrite {
@@ -78,19 +80,25 @@ func (x *xlsxWrite) Save2File(filename string) (err error) {
 }
 
 func (x *xlsxWrite) Output(ctx *gin.Context, filename string) (err error) {
+	tmpFile := fmt.Sprintf("/tmp/%s", filename)
+	defer func() {
+		os.Remove(tmpFile)
+	}()
+
+	if err = x.Save2File(tmpFile); err != nil {
+		return err
+	}
+
+	fileInfo, _ := os.Stat(tmpFile)
+	fileSize := fileInfo.Size()
+
 	ctx.Header("Content-Transfer-Encoding", "binary")
 	ctx.Header("Content-Type", "application/octet-stream")
 	ctx.Header("Content-Disposition", "attachment; filename="+url.PathEscape(filename))
 	ctx.Header("Access-Control-Expose-Headers", "Content-Disposition")
+	ctx.Header("content-length", strconv.FormatInt(fileSize, 10))
 
-	if x.sheetRowNums["Sheet1"] == 0 {
-		x.fh.DeleteSheet("Sheet1")
-	}
-
-	if err = x.fh.Write(ctx.Writer); err != nil {
-		goo_log.Error(err)
-		return
-	}
+	ctx.File(tmpFile)
 
 	return
 }
