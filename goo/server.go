@@ -48,6 +48,8 @@ func (s *Server) Run(addr string) {
 		pprof.Register(s.Engine, "/goo/pprof")
 	}
 
+	goo_log.InfoF("server running, addr=%s pid=%s", addr, pid)
+
 	endless.NewServer(addr, s.Engine).ListenAndServe()
 }
 
