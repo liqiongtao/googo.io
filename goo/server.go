@@ -183,7 +183,7 @@ func (s *Server) log(c *gin.Context) {
 			}
 
 			if r.Code > 0 {
-				l.Warn()
+				l.Error()
 				return
 			}
 		}
