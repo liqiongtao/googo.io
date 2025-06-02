@@ -18,11 +18,11 @@ func clientUnaryInterceptorLog() grpc.UnaryClientInterceptor {
 	return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 		err := invoker(ctx, method, req, reply, cc, opts...)
 		if err != nil {
-			log := goo_log.WithTag("goo-grpc").WithField("method", method).WithField("req", req)
-			if md, ok := metadata.FromIncomingContext(ctx); ok {
-				log.WithField("metadata", md)
-			}
-			log.Error(err)
+			//log := goo_log.WithTag("goo-grpc").WithField("method", method).WithField("req", req)
+			//if md, ok := metadata.FromIncomingContext(ctx); ok {
+			//	log.WithField("metadata", md)
+			//}
+			//log.Error(err)
 		}
 		return err
 	}
@@ -33,11 +33,11 @@ func clientStreamInterceptorLog() grpc.StreamClientInterceptor {
 	return func(ctx context.Context, desc *grpc.StreamDesc, cc *grpc.ClientConn, method string, streamer grpc.Streamer, opts ...grpc.CallOption) (grpc.ClientStream, error) {
 		stream, err := cc.NewStream(ctx, desc, method, opts...)
 		if err != nil {
-			log := goo_log.WithTag("goo-grpc").WithField("method", method).WithField("desc", desc)
-			if md, ok := metadata.FromIncomingContext(ctx); ok {
-				log.WithField("metadata", md)
-			}
-			log.Error(err)
+			//log := goo_log.WithTag("goo-grpc").WithField("method", method).WithField("desc", desc)
+			//if md, ok := metadata.FromIncomingContext(ctx); ok {
+			//	log.WithField("metadata", md)
+			//}
+			//log.Error(err)
 		}
 		return stream, err
 	}
