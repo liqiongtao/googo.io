@@ -33,4 +33,8 @@ func TestStr2Time(t *testing.T) {
 	fmt.Println(Str2Time("10:1"))
 
 	fmt.Println(Str2Time("5/15/24 08:42"))
+
+	t1, _ := Str2Time("2024年6月1日")
+	fmt.Println(t1.Format("2006-01-02"))
+
 }

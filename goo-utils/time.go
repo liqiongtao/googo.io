@@ -66,6 +66,9 @@ func Str2Time(str string) (ti time.Time, err error) {
 		ti, err = time.ParseInLocation("1/2/06 15:4", str, time.Local)
 	}
 	if err != nil {
+		ti, err = time.ParseInLocation("2006年1月2日", str, time.Local)
+	}
+	if err != nil {
 		ti, err = time.ParseInLocation("2006-1-2", str, time.Local)
 	}
 	if err != nil {
