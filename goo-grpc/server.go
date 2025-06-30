@@ -3,6 +3,7 @@ package goo_grpc
 import (
 	"errors"
 	"fmt"
+	"github.com/liqiongtao/googo.io/goo"
 	"io/ioutil"
 	"log"
 	"net"
@@ -72,16 +73,29 @@ func (s *Server) Serve() (err error) {
 		}
 	}()
 
-	// 随机端口
-	addr := s.conf.Addr
-	if addr == "" {
-		addr = "0.0.0.0:0"
-	}
-	if !strings.Contains(addr, ":") {
-		addr += ":0"
+	// 本机内网IP
+	if s.conf.ServiceEndpoint == "" || s.conf.Addr == "" {
+		var localIp string
+		localIp, err = goo.LocalIP()
+		if err != nil {
+			goo_log.WithTag("goo-grpc").Error(err)
+			return
+		}
+
+		if s.conf.ServiceEndpoint == "" {
+			s.conf.ServiceEndpoint = localIp
+		}
+		if s.conf.Addr == "" {
+			s.conf.Addr = fmt.Sprintf("%s:0", localIp)
+		}
 	}
 
-	s.lis, err = s.Net.Listen("tcp", addr)
+	// 随机端口
+	if !strings.Contains(s.conf.Addr, ":") {
+		s.conf.Addr += ":0"
+	}
+
+	s.lis, err = s.Net.Listen("tcp", s.conf.Addr)
 	if err != nil {
 		goo_log.WithTag("goo-grpc").Error(err)
 		return
