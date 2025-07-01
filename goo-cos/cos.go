@@ -7,11 +7,12 @@ import (
 	"github.com/tencentyun/cos-go-sdk-v5"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 )
 
 func CosClient(cfg CosConfig) *cos.Client {
-	bucketUrl, _ := cfg.GetBucketURL()
+	bucketUrl, _ := url.Parse(cfg.BucketURL())
 
 	c := cos.NewClient(
 		&cos.BaseURL{BucketURL: bucketUrl},

@@ -2,7 +2,6 @@ package goo_cos
 
 import (
 	"fmt"
-	"net/url"
 )
 
 type StsConfig struct {
@@ -45,7 +44,6 @@ type CosConfig struct {
 	BaseDir      string `json:"base_dir" yaml:"base_dir"`           // 基础目录
 }
 
-func (c CosConfig) GetBucketURL() (*url.URL, error) {
-	str := fmt.Sprintf("https://%s.cos.%s.myqcloud.com", c.Bucket, c.Region)
-	return url.Parse(str)
+func (c CosConfig) BucketURL() string {
+	return fmt.Sprintf("https://%s.cos.%s.myqcloud.com", c.Bucket, c.Region)
 }
