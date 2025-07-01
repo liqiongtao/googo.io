@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"strings"
 )
 
 type CosClient struct {
@@ -42,7 +43,7 @@ func NewCosClient(cfg CosConfig) *CosClient {
 func (c *CosClient) Upload(localFileName, objectKey string) error {
 	f, err := os.Open(localFileName)
 	if err != nil {
-		goo_log.ErrorF("open file %s error", localFileName)
+		goo_log.ErrorF("open file %s error: %s", localFileName, err.Error())
 		return err
 	}
 	defer f.Close()
@@ -50,7 +51,7 @@ func (c *CosClient) Upload(localFileName, objectKey string) error {
 	// 获取文件大小
 	stat, err := f.Stat()
 	if err != nil {
-		goo_log.ErrorF("stat file %s error", localFileName)
+		goo_log.ErrorF("stat file %s error: %s", localFileName, err.Error())
 		return err
 	}
 
@@ -61,7 +62,7 @@ func (c *CosClient) Upload(localFileName, objectKey string) error {
 		},
 	})
 	if err != nil {
-		goo_log.ErrorF("put %s error", objectKey)
+		goo_log.ErrorF("put %s error: %s", objectKey, err.Error())
 		return err
 	}
 	if resp != nil && resp.StatusCode != 200 {
@@ -75,12 +76,12 @@ func (c *CosClient) Upload(localFileName, objectKey string) error {
 // 下载文件
 func (c *CosClient) Download(localFileName, objectKey string) error {
 	if err := os.MkdirAll(path.Dir(localFileName), 0755); err != nil {
-		goo_log.ErrorF("create dir %s error", path.Dir(localFileName))
+		goo_log.ErrorF("create dir %s error: %s", path.Dir(localFileName), err.Error())
 		return err
 	}
 
 	if _, err := c.Object.GetToFile(context.TODO(), objectKey, localFileName, nil); err != nil {
-		goo_log.ErrorF("download %s error", objectKey)
+		goo_log.ErrorF("download %s error: %s", objectKey, err.Error())
 		return err
 	}
 
@@ -101,7 +102,7 @@ func (c *CosClient) Get(objectKey string) ([]byte, error) {
 	// 使用cos客户端获取文件内容
 	resp, err := c.Object.Get(context.Background(), objectKey, nil)
 	if err != nil {
-		goo_log.ErrorF("get %s error", objectKey)
+		goo_log.ErrorF("get %s error: %s", objectKey, err.Error())
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -109,22 +110,66 @@ func (c *CosClient) Get(objectKey string) ([]byte, error) {
 	// 读取响应体内容
 	b, err := io.ReadAll(resp.Body)
 	if err != nil {
-		goo_log.ErrorF("read %s body error", objectKey)
+		goo_log.ErrorF("read %s body error: %s", objectKey, err.Error())
 		return nil, err
 	}
 
 	return b, nil
 }
 
-func (c *CosClient) Exists(objectKey string) bool {
+func (c *CosClient) List(fn func(objectKey cos.Object) error) error {
+	var marker string
+
+	opt := &cos.BucketGetOptions{
+		MaxKeys: 1000, // 每次最多列出1000个对象
+	}
+
+	for {
+		opt.Marker = marker
+
+		res, _, err := c.Bucket.Get(context.TODO(), opt)
+		if err != nil {
+			return err
+		}
+
+		for _, v := range res.Contents {
+			if err = fn(v); err != nil {
+				return err
+			}
+		}
+
+		if res.IsTruncated {
+			marker = res.NextMarker
+		} else {
+			break
+		}
+	}
+
+	return nil
+}
+
+func (c *CosClient) Head(objectKey string) (*cos.Response, error) {
 	if objectKey[0:1] == "/" {
 		objectKey = objectKey[1:]
 	}
 
-	// 检查对象是否存在
-	_, err := c.Object.Head(context.Background(), objectKey, nil)
+	rsp, err := c.Object.Head(context.Background(), objectKey, nil)
 	if err != nil {
-		goo_log.ErrorF("head %s error", objectKey)
+		goo_log.ErrorF("head %s error: %s", objectKey, err.Error())
+		return nil, err
+	}
+
+	return rsp, nil
+}
+
+func (c *CosClient) IsExist(objectKey string) bool {
+	if objectKey[0:1] == "/" {
+		objectKey = objectKey[1:]
+	}
+
+	_, err := c.Object.IsExist(context.Background(), objectKey)
+	if err != nil {
+		goo_log.ErrorF("exist %s error: %s", objectKey, err.Error())
 		return false
 	}
 
@@ -139,7 +184,28 @@ func (c *CosClient) Delete(objectKey string) error {
 	// 检查对象是否存在
 	_, err := c.Object.Delete(context.Background(), objectKey, nil)
 	if err != nil {
-		goo_log.ErrorF("delete %s error", objectKey)
+		goo_log.ErrorF("delete %s error: %s", objectKey, err.Error())
+		return err
+	}
+
+	return nil
+}
+
+func (c *CosClient) Copy(sourceObjectKey, targetObjectKey string, targetCosClient *cos.Client) error {
+	if sourceObjectKey[0:1] == "/" {
+		sourceObjectKey = sourceObjectKey[1:]
+	}
+	if !strings.HasPrefix(sourceObjectKey, c.BaseURL.BucketURL.Host+c.BaseURL.BucketURL.Path) {
+		sourceObjectKey = c.BaseURL.BucketURL.Host + c.BaseURL.BucketURL.Path + "/" + sourceObjectKey
+	}
+
+	if targetObjectKey[0:1] == "/" {
+		targetObjectKey = targetObjectKey[1:]
+	}
+
+	_, _, err := targetCosClient.Object.Copy(context.Background(), targetObjectKey, sourceObjectKey, nil)
+	if err != nil {
+		goo_log.ErrorF("copy %s error: %s", sourceObjectKey, err.Error())
 		return err
 	}
 
