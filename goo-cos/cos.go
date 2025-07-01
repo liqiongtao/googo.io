@@ -3,12 +3,14 @@ package goo_cos
 import (
 	"context"
 	"fmt"
+	goo_file "github.com/liqiongtao/googo.io/goo-file"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	"github.com/tencentyun/cos-go-sdk-v5"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 )
 
 func CosClient(cfg CosConfig) *cos.Client {
@@ -57,6 +59,26 @@ func CosUpload(localFileName, objectKey string, c *cos.Client) error {
 	if resp != nil && resp.StatusCode != 200 {
 		goo_log.ErrorF("put %s error, status code: %d", objectKey, resp.StatusCode)
 		return fmt.Errorf("上传文件失败，状态码: %d", resp.StatusCode)
+	}
+
+	return nil
+}
+
+// 下载文件
+func CosDownload(localFileName, objectKey string, c *cos.Client) error {
+	if err := os.MkdirAll(path.Dir(localFileName), 0755); err != nil {
+		goo_log.ErrorF("create dir %s error", path.Dir(localFileName))
+		return err
+	}
+
+	if _, err := c.Object.GetToFile(context.TODO(), objectKey, localFileName, nil); err != nil {
+		goo_log.ErrorF("download %s error", objectKey)
+		return err
+	}
+
+	if !goo_file.Exist(localFileName) {
+		goo_log.ErrorF("download %s error", objectKey)
+		return fmt.Errorf("下载 %s 失败", objectKey)
 	}
 
 	return nil
