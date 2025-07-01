@@ -6,16 +6,14 @@ import (
 )
 
 type StsConfig struct {
-	SecretId  string
-	SecretKey string
-	Appid     string
-	Bucket    string
-	Region    string
+	SecretId  string // 密钥ID
+	SecretKey string // 密钥
+	Appid     string // 应用ID
+	Bucket    string // 存储桶名称
+	Region    string // 存储桶所在的地域
 
-	// 临时密钥动作
-	Action []string
-	// 临时密钥有效时间，单位秒
-	Expire int64
+	Action []string // 执行权限
+	Expire int64    // 有效时间，单位秒
 }
 
 func (c StsConfig) GetAction() []string {
@@ -39,11 +37,12 @@ func (c StsConfig) GetResource() []string {
 }
 
 type CosConfig struct {
-	SecretId     string
-	SecretKey    string
+	SecretId     string // 密钥ID
+	SecretKey    string // 密钥
 	SessionToken string // 临时key时，需要传入
-	Bucket       string
-	Region       string
+	Bucket       string // 存储桶名称
+	Region       string // 存储桶所在的地域
+	Dir          string // 存储目录
 }
 
 func (c CosConfig) GetBucketURL() (*url.URL, error) {
