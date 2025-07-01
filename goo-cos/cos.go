@@ -13,7 +13,12 @@ import (
 	"path"
 )
 
-func CosClient(cfg CosConfig) *cos.Client {
+type CosClient struct {
+	*cos.Client
+	Config CosConfig
+}
+
+func NewCosClient(cfg CosConfig) *CosClient {
 	bucketUrl, _ := url.Parse(cfg.BucketURL())
 
 	c := cos.NewClient(
@@ -27,11 +32,14 @@ func CosClient(cfg CosConfig) *cos.Client {
 		},
 	)
 
-	return c
+	return &CosClient{
+		Client: c,
+		Config: cfg,
+	}
 }
 
 // 上传文件
-func CosUpload(localFileName, objectKey string, c *cos.Client) error {
+func (c *CosClient) Upload(localFileName, objectKey string) error {
 	f, err := os.Open(localFileName)
 	if err != nil {
 		goo_log.ErrorF("open file %s error", localFileName)
@@ -65,7 +73,7 @@ func CosUpload(localFileName, objectKey string, c *cos.Client) error {
 }
 
 // 下载文件
-func CosDownload(localFileName, objectKey string, c *cos.Client) error {
+func (c *CosClient) Download(localFileName, objectKey string) error {
 	if err := os.MkdirAll(path.Dir(localFileName), 0755); err != nil {
 		goo_log.ErrorF("create dir %s error", path.Dir(localFileName))
 		return err
@@ -85,7 +93,7 @@ func CosDownload(localFileName, objectKey string, c *cos.Client) error {
 }
 
 // 获取文件内容
-func CosGet(objectKey string, c *cos.Client) ([]byte, error) {
+func (c *CosClient) Get(objectKey string) ([]byte, error) {
 	if objectKey[0:1] == "/" {
 		objectKey = objectKey[1:]
 	}
@@ -108,7 +116,7 @@ func CosGet(objectKey string, c *cos.Client) ([]byte, error) {
 	return b, nil
 }
 
-func CosExists(objectKey string, c *cos.Client) bool {
+func (c *CosClient) Exists(objectKey string) bool {
 	if objectKey[0:1] == "/" {
 		objectKey = objectKey[1:]
 	}
@@ -123,7 +131,7 @@ func CosExists(objectKey string, c *cos.Client) bool {
 	return true
 }
 
-func CosDelete(objectKey string, c *cos.Client) error {
+func (c *CosClient) Delete(objectKey string) error {
 	if objectKey[0:1] == "/" {
 		objectKey = objectKey[1:]
 	}

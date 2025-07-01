@@ -12,7 +12,7 @@ import (
 
 // 获取临时密钥
 // 文档: https://github.com/tencentyun/qcloud-cos-sts-sdk/tree/master/go
-func GetCosSTSCredential(cfg StsConfig) (*sts.CredentialResult, error) {
+func STSCredential(cfg StsConfig) (*sts.CredentialResult, error) {
 	c := sts.NewClient(cfg.SecretId, cfg.SecretKey, nil)
 	opt := &sts.CredentialOptions{
 		Region:          cfg.Region,
@@ -46,7 +46,7 @@ var (
 )
 
 // 获取临时密钥(带缓存)
-func GetCosSTSCredentialWithCache(cfg StsConfig, redis *goo_redis.Client) (*sts.Credentials, error) {
+func STSCredentialWithCache(cfg StsConfig, redis *goo_redis.Client) (*sts.Credentials, error) {
 	key := fmt.Sprintf("cos:sts:%s:%s:%s", cfg.Region, cfg.Appid, cfg.Bucket)
 
 	result, err, _ := sfSts.Do(key, func() (interface{}, error) {
@@ -63,7 +63,7 @@ func GetCosSTSCredentialWithCache(cfg StsConfig, redis *goo_redis.Client) (*sts.
 		}
 
 		// 从接口中获取
-		res, err := GetCosSTSCredential(cfg)
+		res, err := STSCredential(cfg)
 		if err != nil {
 			return nil, err
 		}

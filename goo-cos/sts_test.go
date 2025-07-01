@@ -21,6 +21,6 @@ func TestClient(t *testing.T) {
 		Bucket:    "",
 		Region:    "",
 	}
-	res, err := GetCosSTSCredentialWithCache(cfg, redis)
+	res, err := STSCredentialWithCache(cfg, redis)
 	fmt.Println(res, err)
 }

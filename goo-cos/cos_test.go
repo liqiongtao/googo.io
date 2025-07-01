@@ -21,14 +21,14 @@ func TestCosClient(t *testing.T) {
 		Bucket:    "",
 		Region:    "",
 	}
-	res, err := GetCosSTSCredentialWithCache(cfg, redis)
+	res, err := STSCredentialWithCache(cfg, redis)
 	//fmt.Println(res, err)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	c := CosClient(CosConfig{
+	c := NewCosClient(CosConfig{
 		SecretId:     res.TmpSecretID,
 		SecretKey:    res.TmpSecretKey,
 		SessionToken: res.SessionToken,
@@ -36,19 +36,19 @@ func TestCosClient(t *testing.T) {
 		Region:       cfg.Region,
 	})
 
-	if err := CosUpload("./1.log", "2025/1.log", c); err != nil {
+	if err := c.Upload("./1.log", "2025/1.log"); err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	b, err := CosGet("2025/1.log", c)
+	b, err := c.Get("2025/1.log")
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 	fmt.Println(string(b))
 
-	if err := CosDelete("2025/1.log", c); err != nil {
+	if err := c.Delete("2025/1.log"); err != nil {
 		fmt.Println(err)
 		return
 	}
