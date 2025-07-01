@@ -42,7 +42,7 @@ type CosConfig struct {
 	SessionToken string // 临时key时，需要传入
 	Bucket       string // 存储桶名称
 	Region       string // 存储桶所在的地域
-	Dir          string // 存储目录
+	BaseDir      string // 基础目录
 }
 
 func (c CosConfig) GetBucketURL() (*url.URL, error) {
