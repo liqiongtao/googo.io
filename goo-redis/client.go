@@ -7,11 +7,12 @@ import (
 )
 
 type Client struct {
+	Config
 	*redis.Client
 }
 
 func New(conf Config) (cli *Client, err error) {
-	cli = &Client{}
+	cli = &Client{Config: conf}
 
 	cli.Client = redis.NewClient(&redis.Options{
 		Addr:     conf.Addr,
