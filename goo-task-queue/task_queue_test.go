@@ -27,16 +27,14 @@ func TestTaskQueue_Publish(t *testing.T) {
 
 	q := New(r)
 
-	for i := range 3 {
+	for i := range 10 {
 		go func() {
 			task := &Task{
 				Id:      fmt.Sprintf("%d", i),
 				Type:    "test",
 				Payload: goo_utils.M{"name": fmt.Sprintf("name-%d", i)}.String(),
-				//MaxRetry:     3,
-				//HighPriority: 1,
 			}
-			if i == 2 {
+			if i%3 == 0 {
 				task.HighPriority = 1
 			}
 			q.Publish(task)
@@ -58,8 +56,8 @@ func TestTaskQueue_Subscribe(t *testing.T) {
 
 	q := New(r)
 
-	q.Subscribe(1, func(ctx context.Context, value any) error {
-		time.Sleep(time.Second * 1)
+	q.Subscribe(3, func(ctx context.Context, value any) error {
+		time.Sleep(time.Second * 2)
 		return errors.New("test error")
 	})
 }
@@ -73,8 +71,22 @@ func TestTaskQueue_Subscribe2(t *testing.T) {
 
 	q := New(r)
 
-	q.Subscribe(1, func(ctx context.Context, value any) error {
-		time.Sleep(time.Second * 1)
+	q.Subscribe(3, func(ctx context.Context, value any) error {
+		time.Sleep(time.Millisecond * 600)
 		return nil
 	})
+}
+
+func TestTaskQueue_TaskCount(t *testing.T) {
+	r, err := goo_redis.New(redisConfig)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	q := New(r)
+
+	fmt.Println("PendingCount:", q.PendingCount())
+	fmt.Println("ProcessingCount:", q.ProcessingCount())
+	fmt.Println("FailCount:", q.FailCount())
 }
