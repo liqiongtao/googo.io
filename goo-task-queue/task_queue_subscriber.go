@@ -81,8 +81,13 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 			case limitCH <- struct{}{}:
 				goo_utils.AsyncFunc(func() {
 					task, err := s.getOneTask()
-					if err != nil || task == nil {
+					if err != nil {
 						time.Sleep(time.Second * 3)
+						<-limitCH
+						return
+					}
+					if task == nil {
+						time.Sleep(time.Second)
 						<-limitCH
 						return
 					}

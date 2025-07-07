@@ -13,8 +13,17 @@ type TaskQueueLeader struct {
 }
 
 func (l *TaskQueueLeader) Generate() {
+	for {
+		if l.handler() {
+			return
+		}
+		time.Sleep(time.Second)
+	}
+}
+
+func (l *TaskQueueLeader) handler() bool {
 	if !l.lock() {
-		return
+		return false
 	}
 	defer l.unlock()
 
@@ -43,6 +52,8 @@ func (l *TaskQueueLeader) Generate() {
 			}
 		}
 	})
+
+	return true
 }
 
 // 恢复
