@@ -3,7 +3,6 @@ package goo_task_queue
 import (
 	"encoding/json"
 	goo_redis "github.com/liqiongtao/googo.io/goo-redis"
-	"time"
 )
 
 type Task struct {
@@ -48,13 +47,6 @@ func (t *Task) MapData() map[string]interface{} {
 		"retry_times":   t.RetryTimes,
 		"timeout":       t.Timeout,
 	}
-}
-
-func (t *Task) Score() float64 {
-	if t.HighPriority == 1 {
-		return 1
-	}
-	return float64(time.Now().Unix()) + 60
 }
 
 func (t *Task) Json() []byte {

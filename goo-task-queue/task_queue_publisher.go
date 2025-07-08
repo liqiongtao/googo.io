@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/go-redis/redis"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	"time"
 )
 
 type TaskQueuePublisher struct {
@@ -27,8 +28,13 @@ func (p *TaskQueuePublisher) Publish(tasks ...*Task) error {
 			task.Timeout = 1800 // 默认超时时间 30分钟
 		}
 
+		score := time.Now().Unix()
+		if task.HighPriority == 1 {
+			score = 1
+		}
+
 		pi.HMSet(p.taskInfoKey(task.Id), task.MapData())
-		pi.ZAdd(p.TaskPendingKey, redis.Z{Score: task.Score(), Member: task.Id})
+		pi.ZAdd(p.TaskPendingKey, redis.Z{Score: float64(score), Member: task.Id})
 		pi.ZRem(p.TaskFailKey, task.Id)
 	}
 
