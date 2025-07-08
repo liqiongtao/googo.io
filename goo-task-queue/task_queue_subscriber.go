@@ -102,6 +102,12 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 		}
 	})
 
+	// 写入pid文件
+	goo_utils.AsyncFunc(func() {
+		goo_utils.WriteToFile(".pid", []byte(fmt.Sprintf("%d", os.Getpid())))
+	})
+
+	// 监听退出信号
 	for i := 0; i < 2; i++ {
 		<-done
 	}
