@@ -28,6 +28,13 @@ func getTaskByCache(r *goo_redis.Client, key string) *Task {
 	task.RetryTimes, _ = r.HGet(key, "retry_times").Int()
 	task.Timeout, _ = r.HGet(key, "timeout").Int64()
 
+	if task.MaxRetry == 0 {
+		task.MaxRetry = 99
+	}
+	if task.Timeout == 0 {
+		task.Timeout = 3600
+	}
+
 	return task
 }
 

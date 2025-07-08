@@ -1,6 +1,7 @@
 package goo_task_queue
 
 import (
+	"errors"
 	"fmt"
 	"github.com/go-redis/redis"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
@@ -12,43 +13,45 @@ type TaskQueueTasks struct {
 }
 
 func (t *TaskQueueTasks) getOneTask() (*Task, error) {
-	// 加锁
-	if !t.lock() {
-		return nil, nil
-	}
-	defer t.unlock()
+	luaScript := `
+local tasks = redis.call('ZRANGEBYSCORE', KEYS[1], 0, ARGV[1])
+if #tasks == 0 then
+	return nil
+end
 
-	// 获取待执行队列
-	zs := t.r.ZRangeWithScores(t.TaskPendingKey, 0, time.Now().Unix()).Val()
-	if len(zs) == 0 {
-		return nil, nil
+local member = tasks[1]
+
+redis.call('ZREM', KEYS[1], member)
+redis.call('ZADD', KEYS[2], ARGV[1], member)
+
+return member
+`
+
+	keys := []string{t.TaskPendingKey, t.TaskProcessingKey}
+	args := []interface{}{float64(time.Now().Unix())}
+
+	member, err := t.r.Eval(luaScript, keys, args...).Result()
+	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			return nil, nil
+		}
+		t.log().WithTag("getOneTask").Error(err)
+		return nil, err
 	}
 
 	// 任务ID
-	taskId := zs[0].Member.(string)
+	taskId := member.(string)
 
-	// 任务不存在
 	if taskId == "" || !t.taskExists(taskId) {
-		t.log().WithTag("getOneTask").Warn(fmt.Sprintf("%s not exists", taskId))
-		t.taskDel(taskId)
+		t.r.ZRem(t.TaskPendingKey, member)
 		return nil, nil
 	}
 
 	task := getTaskByCache(t.r, t.taskInfoKey(taskId))
-
-	// 执行队列
-	{
-		pi := t.r.TxPipeline()
-
-		// 删除待执行队列
-		pi.ZRem(t.TaskPendingKey, zs[0].Member)
-		// 添加执行队列
-		pi.ZAdd(t.TaskProcessingKey, redis.Z{Member: zs[0].Member, Score: float64(time.Now().Unix())})
-
-		if _, err := pi.Exec(); err != nil {
-			t.log().WithTag("getOneTask").Error("add taskProcessingKey fail", err)
-			return nil, err
-		}
+	if task.Id == "" {
+		t.log().WithTag("getOneTask").Warn(fmt.Sprintf("%s not exists", taskId))
+		t.taskDel(taskId)
+		return nil, nil
 	}
 
 	return task, nil
@@ -78,14 +81,6 @@ func (t *TaskQueueTasks) taskDel(taskIds ...string) error {
 
 func (t *TaskQueueTasks) taskExists(taskId string) bool {
 	return t.r.Exists(t.taskInfoKey(taskId)).Val() > 0
-}
-
-func (t *TaskQueueTasks) lock() bool {
-	return t.r.SetNX(t.TaskGetLockKey, time.Now().Unix(), time.Second*10).Val()
-}
-
-func (t *TaskQueueTasks) unlock() error {
-	return t.r.Del(t.TaskGetLockKey).Err()
 }
 
 func (t *TaskQueueTasks) log() *goo_log.Entry {

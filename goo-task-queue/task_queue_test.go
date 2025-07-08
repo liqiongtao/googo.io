@@ -27,7 +27,7 @@ func TestTaskQueue_Publish(t *testing.T) {
 
 	q := New(r)
 
-	for i := range 10 {
+	for i := range 10000 {
 		go func() {
 			task := &Task{
 				Id:      fmt.Sprintf("%d", i),

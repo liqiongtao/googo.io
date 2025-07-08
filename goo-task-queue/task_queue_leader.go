@@ -67,20 +67,24 @@ func (l *TaskQueueLeader) recover() error {
 	for _, z := range zs {
 		taskId := z.Member.(string)
 
-		if taskId == "" || !l.TaskQueueTasks.taskExists(taskId) {
-			l.TaskQueueTasks.taskDel(taskId)
+		if taskId == "" || !l.taskExists(taskId) {
+			l.r.ZRem(l.TaskProcessingKey, z.Member)
 			continue
 		}
 
 		task := getTaskByCache(l.r, l.taskInfoKey(taskId))
+		if task.Id == "" {
+			l.TaskQueueTasks.taskDel(taskId)
+			continue
+		}
 
 		if ts := time.Now().Unix() - int64(z.Score); ts > task.Timeout {
 			pi := l.r.TxPipeline()
 
 			// 删除执行队列
-			pi.ZRem(l.TaskProcessingKey, task.Id)
+			pi.ZRem(l.TaskProcessingKey, taskId)
 			// 添加待执行队列
-			pi.ZAdd(l.TaskPendingKey, redis.Z{Member: task.Id, Score: float64(time.Now().Unix() + 60)})
+			pi.ZAdd(l.TaskPendingKey, redis.Z{Member: taskId, Score: float64(time.Now().Unix() + 60)})
 
 			if _, err := pi.Exec(); err != nil {
 				l.log().WithTag("retry").Error(err)

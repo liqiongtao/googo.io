@@ -81,12 +81,7 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 			case limitCH <- struct{}{}:
 				goo_utils.AsyncFunc(func() {
 					task, err := s.getOneTask()
-					if err != nil {
-						time.Sleep(time.Second * 3)
-						<-limitCH
-						return
-					}
-					if task == nil {
+					if err != nil || task == nil {
 						time.Sleep(time.Second)
 						<-limitCH
 						return
@@ -137,6 +132,8 @@ func (s *TaskQueueSubscriber) taskHandle(task *Task, handler TaskQueueHandler) {
 
 	// 增加重试次数
 	s.retry(task)
+
+	time.Sleep(time.Second)
 }
 
 // 重试
@@ -144,7 +141,6 @@ func (s *TaskQueueSubscriber) retry(tasks ...*Task) error {
 	pi := s.r.TxPipeline()
 
 	for _, task := range tasks {
-		task.RetryTimes++
 		// 重试次数+1
 		pi.HIncrBy(s.taskInfoKey(task.Id), "retry_times", 1)
 		// 删除执行队列
