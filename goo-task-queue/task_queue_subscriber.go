@@ -37,6 +37,11 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 		s.heartBeat()
 	})
 
+	// 写入pid文件
+	goo_utils.AsyncFunc(func() {
+		goo_utils.WriteToFile(".pid", []byte(fmt.Sprintf("%d", os.Getpid())))
+	})
+
 	// 并发数控制
 	if limit <= 0 {
 		limit = runtime.NumCPU() * 2
@@ -100,11 +105,6 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 				})
 			}
 		}
-	})
-
-	// 写入pid文件
-	goo_utils.AsyncFunc(func() {
-		goo_utils.WriteToFile(".pid", []byte(fmt.Sprintf("%d", os.Getpid())))
 	})
 
 	// 监听退出信号
