@@ -112,12 +112,15 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 		<-done
 	}
 
-	// 删除节点
-	s.r.HDel(s.TaskWorkersKey, s.workId())
-
-	close(limitCH)
-	close(taskCH)
-	close(done)
+	goo_utils.AsyncFuncGroup(func() {
+		// 删除节点
+		s.r.HDel(s.TaskWorkersKey, s.workId())
+	}, func() {
+		// 关闭管道
+		close(limitCH)
+		close(taskCH)
+		close(done)
+	})
 }
 
 func (s *TaskQueueSubscriber) taskHandle(task *Task, handler TaskQueueHandler) {
