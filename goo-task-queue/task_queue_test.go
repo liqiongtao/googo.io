@@ -56,7 +56,7 @@ func TestTaskQueue_Subscribe(t *testing.T) {
 
 	q := New(r)
 
-	q.Subscribe(3, func(ctx context.Context, value any) error {
+	q.Subscribe(3, func(ctx context.Context, task *Task) error {
 		time.Sleep(time.Second * 2)
 		return errors.New("test error")
 	})
@@ -71,7 +71,7 @@ func TestTaskQueue_Subscribe2(t *testing.T) {
 
 	q := New(r)
 
-	q.Subscribe(3, func(ctx context.Context, value any) error {
+	q.Subscribe(3, func(ctx context.Context, task *Task) error {
 		time.Sleep(time.Millisecond * 600)
 		return nil
 	})

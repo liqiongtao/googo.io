@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-type TaskQueueHandler func(ctx context.Context, value any) error
+type TaskQueueHandler func(ctx context.Context, task *Task) error
 
 type TaskQueueSubscriber struct {
 	*TaskQueue
