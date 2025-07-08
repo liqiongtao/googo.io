@@ -3,10 +3,13 @@ package goo_task_queue
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/go-redis/redis"
+	"github.com/liqiongtao/googo.io/goo"
 	goo_context "github.com/liqiongtao/googo.io/goo-context"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
+	"os"
 	"runtime"
 	"time"
 )
@@ -29,6 +32,11 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 		s.TaskQueueLeader.Generate()
 	})
 
+	// 心跳
+	goo_utils.AsyncFunc(func() {
+		s.heartBeat()
+	})
+
 	// 并发数控制
 	if limit <= 0 {
 		limit = runtime.NumCPU() * 2
@@ -40,8 +48,7 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 		limitCH = make(chan any, limit)
 		taskCH  = make(chan *Task, limit)
 
-		done      = make(chan any)
-		cancelCtx = goo_context.WithCancel()
+		done = make(chan any)
 	)
 
 	// 执行任务
@@ -50,7 +57,7 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 
 		for {
 			select {
-			case <-cancelCtx.Done():
+			case <-goo_context.WithCancel().Done():
 				s.log().Info("任务执行协程退出")
 				return
 
@@ -60,10 +67,12 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 					return
 				}
 
-				// 执行任务
-				s.taskHandle(task, handler)
+				goo_utils.AsyncFunc(func() {
+					// 执行任务
+					s.taskHandle(task, handler)
 
-				<-limitCH
+					<-limitCH
+				})
 			}
 		}
 	})
@@ -74,7 +83,7 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 
 		for {
 			select {
-			case <-cancelCtx.Done():
+			case <-goo_context.WithCancel().Done():
 				s.log().Info("获取任务协程退出")
 				return
 
@@ -86,6 +95,7 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 						<-limitCH
 						return
 					}
+
 					taskCH <- task
 				})
 			}
@@ -174,6 +184,28 @@ func (s *TaskQueueSubscriber) taskFail(tasks ...*Task) error {
 	}
 
 	return nil
+}
+
+// 节点ID
+func (s *TaskQueueSubscriber) workId() string {
+	localIp, _ := goo.LocalIP()
+	return fmt.Sprintf("%s:%d", localIp, os.Getpid())
+}
+
+// 节点心跳
+func (s *TaskQueueSubscriber) heartBeat() {
+	for {
+		select {
+		case <-goo_context.WithCancel().Done():
+			return
+
+		default:
+			s.r.HSet(s.TaskWorkersKey, s.workId(), time.Now().Format("2006-01-02 15:04:05"))
+			s.r.Expire(s.TaskLeadLockKey, time.Second*10)
+
+			time.Sleep(time.Second)
+		}
+	}
 }
 
 func (s *TaskQueueSubscriber) log() *goo_log.Entry {

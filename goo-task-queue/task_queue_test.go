@@ -28,20 +28,12 @@ func TestTaskQueue_Publish(t *testing.T) {
 	q := New(r)
 
 	for i := range 10000 {
-		go func() {
-			task := &Task{
-				Id:      fmt.Sprintf("%d", i),
-				Type:    "test",
-				Payload: goo_utils.M{"name": fmt.Sprintf("name-%d", i)}.String(),
-			}
-			if i%3 == 0 {
-				task.HighPriority = 1
-			}
-			q.Publish(task)
-		}()
-		if i%3 == 0 {
-			time.Sleep(time.Second * 1)
+		task := &Task{
+			Id:      fmt.Sprintf("%d", i+1),
+			Type:    "test",
+			Payload: goo_utils.M{"name": fmt.Sprintf("name-%d", i+1)}.String(),
 		}
+		q.Publish(task)
 	}
 
 	time.Sleep(time.Second * 1)
@@ -72,7 +64,7 @@ func TestTaskQueue_Subscribe2(t *testing.T) {
 	q := New(r)
 
 	q.Subscribe(3, func(ctx context.Context, task *Task) error {
-		time.Sleep(time.Millisecond * 600)
+		time.Sleep(time.Second * 10)
 		return nil
 	})
 }
