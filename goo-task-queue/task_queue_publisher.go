@@ -2,6 +2,7 @@ package goo_task_queue
 
 import (
 	"errors"
+	"fmt"
 	"github.com/go-redis/redis"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	"time"
@@ -21,6 +22,13 @@ func (p *TaskQueuePublisher) Publish(tasks ...*Task) error {
 	pi := p.r.TxPipeline()
 
 	for _, task := range tasks {
+		if task.Id == "" {
+			return fmt.Errorf("任务Id为空")
+		}
+		if task.Type == "" {
+			return fmt.Errorf("任务Type为空")
+		}
+
 		if task.MaxRetry == 0 {
 			task.MaxRetry = 99 // 默认重试次数 99次
 		}

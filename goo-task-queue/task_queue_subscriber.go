@@ -133,9 +133,6 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 		// 删除节点
 		s.r.HDel(s.TaskWorkersKey, s.workId())
 	}, func() {
-		// 删除pid
-		os.Remove(".pid")
-	}, func() {
 		// 关闭管道
 		close(taskCH)
 		close(limitCH)
