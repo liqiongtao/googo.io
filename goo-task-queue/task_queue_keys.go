@@ -12,12 +12,12 @@ var (
 )
 
 type TaskQueueKeys struct {
-	TaskLeadLockKey   string // 任务选举锁
-	TaskWorkersKey    string // 任务工作节点
-	TaskInfoKey       string // 任务信息
-	TaskPendingKey    string // 待处理任务
-	TaskProcessingKey string // 正在处理任务
-	TaskFailKey       string // 失败任务
+	TaskLeadLockKey   string // 任务选举锁 string
+	TaskWorkersKey    string // 任务工作节点 hash
+	TaskInfoKey       string // 任务信息 hash
+	TaskPendingKey    string // 待处理任务 zset
+	TaskProcessingKey string // 正在处理任务 zset
+	TaskFailKey       string // 失败任务 zset
 }
 
 func NewTaskQueueKeys() *TaskQueueKeys {

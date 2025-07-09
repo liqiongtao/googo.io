@@ -158,7 +158,7 @@ func (s *TaskQueueSubscriber) taskHandle(task *Task, handler TaskQueueHandler) {
 	ctx = context.WithValue(ctx, "trace-id", traceId)
 
 	// 超时控制
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, time.Second*time.Duration(task.Timeout))
 	defer cancel()
 
 	// 任务执行
@@ -248,7 +248,7 @@ func (s *TaskQueueSubscriber) heartBeat() {
 
 		default:
 			s.r.HSet(s.TaskWorkersKey, s.workId(), time.Now().Format("2006-01-02 15:04:05"))
-			s.r.Expire(s.TaskLeadLockKey, time.Second*10)
+			s.r.Expire(s.TaskWorkersKey, time.Second*10)
 
 			time.Sleep(time.Second)
 		}
