@@ -74,6 +74,10 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 
 			case <-goo_context.WithCancel().Done():
 				canExit = true
+				if len(taskCH) == 0 {
+					s.log().Info("任务执行为空，任务执行退出")
+					return
+				}
 
 			case task, ok := <-taskCH:
 				if !ok {
