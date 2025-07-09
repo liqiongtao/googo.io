@@ -84,5 +84,5 @@ func (t *TaskQueueTasks) taskExists(taskId string) bool {
 }
 
 func (t *TaskQueueTasks) log() *goo_log.Entry {
-	return t.TaskQueue.log().WithTag("goo-task-queue-tasks")
+	return goo_log.WithTag("goo-task-queue-tasks")
 }

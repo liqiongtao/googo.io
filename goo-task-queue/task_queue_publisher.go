@@ -49,5 +49,5 @@ func (p *TaskQueuePublisher) Publish(tasks ...*Task) error {
 }
 
 func (p *TaskQueuePublisher) log() *goo_log.Entry {
-	return p.TaskQueue.log().WithTag("goo-task-queue-publish")
+	return goo_log.WithTag("goo-task-queue-publish")
 }

@@ -47,7 +47,7 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 		limit = runtime.NumCPU() * 2
 	}
 
-	s.log().InfoF("任务监听成功，并发数: %d", limit)
+	s.log().InfoF("任务监听成功 并发数=%d workerId=%s", limit, s.workId())
 
 	var (
 		limitCH = make(chan any, limit)
@@ -60,23 +60,41 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 	goo_utils.AsyncFunc(func() {
 		defer func() { done <- struct{}{} }()
 
+		var (
+			canExit bool
+		)
+
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
 		for {
 			select {
-			case <-goo_context.WithCancel().Done():
-				s.log().Info("任务执行协程退出")
+			case <-ctx.Done():
 				return
+
+			case <-goo_context.WithCancel().Done():
+				canExit = true
 
 			case task, ok := <-taskCH:
 				if !ok {
+					cancel()
 					s.log().Warn("未获取到任务")
 					return
 				}
 
 				goo_utils.AsyncFunc(func() {
+					defer func() {
+						<-limitCH
+
+						if canExit && len(limitCH) == 0 {
+							cancel()
+							s.log().Info("任务执行完毕，任务执行退出")
+							return
+						}
+					}()
+
 					// 执行任务
 					s.taskHandle(task, handler)
-
-					<-limitCH
 				})
 			}
 		}
@@ -100,7 +118,6 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 						<-limitCH
 						return
 					}
-
 					taskCH <- task
 				})
 			}
@@ -116,9 +133,12 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 		// 删除节点
 		s.r.HDel(s.TaskWorkersKey, s.workId())
 	}, func() {
+		// 删除pid
+		os.Remove(".pid")
+	}, func() {
 		// 关闭管道
-		close(limitCH)
 		close(taskCH)
+		close(limitCH)
 		close(done)
 	})
 }
@@ -129,28 +149,43 @@ func (s *TaskQueueSubscriber) taskHandle(task *Task, handler TaskQueueHandler) {
 
 	// 任务日志
 	log := func() *goo_log.Entry {
-		return s.log().WithTag("taskHandle").WithField("trace-id", traceId)
+		return s.log().WithTag("taskHandle").WithField("trace-id", traceId).WithField("task_id", task.Id)
 	}
 	log().WithField("task", task).Info("获取任务")
 
+	// 上下文
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, "trace-id", traceId)
 
+	// 超时控制
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	// 任务执行
+	err := handler(ctx, task)
+
 	// 执行成功
-	if err := handler(ctx, task); err == nil {
-		log().Info("任务执行成功")
+	if err == nil {
+		log().Info("执行任务成功")
 		s.TaskQueueTasks.taskDel(task.Id)
+		return
+	}
+
+	// 任务执行超时
+	if errors.Is(err, context.DeadlineExceeded) {
+		log().Warn("执行任务超时, 准备重试")
+		s.retry(task)
 		return
 	}
 
 	// 达到最大执行次数
 	if task.MaxRetry != 0 && task.RetryTimes >= task.MaxRetry {
-		log().Warn("任务执行失败")
+		log().Warn("执行任务失败，达到最大重试次数")
 		s.taskFail(task)
 		return
 	}
 
-	log().Warn("任务执行失败，重试")
+	log().Warn("执行任务失败，重试")
 
 	// 增加重试次数
 	s.retry(task)
@@ -221,5 +256,5 @@ func (s *TaskQueueSubscriber) heartBeat() {
 }
 
 func (s *TaskQueueSubscriber) log() *goo_log.Entry {
-	return s.TaskQueue.log().WithTag("goo-task-queue-subscribe")
+	return goo_log.WithTag("goo-task-queue-subscribe")
 }

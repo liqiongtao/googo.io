@@ -108,5 +108,5 @@ func (l *TaskQueueLeader) expire() bool {
 }
 
 func (l *TaskQueueLeader) log() *goo_log.Entry {
-	return l.TaskQueue.log().WithTag("goo-task-queue-leader")
+	return goo_log.WithTag("goo-task-queue-leader")
 }

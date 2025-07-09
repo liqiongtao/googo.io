@@ -64,7 +64,7 @@ func TestTaskQueue_Subscribe2(t *testing.T) {
 	q := New(r)
 
 	q.Subscribe(3, func(ctx context.Context, task *Task) error {
-		time.Sleep(time.Second * 10)
+		time.Sleep(time.Second)
 		return nil
 	})
 }
