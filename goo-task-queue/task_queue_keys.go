@@ -3,12 +3,12 @@ package goo_task_queue
 import "fmt"
 
 var (
-	defTaskLeadLockKey   = "tq:task:lead:lock"  // 任务选举锁
-	defTaskWorkersKey    = "tq:task:workers"    // 任务工作节点
-	defTaskInfoKey       = "tq:task:info"       // 任务信息
-	defTaskPendingKey    = "tq:task:pending"    // 待处理任务 score=排序时间戳 从小到大排序
-	defTaskProcessingKey = "tq:task:processing" // 正在处理任务 score=当前时间戳 用于判断超时
-	defTaskFailKey       = "tq:task:fail"       // 失败任务
+	defTaskLeadLockKey   = "tq:task:leader:lock" // 任务选举锁
+	defTaskWorkersKey    = "tq:task:workers"     // 任务工作节点
+	defTaskInfoKey       = "tq:task:info"        // 任务信息
+	defTaskPendingKey    = "tq:task:pending"     // 待处理任务 score=排序时间戳 从小到大排序
+	defTaskProcessingKey = "tq:task:processing"  // 正在处理任务 score=当前时间戳 用于判断超时
+	defTaskFailKey       = "tq:task:fail"        // 失败任务
 )
 
 type TaskQueueKeys struct {
