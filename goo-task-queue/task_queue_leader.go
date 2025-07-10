@@ -51,6 +51,17 @@ func (l *TaskQueueLeader) handler() bool {
 				time.Sleep(time.Second)
 			}
 		}
+	}, func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+
+			default:
+				l.workers()
+				time.Sleep(time.Second)
+			}
+		}
 	})
 
 	return true
@@ -89,6 +100,27 @@ func (l *TaskQueueLeader) recover() error {
 			if _, err := pi.Exec(); err != nil {
 				l.log().WithTag("retry").Error(err)
 			}
+		}
+	}
+
+	return nil
+}
+
+// 处理超时的workers
+func (l *TaskQueueLeader) workers() error {
+	workerIds := l.r.HKeys(l.TaskWorkersKey).Val()
+	if len(workerIds) == 0 {
+		time.Sleep(time.Second * 10) // 没有任务时休眠
+		return nil
+	}
+
+	for _, workerId := range workerIds {
+		ts, err := l.r.HGet(l.TaskWorkersKey, workerId).Int64()
+		if err != nil {
+			continue
+		}
+		if time.Now().Unix()-ts > 20 {
+			l.r.HDel(l.TaskWorkersKey, workerId)
 		}
 	}
 
