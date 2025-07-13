@@ -115,11 +115,15 @@ func (l *TaskQueueLeader) workers() error {
 	}
 
 	for _, workerId := range workerIds {
-		ts, err := l.r.HGet(l.TaskWorkersKey, workerId).Int64()
+		str := l.r.HGet(l.TaskWorkersKey, workerId).Val()
+		if str == "" {
+			continue
+		}
+		ti, err := time.ParseInLocation("2006-01-02 15:04:05", str, time.Local)
 		if err != nil {
 			continue
 		}
-		if time.Now().Unix()-ts > 20 {
+		if time.Now().Unix()-ti.Unix() > 20 {
 			l.r.HDel(l.TaskWorkersKey, workerId)
 		}
 	}
