@@ -66,6 +66,12 @@ func (r *Request) getClient() *http.Client {
 				Certificates: []tls.Certificate{r.Tls.ClientCrt()},
 			},
 		}
+	} else {
+		client.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		}
 	}
 	return client
 }
