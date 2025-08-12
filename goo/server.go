@@ -179,7 +179,7 @@ func (s *Server) log(c *gin.Context) {
 				return
 			}
 
-			if ll := len(r.Errors); r.Errors != nil && ll > 0 {
+			if r.Errors != nil && len(r.Errors) > 0 {
 				l.Error(r.Errors)
 				return
 			}
