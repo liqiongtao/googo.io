@@ -120,7 +120,9 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 					// 检查内存
 					percent, err := goo_utils.MemoryUsedPercent()
 					if err != nil || percent >= s.MaxMemoryPercent {
-						time.Sleep(time.Duration(rand.Intn(600)+200) * time.Millisecond)
+						n := rand.Intn(600) + 200
+						s.log().WarnF("内存占用超过最大限制，等待%dms后重试", n)
+						time.Sleep(time.Duration(n) * time.Millisecond)
 						<-limitCH
 						return
 					}
@@ -128,7 +130,9 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 					// 获取任务
 					task, err := s.getOneTask()
 					if err != nil || task == nil {
-						time.Sleep(time.Duration(rand.Intn(600)+200) * time.Millisecond)
+						n := rand.Intn(600) + 200
+						s.log().WarnF("获取任务失败，等待%dms后重试", n)
+						time.Sleep(time.Duration(n) * time.Millisecond)
 						<-limitCH
 						return
 					}
