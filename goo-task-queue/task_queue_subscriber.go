@@ -130,9 +130,7 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 					// 获取任务
 					task, err := s.getOneTask()
 					if err != nil || task == nil {
-						n := rand.Intn(600) + 200
-						s.log().WarnF("获取任务失败，等待%dms后重试", n)
-						time.Sleep(time.Duration(n) * time.Millisecond)
+						time.Sleep(time.Duration(rand.Intn(600)+200) * time.Millisecond)
 						<-limitCH
 						return
 					}
