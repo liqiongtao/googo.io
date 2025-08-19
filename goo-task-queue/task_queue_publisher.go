@@ -42,6 +42,7 @@ func (p *TaskQueuePublisher) Publish(tasks ...*Task) error {
 		}
 
 		pi.HMSet(p.taskInfoKey(task.Id), task.MapData())
+		pi.Expire(p.taskInfoKey(task.Id), 48*time.Hour)
 		pi.ZAdd(p.TaskPendingKey, redis.Z{Score: float64(score), Member: task.Id})
 		pi.ZRem(p.TaskFailKey, task.Id)
 	}
