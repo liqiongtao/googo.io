@@ -121,7 +121,7 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 					percent, err := goo_utils.MemoryUsedPercent()
 					if err != nil || percent >= s.MaxMemoryPercent {
 						n := rand.Intn(600) + 200
-						s.log().WarnF("内存占用超过最大限制，等待%dms后重试", n)
+						s.log().WarnF("内存占用超过最大限制=%0.2f%%，等待%dms后重试", percent, n)
 						time.Sleep(time.Duration(n) * time.Millisecond)
 						<-limitCH
 						return
