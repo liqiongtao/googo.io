@@ -5,6 +5,7 @@ import (
 	goo_context "github.com/liqiongtao/googo.io/goo-context"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
+	"math/rand"
 	"time"
 )
 
@@ -17,7 +18,7 @@ func (l *TaskQueueLeader) Generate() {
 		if l.handler() {
 			return
 		}
-		time.Sleep(time.Second)
+		time.Sleep(time.Duration(rand.Intn(600)+200) * time.Millisecond)
 	}
 }
 

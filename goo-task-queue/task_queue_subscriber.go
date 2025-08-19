@@ -9,6 +9,7 @@ import (
 	goo_context "github.com/liqiongtao/googo.io/goo-context"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
+	"math/rand"
 	"os"
 	"runtime"
 	"time"
@@ -116,12 +117,23 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 
 			case limitCH <- struct{}{}:
 				goo_utils.AsyncFunc(func() {
-					task, err := s.getOneTask()
-					if err != nil || task == nil {
-						time.Sleep(time.Second)
+					// 检查内存
+					percent, err := goo_utils.MemoryUsedPercent()
+					if err != nil || percent >= s.MaxMemoryPercent {
+						time.Sleep(time.Duration(rand.Intn(600)+200) * time.Millisecond)
 						<-limitCH
 						return
 					}
+
+					// 获取任务
+					task, err := s.getOneTask()
+					if err != nil || task == nil {
+						time.Sleep(time.Duration(rand.Intn(600)+200) * time.Millisecond)
+						<-limitCH
+						return
+					}
+
+					// 发布任务
 					taskCH <- task
 				})
 			}
@@ -191,7 +203,7 @@ func (s *TaskQueueSubscriber) taskHandle(task *Task, handler TaskQueueHandler) {
 	// 增加重试次数
 	s.retry(task)
 
-	time.Sleep(time.Second)
+	time.Sleep(time.Duration(rand.Intn(600)+200) * time.Millisecond)
 }
 
 // 重试
@@ -251,7 +263,7 @@ func (s *TaskQueueSubscriber) heartBeat() {
 			s.r.HSet(s.TaskWorkersKey, s.workId(), time.Now().Format("2006-01-02 15:04:05"))
 			s.r.Expire(s.TaskWorkersKey, time.Second*10)
 
-			time.Sleep(time.Second)
+			time.Sleep(time.Duration(rand.Intn(600)+200) * time.Millisecond)
 		}
 	}
 }
