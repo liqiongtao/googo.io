@@ -33,7 +33,7 @@ func New(r *goo_redis.Client) *TaskQueue {
 	q := &TaskQueue{
 		r:                r,
 		TaskQueueKeys:    keys,
-		MaxMemoryPercent: 90,
+		MaxMemoryPercent: 95,
 	}
 
 	q.TaskQueueCount = &TaskQueueCount{TaskQueue: q}

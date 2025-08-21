@@ -12,6 +12,7 @@ import (
 	"math/rand"
 	"os"
 	"runtime"
+	"sync"
 	"time"
 )
 
@@ -51,95 +52,102 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 	s.log().InfoF("任务监听成功 并发数=%d workerId=%s", limit, s.workId())
 
 	var (
+		willExit bool
+
 		limitCH = make(chan any, limit)
 		taskCH  = make(chan *Task, limit)
 
 		done = make(chan any)
 	)
 
+	// 监听退出
+	goo_utils.AsyncFunc(func() {
+		for {
+			select {
+			case <-goo_context.WithCancel().Done():
+				willExit = true
+				s.log().Info("准备退出")
+				return
+			}
+		}
+	})
+
 	// 执行任务
 	goo_utils.AsyncFunc(func() {
 		defer func() { done <- struct{}{} }()
 
-		var (
-			canExit bool
-		)
-
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
+		var wg sync.WaitGroup
 
 		for {
-			select {
-			case <-ctx.Done():
-				return
-
-			case <-goo_context.WithCancel().Done():
-				canExit = true
-				if len(taskCH) == 0 {
-					s.log().Info("任务执行为空，任务执行退出")
-					return
-				}
-
-			case task, ok := <-taskCH:
-				if !ok {
-					cancel()
-					s.log().Warn("未获取到任务")
-					return
-				}
-
-				goo_utils.AsyncFunc(func() {
-					defer func() {
-						<-limitCH
-
-						if canExit && len(limitCH) == 0 {
-							cancel()
-							s.log().Info("任务执行完毕，任务执行退出")
-							return
-						}
-					}()
-
-					// 执行任务
-					s.taskHandle(task, handler)
-				})
+			task, ok := <-taskCH
+			if !ok {
+				break
 			}
+
+			wg.Add(1)
+
+			goo_utils.AsyncFunc(func() {
+				defer func() {
+					<-limitCH
+					wg.Done()
+				}()
+
+				// 执行任务
+				s.taskHandle(task, handler)
+			})
 		}
+
+		wg.Wait()
+
+		s.log().Info("任务执行完毕，任务执行退出")
 	})
 
 	// 获取任务
 	goo_utils.AsyncFunc(func() {
 		defer func() { done <- struct{}{} }()
 
+		var wg sync.WaitGroup
+
 		for {
-			select {
-			case <-goo_context.WithCancel().Done():
-				s.log().Info("获取任务协程退出")
-				return
-
-			case limitCH <- struct{}{}:
-				goo_utils.AsyncFunc(func() {
-					// 检查内存
-					percent, err := goo_utils.MemoryUsedPercent()
-					if err != nil || percent >= s.MaxMemoryPercent {
-						n := rand.Intn(600) + 200
-						s.log().WarnF("内存占用超过最大限制=%0.2f%%，等待%dms后重试", percent, n)
-						time.Sleep(time.Duration(n) * time.Millisecond)
-						<-limitCH
-						return
-					}
-
-					// 获取任务
-					task, err := s.getOneTask()
-					if err != nil || task == nil {
-						time.Sleep(time.Duration(rand.Intn(600)+200) * time.Millisecond)
-						<-limitCH
-						return
-					}
-
-					// 发布任务
-					taskCH <- task
-				})
+			// 1. 检查是否退出
+			if willExit {
+				close(limitCH)
+				break
 			}
+
+			// 2. 检查内存
+			percent, err := goo_utils.MemoryUsedPercent()
+			if err != nil || percent >= s.MaxMemoryPercent {
+				n := rand.Intn(600) + 3000
+				s.log().WarnF("内存占用超过最大限制=%0.2f%%，等待%dms后重试", percent, n)
+				time.Sleep(time.Duration(n) * time.Millisecond)
+				continue
+			}
+
+			// 3. 并发控制
+			wg.Add(1)
+			limitCH <- struct{}{}
+
+			// 4. 执行任务
+			goo_utils.AsyncFunc(func() {
+				defer wg.Done()
+
+				// 获取任务
+				task, err := s.getOneTask()
+				if err != nil || task == nil {
+					time.Sleep(time.Duration(rand.Intn(600)+200) * time.Millisecond)
+					<-limitCH
+					return
+				}
+
+				// 发布任务
+				taskCH <- task
+			})
 		}
+
+		wg.Wait()
+
+		close(taskCH)
 	})
 
 	// 监听退出信号
@@ -152,13 +160,15 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 		s.r.HDel(s.TaskWorkersKey, s.workId())
 	}, func() {
 		// 关闭管道
-		close(taskCH)
-		close(limitCH)
 		close(done)
 	})
 }
 
 func (s *TaskQueueSubscriber) taskHandle(task *Task, handler TaskQueueHandler) {
+	if task == nil {
+		return
+	}
+
 	// 追踪ID
 	traceId := goo_utils.UUID()
 
@@ -166,7 +176,13 @@ func (s *TaskQueueSubscriber) taskHandle(task *Task, handler TaskQueueHandler) {
 	log := func() *goo_log.Entry {
 		return s.log().WithTag("taskHandle").WithField("trace-id", traceId).WithField("task_id", task.Id)
 	}
-	log().WithField("task", task).Info("获取任务")
+
+	percent, err := goo_utils.MemoryUsedPercent()
+	if err != nil {
+		log().WithField("task", task).ErrorF("获取任务，获取内存失败: %s", err.Error())
+	} else {
+		log().WithField("task", task).InfoF("获取任务，内存占用=%0.2f%%", percent)
+	}
 
 	// 上下文
 	ctx := context.Background()
@@ -177,7 +193,7 @@ func (s *TaskQueueSubscriber) taskHandle(task *Task, handler TaskQueueHandler) {
 	defer cancel()
 
 	// 任务执行
-	err := handler(ctx, task)
+	err = handler(ctx, task)
 
 	// 执行成功
 	if err == nil {
