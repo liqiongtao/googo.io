@@ -2,9 +2,16 @@ package goo_utils
 
 import (
 	"bytes"
+	"encoding/json"
 	"strings"
 	"unicode"
 )
+
+func Str2Struct[T any](str string) (T, error) {
+	var v T
+	err := json.Unmarshal([]byte(str), &v)
+	return v, err
+}
 
 // 多字符切割，默认支持逗号，分号，\n
 func Split(s string, rs ...rune) []string {
