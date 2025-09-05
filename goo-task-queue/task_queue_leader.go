@@ -96,7 +96,7 @@ func (l *TaskQueueLeader) recover() error {
 			// 删除执行队列
 			pi.ZRem(l.TaskProcessingKey, taskId)
 			// 添加待执行队列
-			pi.ZAdd(l.TaskPendingKey, redis.Z{Member: taskId, Score: float64(time.Now().Unix()) + float64(rand.Intn(120)+60)})
+			pi.ZAdd(l.TaskPendingKey, redis.Z{Member: taskId, Score: float64(time.Now().Unix()) + float64(rand.Intn(60)+60)})
 
 			if _, err := pi.Exec(); err != nil {
 				l.log().WithTag("retry").Error(err)
