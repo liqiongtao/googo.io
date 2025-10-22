@@ -10,11 +10,11 @@ import (
 )
 
 type Cron struct {
-	c *cron.Cron
+	*cron.Cron
 }
 
 func New(opts ...cron.Option) *Cron {
-	return &Cron{c: cron.New(opts...)}
+	return &Cron{cron.New(opts...)}
 }
 
 func Default() *Cron {
@@ -22,19 +22,23 @@ func Default() *Cron {
 }
 
 func (c *Cron) Run() {
-	c.c.Start()
+	c.Start()
 
 	<-goo_context.WithCancel().Done()
 	goo_log.WithTag("goo-cron").Debug("系统退出，等待全部任务执行结束...")
 
-	<-c.c.Stop().Done()
+	for _, entry := range c.Cron.Entries() {
+		c.Cron.Remove(entry.ID)
+	}
+
+	<-c.Cron.Stop().Done()
 	goo_log.WithTag("goo-cron").Debug("系统退出成功，全部任务执行结束")
 
 	time.Sleep(time.Second)
 }
 
 func (c *Cron) Start() {
-	c.c.Start()
+	c.Cron.Start()
 }
 
 func (c *Cron) Stop() context.Context {
@@ -43,7 +47,11 @@ func (c *Cron) Stop() context.Context {
 		<-goo_context.WithCancel().Done()
 		goo_log.WithTag("goo-cron").Debug("系统退出，等待全部任务执行结束...")
 
-		<-c.c.Stop().Done()
+		for _, entry := range c.Cron.Entries() {
+			c.Cron.Remove(entry.ID)
+		}
+
+		<-c.Cron.Stop().Done()
 		goo_log.WithTag("goo-cron").Debug("系统退出成功，全部任务执行结束")
 
 		time.Sleep(time.Second)
@@ -55,14 +63,14 @@ func (c *Cron) Stop() context.Context {
 
 func (c *Cron) AddFunc(spec string, fn ...func()) *Cron {
 	for _, f := range fn {
-		c.c.AddFunc(spec, f)
+		c.Cron.AddFunc(spec, f)
 	}
 	return c
 }
 
 func (c *Cron) AddJob(spec string, job ...cron.Job) *Cron {
 	for _, j := range job {
-		c.c.AddJob(spec, j)
+		c.Cron.AddJob(spec, j)
 	}
 	return c
 }
