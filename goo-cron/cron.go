@@ -9,19 +9,19 @@ import (
 	"time"
 )
 
-type Crontab struct {
+type Cron struct {
 	c *cron.Cron
 }
 
-func New(opts ...cron.Option) *Crontab {
-	return &Crontab{c: cron.New(opts...)}
+func New(opts ...cron.Option) *Cron {
+	return &Cron{c: cron.New(opts...)}
 }
 
-func Default() *Crontab {
+func Default() *Cron {
 	return New(cron.WithSeconds())
 }
 
-func (c *Crontab) Run() {
+func (c *Cron) Run() {
 	c.c.Start()
 
 	<-goo_context.WithCancel().Done()
@@ -33,11 +33,11 @@ func (c *Crontab) Run() {
 	time.Sleep(time.Second)
 }
 
-func (c *Crontab) Start() {
+func (c *Cron) Start() {
 	c.c.Start()
 }
 
-func (c *Crontab) Stop() context.Context {
+func (c *Cron) Stop() context.Context {
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
 		<-goo_context.WithCancel().Done()
@@ -53,14 +53,14 @@ func (c *Crontab) Stop() context.Context {
 	return ctx
 }
 
-func (c *Crontab) AddFunc(spec string, fn ...func()) *Crontab {
+func (c *Cron) AddFunc(spec string, fn ...func()) *Cron {
 	for _, f := range fn {
 		c.c.AddFunc(spec, f)
 	}
 	return c
 }
 
-func (c *Crontab) AddJob(spec string, job ...cron.Job) *Crontab {
+func (c *Cron) AddJob(spec string, job ...cron.Job) *Cron {
 	for _, j := range job {
 		c.c.AddJob(spec, j)
 	}
@@ -68,46 +68,46 @@ func (c *Crontab) AddJob(spec string, job ...cron.Job) *Crontab {
 }
 
 // 每天0点0分0秒执行
-func (c *Crontab) Day(fn ...func()) *Crontab {
+func (c *Cron) Day(fn ...func()) *Cron {
 	return c.AddFunc("0 0 0 * * *", fn...)
 }
 
 // 每天x点0分0秒执行
-func (c *Crontab) DayHour(hour int, fn ...func()) *Crontab {
+func (c *Cron) DayHour(hour int, fn ...func()) *Cron {
 	return c.AddFunc(fmt.Sprintf("0 0 %d * * *", hour), fn...)
 }
 
 // 每天x点x分0秒执行
-func (c *Crontab) DayHourMinute(hour, minute int, fn ...func()) *Crontab {
+func (c *Cron) DayHourMinute(hour, minute int, fn ...func()) *Cron {
 	return c.AddFunc(fmt.Sprintf("0 %d %d * * *", minute, hour), fn...)
 }
 
 // 每小时执行
-func (c *Crontab) Hour(fn ...func()) *Crontab {
+func (c *Cron) Hour(fn ...func()) *Cron {
 	return c.AddFunc("0 0 */1 * * *", fn...)
 }
 
 // 每隔x小时执行
-func (c *Crontab) HourX(x int, fn ...func()) *Crontab {
+func (c *Cron) HourX(x int, fn ...func()) *Cron {
 	return c.AddFunc(fmt.Sprintf("0 0 */%d * * *", x), fn...)
 }
 
 // 每分钟执行
-func (c *Crontab) Minute(fn ...func()) *Crontab {
+func (c *Cron) Minute(fn ...func()) *Cron {
 	return c.AddFunc("0 */1 * * * *", fn...)
 }
 
 // 每隔x分钟执行
-func (c *Crontab) MinuteX(x int, fn ...func()) *Crontab {
+func (c *Cron) MinuteX(x int, fn ...func()) *Cron {
 	return c.AddFunc(fmt.Sprintf("0 */%d * * * *", x), fn...)
 }
 
 // 每秒钟执行
-func (c *Crontab) Second(fn ...func()) *Crontab {
+func (c *Cron) Second(fn ...func()) *Cron {
 	return c.AddFunc("* * * * * *", fn...)
 }
 
 // 每隔x秒执行
-func (c *Crontab) SecondX(x int, fn ...func()) *Crontab {
+func (c *Cron) SecondX(x int, fn ...func()) *Cron {
 	return c.AddFunc(fmt.Sprintf("*/%d * * * * *", x), fn...)
 }
