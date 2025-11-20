@@ -32,5 +32,5 @@ func Run() {
 		}
 	}()
 
-	goo_log.InfoF("pprof 已启动:\n开始执行分析: kill -USR1 %d\n结束执行分析: kill -USR2 %d\n", os.Getpid(), os.Getpid())
+	goo_log.InfoF("pprof 已启动\n开始执行分析: kill -USR1 %d\n结束执行分析: kill -USR2 %d\n", os.Getpid(), os.Getpid())
 }
