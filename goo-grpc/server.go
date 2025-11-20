@@ -3,9 +3,11 @@ package goo_grpc
 import (
 	"errors"
 	"fmt"
+
 	"github.com/liqiongtao/googo.io/goo"
+	goo_pprof "github.com/liqiongtao/googo.io/goo-pprof"
+
 	"io/ioutil"
-	"log"
 	"net"
 	"os"
 	"os/signal"
@@ -27,7 +29,7 @@ type Server struct {
 
 	lis net.Listener
 
-	pprof *PProf
+	pprof *goo_pprof.PProf
 }
 
 var defaultServerOptions serverOptions
@@ -172,18 +174,15 @@ func (s *Server) handleSignal() {
 // 开启分析监控
 func (s *Server) pprofStart() {
 	if s.pprof == nil {
-		s.pprof = newPProf()
+		s.pprof = goo_pprof.New()
 	}
-	s.pprof.start()
-	log.Println("pprof running")
+	s.pprof.Start()
 }
 
 // 停止分析监控
 func (s *Server) pprofStop() {
 	if s.pprof != nil {
-		s.pprof.stop()
-		log.Println("pprof stopped, dump files:", s.pprof.cpuFile, s.pprof.memoryFile,
-			s.pprof.goroutineFile, s.pprof.mutexFile, s.pprof.blockFile)
+		s.pprof.Stop()
 	}
 	s.pprof = nil
 }
