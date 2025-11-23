@@ -1,11 +1,12 @@
 package goo_es
 
 import (
-	"github.com/elastic/go-elasticsearch/v7"
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	"net"
 	"net/http"
 	"time"
+
+	"github.com/elastic/go-elasticsearch/v7"
+	goo_log "github.com/liqiongtao/googo.io/goo-log"
 )
 
 var __client *ESClient
@@ -37,5 +38,5 @@ func New(conf Config) (*ESClient, error) {
 		return nil, err
 	}
 
-	return &ESClient{cli}, nil
+	return &ESClient{cli: cli}, nil
 }

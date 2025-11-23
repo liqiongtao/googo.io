@@ -2,9 +2,10 @@ package goo_es
 
 import (
 	"bytes"
+	"io"
+
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
-	"io"
 )
 
 func (c *ESClient) Loop(index []string, filter []goo_utils.M, fn func(p goo_utils.Params) error) {
@@ -13,7 +14,9 @@ func (c *ESClient) Loop(index []string, filter []goo_utils.M, fn func(p goo_util
 		_, list := c.Query(index, filter, n*size, size)
 		l := len(list)
 
-		goo_log.Debug("[ES]", "查询数量", l, n, n*size, size)
+		if c.showLog {
+			goo_log.Debug("[ES]", "查询数量", l, n, n*size, size)
+		}
 
 		if l == 0 {
 			return
@@ -69,7 +72,9 @@ func (c *ESClient) LoopV2(index []string, m goo_utils.M, fn func(p goo_utils.Par
 		_, list := c.QueryV2(index, m)
 		l := len(list)
 
-		goo_log.Debug("[ES]", "查询数量", l, n, n*size, size)
+		if c.showLog {
+			goo_log.Debug("[ES]", "查询数量", l, n, n*size, size)
+		}
 
 		if l == 0 {
 			return
