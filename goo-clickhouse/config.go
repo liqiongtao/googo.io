@@ -1,6 +1,7 @@
 package goo_clickhouse
 
 type Config struct {
+	Name         string `yaml:"name" json:"name"`
 	Driver       string `yaml:"driver" json:"driver"`
 	Addr         string `yaml:"addr" json:"addr"`
 	User         string `yaml:"user" json:"user"`

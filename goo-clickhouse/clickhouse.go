@@ -1,20 +1,59 @@
 package goo_clickhouse
 
 import (
-	"database/sql"
-	"time"
+	goo_log "github.com/liqiongtao/googo.io/goo-log"
 )
 
-var __client *client
+var __clients = map[string]*Client{}
 
-func Init(conf Config) {
-	var err error
-	if __client, err = New(conf); err != nil {
-		time.Sleep(10 * time.Second)
-		Init(conf)
+func Init(configs ...Config) (err error) {
+	for _, conf := range configs {
+		name := conf.Name
+		if name == "" {
+			name = "default"
+		}
+
+		__clients[name], err = New(conf)
+		if err != nil {
+			return
+		}
 	}
+	return
 }
 
-func DB() *sql.DB {
-	return __client.db
+func GetClient(names ...string) *Client {
+	name := "default"
+	if l := len(names); l > 0 {
+		name = names[0]
+	}
+
+	if cli, ok := __clients[name]; ok {
+		return cli
+	}
+
+	if l := len(__clients); l == 1 {
+		for _, cli := range __clients {
+			return cli
+		}
+	}
+
+	goo_log.WithTag("goo-clickhouse").Error("no default db client")
+
+	return nil
+}
+
+func Default() *Client {
+	if cli, ok := __clients["default"]; ok {
+		return cli
+	}
+
+	if l := len(__clients); l == 1 {
+		for _, cli := range __clients {
+			return cli
+		}
+	}
+
+	goo_log.WithTag("goo-clickhouse").Error("no default db client")
+
+	return nil
 }
