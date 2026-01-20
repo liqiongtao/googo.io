@@ -13,7 +13,8 @@ import (
 type Key string
 
 const (
-	TraceIdKey Key = "trace_id"
+	TraceIdKey     Key = "trace_id"
+	ServiceNameKey Key = "service_name"
 )
 
 func Default(ctx context.Context) context.Context {
@@ -58,32 +59,32 @@ func ValueWithDefault[T any](ctx context.Context, key string, defValue any) T {
 	return zero
 }
 
-func StringValue(ctx context.Context, key string, value string) string {
-	return ValueWithDefault[string](ctx, key, value)
+func ValueString(ctx context.Context, key string) string {
+	return ValueWithDefault[string](ctx, key, "")
 }
 
-func Int64Value(ctx context.Context, key string, value string) int64 {
-	return ValueWithDefault[int64](ctx, key, value)
+func ValueInt64(ctx context.Context, key string) int64 {
+	return ValueWithDefault[int64](ctx, key, 0)
 }
 
-func Int32Value(ctx context.Context, key string, value string) int32 {
-	return ValueWithDefault[int32](ctx, key, value)
+func ValueInt32(ctx context.Context, key string) int32 {
+	return ValueWithDefault[int32](ctx, key, 0)
 }
 
-func IntValue(ctx context.Context, key string, value string) int {
-	return ValueWithDefault[int](ctx, key, value)
+func ValueInt(ctx context.Context, key string) int {
+	return ValueWithDefault[int](ctx, key, 0)
 }
 
-func Float64Value(ctx context.Context, key string, value string) float64 {
-	return ValueWithDefault[float64](ctx, key, value)
+func ValueFloat64(ctx context.Context, key string) float64 {
+	return ValueWithDefault[float64](ctx, key, 0)
 }
 
-func Float32Value(ctx context.Context, key string, value string) float32 {
-	return ValueWithDefault[float32](ctx, key, value)
+func ValueFloat32(ctx context.Context, key string) float32 {
+	return ValueWithDefault[float32](ctx, key, 0)
 }
 
-func BoolValue(ctx context.Context, key string, value string) bool {
-	return ValueWithDefault[bool](ctx, key, value)
+func ValueBool(ctx context.Context, key string) bool {
+	return ValueWithDefault[bool](ctx, key, false)
 }
 
 func WithTraceId(ctx context.Context, traceId string) context.Context {
@@ -96,6 +97,14 @@ func WithGenerateTraceId(ctx context.Context) context.Context {
 
 func TraceId(ctx context.Context) string {
 	return ValueWithDefault[string](ctx, string(TraceIdKey), "")
+}
+
+func WithServiceName(ctx context.Context, serviceName string) context.Context {
+	return WithValue(ctx, string(ServiceNameKey), serviceName)
+}
+
+func ServiceName(ctx context.Context) string {
+	return ValueWithDefault[string](ctx, string(ServiceNameKey), "")
 }
 
 func WithCancel(ctx context.Context) (context.Context, context.CancelFunc) {
