@@ -24,7 +24,7 @@ func Default(ctx context.Context) context.Context {
 	return ctx
 }
 
-func WithValue[T any](ctx context.Context, key string, value T) context.Context {
+func WithValue(ctx context.Context, key string, value any) context.Context {
 	return context.WithValue(Default(ctx), Key(key), value)
 }
 
