@@ -4,10 +4,12 @@ import (
 	"context"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
 	"github.com/google/uuid"
+	"google.golang.org/grpc/metadata"
 )
 
 type Key string
@@ -42,6 +44,24 @@ func Value[T any](ctx context.Context, key string) (T, bool) {
 
 	val, ok := v.(T)
 	return val, ok
+}
+
+func MetaDataValue(ctx context.Context, key string) []string {
+	if ctx == nil {
+		return []string{}
+	}
+
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return []string{}
+	}
+
+	v, ok := md[key]
+	if !ok {
+		return []string{}
+	}
+
+	return v
 }
 
 func ValueWithDefault[T any](ctx context.Context, key string, defValue any) T {
@@ -96,7 +116,12 @@ func WithGenerateTraceId(ctx context.Context) context.Context {
 }
 
 func TraceId(ctx context.Context) string {
-	return ValueWithDefault[string](ctx, string(TraceIdKey), "")
+	if md, ok := metadata.FromIncomingContext(ctx); ok {
+		if v, ok := md[string(TraceIdKey)]; ok {
+			return strings.Join(v, " ")
+		}
+	}
+	return ValueString(ctx, string(TraceIdKey))
 }
 
 func WithServiceName(ctx context.Context, serviceName string) context.Context {
@@ -104,7 +129,12 @@ func WithServiceName(ctx context.Context, serviceName string) context.Context {
 }
 
 func ServiceName(ctx context.Context) string {
-	return ValueWithDefault[string](ctx, string(ServiceNameKey), "")
+	if md, ok := metadata.FromIncomingContext(ctx); ok {
+		if v, ok := md[string(ServiceNameKey)]; ok {
+			return strings.Join(v, " ")
+		}
+	}
+	return ValueString(ctx, string(ServiceNameKey))
 }
 
 func WithCancel(ctx context.Context) (context.Context, context.CancelFunc) {
