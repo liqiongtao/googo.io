@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	"google.golang.org/grpc/metadata"
 )
 
@@ -175,4 +176,17 @@ func WithSignalNotify(ctx context.Context, signals ...os.Signal) context.Context
 	}()
 
 	return ctx
+}
+
+func Log(ctx context.Context) *goo_log.Entry {
+	log := goo_log.WithField("trace_id", TraceId(ctx))
+
+	if v := ServiceName(ctx); v != "" {
+		log.WithField("service_name", v)
+	}
+	if v := ValueString(ctx, "request_uri"); v != "" {
+		log.WithField("request_uri", v)
+	}
+
+	return log
 }
