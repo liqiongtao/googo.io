@@ -58,6 +58,34 @@ func ValueWithDefault[T any](ctx context.Context, key string, defValue any) T {
 	return zero
 }
 
+func StringValue(ctx context.Context, key string, value string) string {
+	return ValueWithDefault[string](ctx, key, value)
+}
+
+func Int64Value(ctx context.Context, key string, value string) int64 {
+	return ValueWithDefault[int64](ctx, key, value)
+}
+
+func Int32Value(ctx context.Context, key string, value string) int32 {
+	return ValueWithDefault[int32](ctx, key, value)
+}
+
+func IntValue(ctx context.Context, key string, value string) int {
+	return ValueWithDefault[int](ctx, key, value)
+}
+
+func Float64Value(ctx context.Context, key string, value string) float64 {
+	return ValueWithDefault[float64](ctx, key, value)
+}
+
+func Float32Value(ctx context.Context, key string, value string) float32 {
+	return ValueWithDefault[float32](ctx, key, value)
+}
+
+func BoolValue(ctx context.Context, key string, value string) bool {
+	return ValueWithDefault[bool](ctx, key, value)
+}
+
 func WithTraceId(ctx context.Context, traceId string) context.Context {
 	return WithValue(ctx, string(TraceIdKey), traceId)
 }
