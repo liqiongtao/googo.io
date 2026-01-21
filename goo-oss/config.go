@@ -1,5 +1,9 @@
 package goo_oss
 
+import (
+	"fmt"
+)
+
 type Config struct {
 	AccessKeyId     string `json:"access_key_id" yaml:"access_key_id"`
 	AccessKeySecret string `json:"access_key_secret" yaml:"access_key_secret"`
@@ -7,4 +11,8 @@ type Config struct {
 	Bucket          string `json:"bucket" yaml:"bucket"`
 	Domain          string `json:"domain" yaml:"domain"`
 	Prefix          string `json:"prefix" yaml:"prefix"`
+}
+
+func (c Config) BaseUrl() string {
+	return fmt.Sprintf("https://%s.%s", c.Bucket, c.Endpoint)
 }
