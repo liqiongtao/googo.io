@@ -1,12 +1,13 @@
 package goo_task_queue
 
 import (
+	"math/rand"
+	"time"
+
 	"github.com/go-redis/redis"
 	goo_context "github.com/liqiongtao/googo.io/goo-context"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
-	"math/rand"
-	"time"
 )
 
 type TaskQueueLeader struct {
@@ -145,5 +146,5 @@ func (l *TaskQueueLeader) expire() bool {
 }
 
 func (l *TaskQueueLeader) log() *goo_log.Entry {
-	return goo_log.WithTag("goo-task-queue-leader")
+	return goo_log.WithTag("goo-task-queue-leader", l.pid)
 }

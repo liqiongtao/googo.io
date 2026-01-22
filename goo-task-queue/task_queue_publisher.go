@@ -3,9 +3,10 @@ package goo_task_queue
 import (
 	"errors"
 	"fmt"
+	"time"
+
 	"github.com/go-redis/redis"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
-	"time"
 )
 
 type TaskQueuePublisher struct {
@@ -58,5 +59,5 @@ func (p *TaskQueuePublisher) Publish(tasks ...*Task) error {
 }
 
 func (p *TaskQueuePublisher) log() *goo_log.Entry {
-	return goo_log.WithTag("goo-task-queue-publish")
+	return goo_log.WithTag("goo-task-queue-publish", p.pid)
 }

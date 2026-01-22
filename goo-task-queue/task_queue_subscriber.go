@@ -77,7 +77,10 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 	goo_utils.AsyncFunc(func() {
 		defer func() { done <- struct{}{} }()
 
-		var wg sync.WaitGroup
+		var (
+			wg  sync.WaitGroup
+			cnt int
+		)
 
 		for {
 			task, ok := <-taskCH
@@ -85,12 +88,15 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 				break
 			}
 
+			cnt++
 			wg.Add(1)
 
 			goo_utils.AsyncFunc(func() {
 				defer func() {
 					<-limitCH
+					cnt--
 					wg.Done()
+					s.log().InfoF("剩余 %d 任务正在执行", cnt)
 				}()
 
 				// 执行任务
@@ -100,7 +106,7 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 
 		wg.Wait()
 
-		s.log().Info("任务执行完毕，任务执行退出")
+		s.log().Info("全部任务执行完毕，执行退出")
 	})
 
 	// 获取任务
@@ -193,31 +199,33 @@ func (s *TaskQueueSubscriber) taskHandle(task *Task, handler TaskQueueHandler) {
 	ctx, cancel := context.WithTimeout(ctx, time.Second*time.Duration(task.Timeout))
 	defer cancel()
 
+	startTime := time.Now()
+
 	// 任务执行
 	err = handler(ctx, task)
 
 	// 执行成功
 	if err == nil {
-		log().InfoF("执行任务成功(%d/%d)", task.RetryTimes, task.MaxRetry)
+		log().WithField("执行时长", time.Since(startTime).Seconds()).InfoF("执行任务成功(%d/%d)", task.RetryTimes, task.MaxRetry)
 		s.TaskQueueTasks.taskDel(task.Id)
 		return
 	}
 
 	// 任务执行超时
 	if errors.Is(err, context.DeadlineExceeded) {
-		log().WarnF("执行任务超时, 准备重试(%d/%d)", task.RetryTimes, task.MaxRetry)
+		log().WithField("执行时长", time.Since(startTime).Seconds()).WarnF("执行任务超时, 准备重试(%d/%d)", task.RetryTimes, task.MaxRetry)
 		s.retry(task)
 		return
 	}
 
 	// 达到最大执行次数
 	if task.MaxRetry != 0 && task.RetryTimes >= task.MaxRetry {
-		log().WarnF("执行任务失败，达到最大重试次数(%d/%d)", task.RetryTimes, task.MaxRetry)
+		log().WithField("执行时长", time.Since(startTime).Seconds()).WarnF("执行任务失败，达到最大重试次数(%d/%d)", task.RetryTimes, task.MaxRetry)
 		s.taskFail(task)
 		return
 	}
 
-	log().WarnF("执行任务失败，重试(%d/%d)", task.RetryTimes, task.MaxRetry)
+	log().WithField("执行时长", time.Since(startTime).Seconds()).WarnF("执行任务失败，重试(%d/%d)", task.RetryTimes, task.MaxRetry)
 
 	// 增加重试次数
 	s.retry(task)
@@ -288,5 +296,5 @@ func (s *TaskQueueSubscriber) heartBeat() {
 }
 
 func (s *TaskQueueSubscriber) log() *goo_log.Entry {
-	return goo_log.WithTag("goo-task-queue-subscribe")
+	return goo_log.WithTag("goo-task-queue-subscribe", s.pid)
 }

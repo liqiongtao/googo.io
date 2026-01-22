@@ -1,14 +1,18 @@
 package goo_task_queue
 
 import (
+	"math/rand"
+	"os"
+	"strconv"
+	"time"
+
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	goo_redis "github.com/liqiongtao/googo.io/goo-redis"
-	"math/rand"
-	"time"
 )
 
 type TaskQueue struct {
-	r *goo_redis.Client
+	pid string
+	r   *goo_redis.Client
 
 	*TaskQueueKeys
 	*TaskQueueCount
@@ -31,6 +35,7 @@ func New(r *goo_redis.Client) *TaskQueue {
 	}
 
 	q := &TaskQueue{
+		pid:              strconv.Itoa(os.Getpid()),
 		r:                r,
 		TaskQueueKeys:    keys,
 		MaxMemoryPercent: 90,
@@ -60,5 +65,5 @@ func (q *TaskQueue) Subscribe(limit int, handler TaskQueueHandler) {
 }
 
 func (q *TaskQueue) log() *goo_log.Entry {
-	return goo_log.WithTag("goo-task-queue")
+	return goo_log.WithTag("goo-task-queue", q.pid)
 }

@@ -3,9 +3,10 @@ package goo_task_queue
 import (
 	"errors"
 	"fmt"
+	"time"
+
 	"github.com/go-redis/redis"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
-	"time"
 )
 
 type TaskQueueTasks struct {
@@ -84,5 +85,5 @@ func (t *TaskQueueTasks) taskExists(taskId string) bool {
 }
 
 func (t *TaskQueueTasks) log() *goo_log.Entry {
-	return goo_log.WithTag("goo-task-queue-tasks")
+	return goo_log.WithTag("goo-task-queue-tasks", t.pid)
 }
