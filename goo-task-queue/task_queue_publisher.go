@@ -37,7 +37,9 @@ func (p *TaskQueuePublisher) Publish(tasks ...*Task) error {
 			task.Timeout = 1800 // 默认超时时间 30分钟
 		}
 
-		score := time.Now().Unix()
+		task.Ts = time.Now().Unix()
+
+		score := task.Ts
 		if task.HighPriority == 1 {
 			score = 1
 		}

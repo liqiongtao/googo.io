@@ -2,6 +2,9 @@ package goo_task_queue
 
 import (
 	"encoding/json"
+	"math/rand"
+	"time"
+
 	goo_redis "github.com/liqiongtao/googo.io/goo-redis"
 )
 
@@ -13,6 +16,7 @@ type Task struct {
 	MaxRetry     int    `json:"max_retry,omitempty"`     // 最大重试次数 非必填 默认99次
 	RetryTimes   int    `json:"retry_times,omitempty"`   // 重试次数 非必填 默认0次
 	Timeout      int64  `json:"timeout,omitempty"`       // 任务超时时间 非必填 默认30分钟
+	Ts           int64  `json:"ts,omitempty"`            // 任务时间
 }
 
 func getTaskByCache(r *goo_redis.Client, key string) *Task {
@@ -26,6 +30,11 @@ func getTaskByCache(r *goo_redis.Client, key string) *Task {
 	task.MaxRetry, _ = r.HGet(key, "max_retry").Int()
 	task.RetryTimes, _ = r.HGet(key, "retry_times").Int()
 	task.Timeout, _ = r.HGet(key, "timeout").Int64()
+	task.Ts, _ = r.HGet(key, "ts").Int64()
+
+	if task.Ts == 0 {
+		task.Ts = time.Now().Unix() + int64(rand.Intn(60)+60)
+	}
 
 	if task.MaxRetry == 0 {
 		task.MaxRetry = 99
@@ -46,6 +55,7 @@ func (t *Task) MapData() map[string]interface{} {
 		"max_retry":     t.MaxRetry,
 		"retry_times":   t.RetryTimes,
 		"timeout":       t.Timeout,
+		"ts":            t.Ts,
 	}
 }
 

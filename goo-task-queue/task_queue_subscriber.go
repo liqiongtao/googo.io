@@ -243,7 +243,7 @@ func (s *TaskQueueSubscriber) retry(tasks ...*Task) error {
 		// 删除执行队列
 		pi.ZRem(s.TaskProcessingKey, task.Id)
 		// 添加待执行队列
-		pi.ZAdd(s.TaskPendingKey, redis.Z{Member: task.Id, Score: float64(time.Now().Unix()) + float64(rand.Intn(60)+60)})
+		pi.ZAdd(s.TaskPendingKey, redis.Z{Member: task.Id, Score: float64(task.Ts)})
 	}
 
 	if _, err := pi.Exec(); err != nil {
@@ -262,7 +262,7 @@ func (s *TaskQueueSubscriber) taskFail(tasks ...*Task) error {
 		// 删除执行队列
 		pi.ZRem(s.TaskProcessingKey, task.Id)
 		// 添加失败队列
-		pi.ZAdd(s.TaskFailKey, redis.Z{Member: task.Id, Score: float64(time.Now().Unix())})
+		pi.ZAdd(s.TaskFailKey, redis.Z{Member: task.Id, Score: float64(task.Ts)})
 	}
 
 	if _, err := pi.Exec(); err != nil {
