@@ -4,16 +4,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/go-redis/redis"
-	"github.com/liqiongtao/googo.io/goo"
-	goo_context "github.com/liqiongtao/googo.io/goo-context"
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	"math/rand"
 	"os"
 	"runtime"
 	"sync"
 	"time"
+
+	"github.com/go-redis/redis"
+	"github.com/liqiongtao/googo.io/goo"
+	goo_context "github.com/liqiongtao/googo.io/goo-context"
+	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 )
 
 type TaskQueueHandler func(ctx context.Context, task *Task) error
@@ -197,26 +198,26 @@ func (s *TaskQueueSubscriber) taskHandle(task *Task, handler TaskQueueHandler) {
 
 	// 执行成功
 	if err == nil {
-		log().Info("执行任务成功")
+		log().InfoF("执行任务成功(%d/%d)", task.RetryTimes, task.MaxRetry)
 		s.TaskQueueTasks.taskDel(task.Id)
 		return
 	}
 
 	// 任务执行超时
 	if errors.Is(err, context.DeadlineExceeded) {
-		log().Warn("执行任务超时, 准备重试")
+		log().WarnF("执行任务超时, 准备重试(%d/%d)", task.RetryTimes, task.MaxRetry)
 		s.retry(task)
 		return
 	}
 
 	// 达到最大执行次数
 	if task.MaxRetry != 0 && task.RetryTimes >= task.MaxRetry {
-		log().Warn("执行任务失败，达到最大重试次数")
+		log().WarnF("执行任务失败，达到最大重试次数(%d/%d)", task.RetryTimes, task.MaxRetry)
 		s.taskFail(task)
 		return
 	}
 
-	log().Warn("执行任务失败，重试")
+	log().WarnF("执行任务失败，重试(%d/%d)", task.RetryTimes, task.MaxRetry)
 
 	// 增加重试次数
 	s.retry(task)
