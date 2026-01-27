@@ -2,22 +2,23 @@ package goo_kafka
 
 import (
 	"fmt"
+	"os"
+	"strconv"
+	"time"
+
 	"github.com/IBM/sarama"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	goo_redis "github.com/liqiongtao/googo.io/goo-redis"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
-	"os"
-	"strconv"
-	"time"
 )
 
-type client struct {
+type Client struct {
 	conf Config
 	sarama.Client
 	redis *goo_redis.Client
 }
 
-func (c *client) init() (err error) {
+func (c *Client) init() (err error) {
 	id := strconv.Itoa(os.Getpid())
 	config := sarama.NewConfig()
 
@@ -85,16 +86,110 @@ func (c *client) init() (err error) {
 	return
 }
 
-func (c *client) Close() {
+func (c *Client) Close() {
 	if !c.Client.Closed() {
 		c.Client.Close()
 	}
 }
 
-func (c *client) GetKey(topic, msg string) string {
+func (c *Client) GetKey(topic, msg string) string {
 	return fmt.Sprintf("goo:mq:%s:%s", time.Now().Format("20060102"), goo_utils.MD5([]byte(topic+msg)))
 }
 
-func (c *client) Redis() *goo_redis.Client {
+func (c *Client) Redis() *goo_redis.Client {
 	return c.redis
+}
+
+// 生产者
+func (c *Client) Producer(opts ...Option) IProducer {
+	var focus bool
+	for _, opt := range opts {
+		switch opt.Name {
+		case FocusName:
+			focus = opt.Value.(bool)
+		}
+	}
+	return &producer{cli: c, focus: focus}
+}
+
+// 消费者
+func (c *Client) Consumer() IConsumer {
+	return &consumer{cli: c}
+}
+
+// 题列表
+func (c *Client) Topics() []string {
+	topics, err := c.Client.Topics()
+	if err != nil {
+		goo_log.WithTag("goo-kafka").Error(err)
+		return []string{}
+	}
+
+	return topics
+}
+
+// 分区数量
+func (c *Client) Partitions(topic string) []int32 {
+	partitions, err := c.Client.Partitions(topic)
+	if err != nil {
+		goo_log.WithTag("goo-kafka").WithField("topic", topic).Error(err)
+		return []int32{}
+	}
+
+	return partitions
+}
+
+// 分区数量
+func (c *Client) OffsetInfo(topic, groupId string) (data []map[string]int64) {
+	data = []map[string]int64{}
+
+	partitions := Partitions(topic)
+	if l := len(partitions); l == 0 {
+		return
+	}
+
+	var (
+		l = goo_log.WithTag("goo-kafka").WithField("groupId", groupId).WithField("topic", topic)
+	)
+
+	om, err := sarama.NewOffsetManagerFromClient(groupId, c.Client)
+	if err != nil {
+		l.Error(err)
+		return
+	}
+	defer om.Close()
+
+	for _, partition := range partitions {
+		offset, err := c.GetOffset(topic, partition, -1)
+		if err != nil {
+			l.Error(err)
+			continue
+		}
+
+		pom, err := om.ManagePartition(topic, partition)
+		if err != nil {
+			l.Error(err)
+			continue
+		}
+
+		nextOffset, msg := pom.NextOffset()
+		if msg != "" {
+			l.Error(msg)
+			continue
+		}
+
+		backlog := offset
+		if nextOffset != -1 {
+			backlog -= nextOffset
+		}
+
+		data = append(data, map[string]int64{
+			"partition":  int64(partition),
+			"offset":     offset,
+			"nextOffset": nextOffset,
+			"backlog":    backlog,
+		})
+	}
+
+	return
 }

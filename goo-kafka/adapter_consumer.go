@@ -3,15 +3,16 @@ package goo_kafka
 import (
 	"context"
 	"errors"
+	"time"
+
 	"github.com/IBM/sarama"
 	goo_context "github.com/liqiongtao/googo.io/goo-context"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
-	"time"
 )
 
 type consumer struct {
-	*client
+	cli *Client
 
 	hasSetPartition bool  // 是否设置分区
 	partition       int32 // 分区
@@ -20,7 +21,7 @@ type consumer struct {
 }
 
 func (c *consumer) Client() sarama.Client {
-	return c.client.Client
+	return c.cli.Client
 }
 
 // 设置 分区
@@ -104,8 +105,8 @@ func (c *consumer) Consume(topic string, handler ConsumerHandler) {
 
 			// 删除缓存
 			key := string(msg.Key)
-			if c.redis != nil {
-				c.redis.Del(key)
+			if c.cli.redis != nil {
+				c.cli.redis.Del(key)
 			}
 		}
 	}
@@ -117,14 +118,14 @@ func (c *consumer) ConsumeGroup(groupId string, topics []string, handler Consume
 		WithField("groupId", groupId).
 		WithField("topics", topics)
 
-	cg, err := sarama.NewConsumerGroupFromClient(groupId, c.client.Client)
+	cg, err := sarama.NewConsumerGroupFromClient(groupId, c.cli.Client)
 	if err != nil {
 		l.Error(err)
 		return
 	}
 	defer func() {
-		if c.client != nil {
-			c.client.Close()
+		if c.cli != nil {
+			c.cli.Close()
 			l.Debug("client 退出")
 		}
 	}()
@@ -149,7 +150,7 @@ func (c *consumer) ConsumeGroup(groupId string, topics []string, handler Consume
 				}
 
 			default:
-				err := cg.Consume(ctx, topics, group{id: groupId, handler: handler, client: c.client})
+				err := cg.Consume(ctx, topics, group{id: groupId, handler: handler, cli: c.cli})
 				if err != nil && !errors.Is(err, sarama.ErrClosedConsumerGroup) {
 					l.Error(err)
 				}

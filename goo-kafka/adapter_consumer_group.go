@@ -3,15 +3,16 @@ package goo_kafka
 import (
 	"encoding/json"
 	"fmt"
+	"time"
+
 	"github.com/IBM/sarama"
 	goo_context "github.com/liqiongtao/googo.io/goo-context"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
-	"time"
 )
 
 // 分组
 type group struct {
-	*client
+	cli     *Client
 	id      string
 	handler ConsumerHandler
 }
@@ -84,8 +85,8 @@ func (g group) doHandler(msg *sarama.ConsumerMessage, session sarama.ConsumerGro
 		} else {
 			uniqKey = fmt.Sprintf("%s:%s:%s", g.id, msg.Topic, goo_utils.MD5([]byte(g.id+msg.Topic+string(msg.Value))))
 		}
-		if g.redis != nil {
-			ok := g.redis.SetNX(uniqKey, goo_utils.M{
+		if g.cli.redis != nil {
+			ok := g.cli.redis.SetNX(uniqKey, goo_utils.M{
 				"topic":     msg.Topic,
 				"body":      m["body"],
 				"headers":   m["headers"],
@@ -96,14 +97,14 @@ func (g group) doHandler(msg *sarama.ConsumerMessage, session sarama.ConsumerGro
 				return
 			}
 			defer func() {
-				g.redis.Del(uniqKey)
+				g.cli.redis.Del(uniqKey)
 			}()
 		}
 	}
 
 	// 建立缓存
-	if g.redis != nil && key != "" {
-		g.redis.Set(key, goo_utils.M{
+	if g.cli.redis != nil && key != "" {
+		g.cli.redis.Set(key, goo_utils.M{
 			"topic":     msg.Topic,
 			"body":      m["body"],
 			"headers":   m["headers"],
@@ -115,8 +116,8 @@ func (g group) doHandler(msg *sarama.ConsumerMessage, session sarama.ConsumerGro
 	t1 := time.Now()
 	defer func() {
 		// 删除缓存
-		if g.redis != nil && key != "" {
-			g.redis.Expire(key, 5*time.Second)
+		if g.cli.redis != nil && key != "" {
+			g.cli.redis.Expire(key, 5*time.Second)
 		}
 
 		ctx.Log.WithField("执行时间", fmt.Sprintf("%f", float64(time.Now().Sub(t1).Milliseconds())/1e3))

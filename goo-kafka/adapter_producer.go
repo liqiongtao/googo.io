@@ -2,19 +2,20 @@ package goo_kafka
 
 import (
 	"errors"
+	"time"
+
 	"github.com/IBM/sarama"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
-	"time"
 )
 
 type producer struct {
-	*client
+	cli   *Client
 	focus bool // 是否强制发送
 }
 
 func (p *producer) Client() sarama.Client {
-	return p.client.Client
+	return p.cli.Client
 }
 
 // 发送消息 - 同步
@@ -55,15 +56,15 @@ func (p *producer) SendMessage(msg IMessage) (partition int32, offset int64, err
 	}()
 
 	// 添加缓存
-	if p.redis != nil && len(msg.Key()) > 0 {
+	if p.cli.redis != nil && len(msg.Key()) > 0 {
 		if p.focus {
-			p.redis.Del(msg.Key())
+			p.cli.redis.Del(msg.Key())
 		}
-		if p.redis.Exists(msg.Key()).Val() > 0 {
+		if p.cli.redis.Exists(msg.Key()).Val() > 0 {
 			err = errors.New("KEY已存在")
 			return
 		}
-		p.redis.Set(msg.Key(), goo_utils.M{
+		p.cli.redis.Set(msg.Key(), goo_utils.M{
 			"topic":     msg.Topic(),
 			"body":      msg,
 			"headers":   msg.Headers(),
@@ -122,15 +123,15 @@ func (p *producer) SendAsyncMessage(msg IMessage, cb MessageHandler) (err error)
 	}()
 
 	// 添加缓存
-	if p.redis != nil && len(msg.Key()) > 0 {
+	if p.cli.redis != nil && len(msg.Key()) > 0 {
 		if p.focus {
-			p.redis.Del(msg.Key())
+			p.cli.redis.Del(msg.Key())
 		}
-		if p.redis.Exists(msg.Key()).Val() > 0 {
+		if p.cli.redis.Exists(msg.Key()).Val() > 0 {
 			err = errors.New("KEY已存在")
 			return
 		}
-		p.redis.Set(msg.Key(), goo_utils.M{
+		p.cli.redis.Set(msg.Key(), goo_utils.M{
 			"topic":     msg.Topic(),
 			"body":      msg,
 			"headers":   msg.Headers(),
