@@ -2,11 +2,10 @@ package goo_kafka
 
 import (
 	"fmt"
-	"os"
-	"strconv"
 	"time"
 
 	"github.com/IBM/sarama"
+	"github.com/google/uuid"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	goo_redis "github.com/liqiongtao/googo.io/goo-redis"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
@@ -19,7 +18,7 @@ type Client struct {
 }
 
 func (c *Client) init() (err error) {
-	id := strconv.Itoa(os.Getpid())
+	id := uuid.New().String()
 	config := sarama.NewConfig()
 
 	if c.conf.User != "" {
