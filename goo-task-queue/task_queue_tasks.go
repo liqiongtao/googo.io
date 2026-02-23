@@ -15,7 +15,7 @@ type TaskQueueTasks struct {
 
 func (t *TaskQueueTasks) getOneTask() (*Task, error) {
 	luaScript := `
-local tasks = redis.call('ZRANGEBYSCORE', KEYS[1], 0, ARGV[1])
+local tasks = redis.call('ZRANGEBYSCORE', KEYS[1], 0, ARGV[1], 'LIMIT', 0, 1)
 if #tasks == 0 then
 	return nil
 end
@@ -26,6 +26,7 @@ redis.call('ZREM', KEYS[1], member)
 redis.call('ZADD', KEYS[2], ARGV[1], member)
 
 return member
+
 `
 
 	keys := []string{t.TaskPendingKey, t.TaskProcessingKey}
