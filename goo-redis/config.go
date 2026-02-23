@@ -1,5 +1,9 @@
 package goo_redis
 
+import (
+	"github.com/go-redis/redis"
+)
+
 type Config struct {
 	Name     string `yaml:"name" json:"name"`
 	Addr     string `yaml:"addr" json:"addr"`
@@ -7,4 +11,5 @@ type Config struct {
 	DB       int    `yaml:"db" json:"DB"`
 	Prefix   string `yaml:"prefix" json:"prefix"`
 	AutoPing bool   `yaml:"auto_ping" json:"autoPing"`
+	Options  *redis.Options
 }
