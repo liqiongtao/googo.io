@@ -1,8 +1,6 @@
 package goo_redis
 
 import (
-	"time"
-
 	"github.com/go-redis/redis"
 	goo_cron "github.com/liqiongtao/googo.io/goo-cron"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
@@ -20,18 +18,7 @@ func New(conf Config) (cli *Client, err error) {
 	if conf.Options != nil {
 		opts = conf.Options
 	} else {
-		opts = &redis.Options{
-			// 连接池
-			PoolSize:     20,
-			MinIdleConns: 5,
-			PoolTimeout:  30 * time.Second,
-			IdleTimeout:  5 * time.Minute,
-
-			// 超时
-			DialTimeout:  10 * time.Second,
-			ReadTimeout:  30 * time.Second, // 调大读超时
-			WriteTimeout: 10 * time.Second,
-		}
+		opts = DefaultOptions
 	}
 
 	if conf.Addr != "" {
