@@ -23,7 +23,10 @@ func Memory() (float64, float64, float64, error) {
 		goo_log.Error(err)
 		return 0, 0, 0, err
 	}
-	return float64(v.Total) / 1024 / 1024 / 1024, float64(v.Used) / 1024 / 1024 / 1024, float64(v.Available) / 1024 / 1024 / 1024, nil
+	return float64(v.Total) / 1024 / 1024 / 1024,
+		float64(v.Used) / 1024 / 1024 / 1024,
+		float64(v.Available) / 1024 / 1024 / 1024,
+		nil
 }
 
 // 空间
@@ -33,5 +36,8 @@ func Disk() (float64, float64, float64, error) {
 		goo_log.Error(err)
 		return 0, 0, 0, err
 	}
-	return float64(v.Total) / 1024 / 1024 / 1024, float64(v.Used) / 1024 / 1024 / 1024, float64(v.Free) / 1024 / 1024 / 1024, nil
+	return float64(v.Total) / 1024 / 1024 / 1024,
+		float64(v.Used) / 1024 / 1024 / 1024,
+		float64(v.Free) / 1024 / 1024 / 1024,
+		nil
 }
