@@ -2,6 +2,7 @@ package goo_oss
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"strconv"
@@ -52,20 +53,26 @@ func UploadFile(filename, filepath string) (string, error) {
 func GetAppendPosition(objectKey string) (int64, error) {
 	hd, err := __oss.Bucket.GetObjectDetailedMeta(objectKey)
 	if err != nil {
-		switch err.(oss.ServiceError).Code {
-		case "NoSuchKey":
-			return 0, nil
-		default:
-			return 0, err
+		var v oss.ServiceError
+		if errors.As(err, &v) {
+			switch v.Code {
+			case "NoSuchKey":
+				return 0, nil
+			}
 		}
+
+		goo_log.Error(err.Error())
+		return 0, err
 	}
 
 	if hd == nil {
+		goo_log.Error("httpHeader is nil")
 		return 0, fmt.Errorf("httpHeader is nil")
 	}
 
 	position, err := strconv.ParseInt(hd.Get("x-oss-next-append-position"), 10, 64)
 	if err != nil {
+		goo_log.Error(err.Error())
 		return 0, err
 	}
 
