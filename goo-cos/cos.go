@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
 	"path"
 	"strings"
+	"time"
 
 	goo_file "github.com/liqiongtao/googo.io/goo-file"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
@@ -30,7 +32,29 @@ func NewCosClient(cfg CosConfig) *CosClient {
 				SecretID:     cfg.SecretId,
 				SecretKey:    cfg.SecretKey,
 				SessionToken: cfg.SessionToken,
+				Transport: &http.Transport{
+					// 1. 连接复用与超时（核心，防泄露）
+					IdleConnTimeout:       60 * time.Second, // 空闲连接超时：高并发下可适当延长（30s→60s），提升复用率
+					ResponseHeaderTimeout: 15 * time.Second, // 响应头超时：高并发下服务端可能慢，适度放宽（10s→15s）
+					TLSHandshakeTimeout:   10 * time.Second, // TLS 握手超时：高并发下握手可能排队，放宽（5s→10s）
+
+					// 2. 连接建立超时
+					DialContext: (&net.Dialer{
+						Timeout:   10 * time.Second, // 拨号超时：高并发下网络可能拥塞，放宽（5s→10s）
+						KeepAlive: 60 * time.Second, // TCP 保活：保持长连接，提升复用
+					}).DialContext,
+
+					// 3. 连接池大小（高并发核心调优）
+					MaxIdleConns:        1000,  // 全局最大空闲连接：默认100，高并发下需大幅提升（根据QPS调整）
+					MaxIdleConnsPerHost: 200,   // 单Host最大空闲连接：默认2，高并发下必须调高（比如COS域名）
+					MaxConnsPerHost:     500,   // 单Host最大并发连接：默认无限制，限制避免压垮服务端
+					DisableCompression:  false, // 启用压缩：减少传输量，提升高并发下的吞吐量
+
+					// 4. 其他高并发优化
+					ExpectContinueTimeout: 2 * time.Second, // 处理 Expect: 100-Continue 的超时，缩短等待
+				},
 			},
+			Timeout: 30 * time.Second,
 		},
 	)
 
