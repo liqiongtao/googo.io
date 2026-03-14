@@ -53,6 +53,7 @@ func (r *Request) getClient() *http.Client {
 	if r.timeout == 0 {
 		r.timeout = 30 * time.Second
 	}
+
 	client := &http.Client{
 		Timeout: r.timeout,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
