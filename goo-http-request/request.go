@@ -5,14 +5,15 @@ import (
 	"bytes"
 	"crypto/tls"
 	"crypto/x509"
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"os"
 	"path"
 	"time"
+
+	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 )
 
 type Request struct {
@@ -86,6 +87,7 @@ func (r *Request) Do(method, url string, reader io.Reader) (rst []byte, err erro
 	if err != nil {
 		return
 	}
+	defer func() { _ = req.Body.Close() }()
 
 	for k, v := range r.Headers {
 		req.Header.Set(k, v)
@@ -95,8 +97,7 @@ func (r *Request) Do(method, url string, reader io.Reader) (rst []byte, err erro
 	if err != nil {
 		return
 	}
-
-	defer rsp.Body.Close()
+	defer func() { _ = rsp.Body.Close() }()
 
 	var (
 		bf bytes.Buffer
