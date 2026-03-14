@@ -34,7 +34,7 @@ func NewCosClient(cfg CosConfig) *CosClient {
 				SessionToken: cfg.SessionToken,
 				Transport: &http.Transport{
 					// 1. 连接复用与超时（核心，防泄露）
-					IdleConnTimeout:       60 * time.Second, // 空闲连接超时：高并发下可适当延长（30s→60s），提升复用率
+					IdleConnTimeout:       90 * time.Second, // 空闲连接超时：高并发下可适当延长（30s→60s），提升复用率
 					ResponseHeaderTimeout: 15 * time.Second, // 响应头超时：高并发下服务端可能慢，适度放宽（10s→15s）
 					TLSHandshakeTimeout:   10 * time.Second, // TLS 握手超时：高并发下握手可能排队，放宽（5s→10s）
 
