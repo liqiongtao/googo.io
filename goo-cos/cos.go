@@ -3,15 +3,16 @@ package goo_cos
 import (
 	"context"
 	"fmt"
-	goo_file "github.com/liqiongtao/googo.io/goo-file"
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
-	"github.com/tencentyun/cos-go-sdk-v5"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
 	"path"
 	"strings"
+
+	goo_file "github.com/liqiongtao/googo.io/goo-file"
+	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	"github.com/tencentyun/cos-go-sdk-v5"
 )
 
 type CosClient struct {
@@ -46,7 +47,7 @@ func (c *CosClient) Upload(localFileName, objectKey string) error {
 		goo_log.ErrorF("open file %s error: %s", localFileName, err.Error())
 		return err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	// 获取文件大小
 	stat, err := f.Stat()
@@ -56,18 +57,20 @@ func (c *CosClient) Upload(localFileName, objectKey string) error {
 	}
 
 	// 执行上传
-	resp, err := c.Object.Put(context.Background(), objectKey, f, &cos.ObjectPutOptions{
+	rsp, err := c.Object.Put(context.Background(), objectKey, f, &cos.ObjectPutOptions{
 		ObjectPutHeaderOptions: &cos.ObjectPutHeaderOptions{
 			ContentLength: stat.Size(),
 		},
 	})
+	defer func() { _ = rsp.Body.Close() }()
+
 	if err != nil {
 		goo_log.ErrorF("put %s error: %s", objectKey, err.Error())
 		return err
 	}
-	if resp != nil && resp.StatusCode != 200 {
-		goo_log.ErrorF("put %s error, status code: %d", objectKey, resp.StatusCode)
-		return fmt.Errorf("上传文件失败，状态码: %d", resp.StatusCode)
+	if rsp != nil && rsp.StatusCode != 200 {
+		goo_log.ErrorF("put %s error, status code: %d", objectKey, rsp.StatusCode)
+		return fmt.Errorf("上传文件失败，状态码: %d", rsp.StatusCode)
 	}
 
 	return nil
@@ -80,10 +83,12 @@ func (c *CosClient) Download(localFileName, objectKey string) error {
 		return err
 	}
 
-	if _, err := c.Object.GetToFile(context.TODO(), objectKey, localFileName, nil); err != nil {
+	rsp, err := c.Object.GetToFile(context.TODO(), objectKey, localFileName, nil)
+	if err != nil {
 		goo_log.ErrorF("download %s error: %s", objectKey, err.Error())
 		return err
 	}
+	defer func() { _ = rsp.Body.Close() }()
 
 	if !goo_file.Exist(localFileName) {
 		goo_log.ErrorF("download %s error", objectKey)
@@ -105,7 +110,7 @@ func (c *CosClient) Get(objectKey string) ([]byte, error) {
 		goo_log.ErrorF("get %s error: %s", objectKey, err.Error())
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// 读取响应体内容
 	b, err := io.ReadAll(resp.Body)
@@ -158,6 +163,7 @@ func (c *CosClient) Head(objectKey string) (*cos.Response, error) {
 		goo_log.ErrorF("head %s error: %s", objectKey, err.Error())
 		return nil, err
 	}
+	defer func() { _ = rsp.Body.Close() }()
 
 	return rsp, nil
 }
@@ -203,11 +209,12 @@ func (c *CosClient) Copy(sourceObjectKey, targetObjectKey string, targetCosClien
 		targetObjectKey = targetObjectKey[1:]
 	}
 
-	_, _, err := targetCosClient.Object.Copy(context.Background(), targetObjectKey, sourceObjectKey, nil)
+	_, rsp, err := targetCosClient.Object.Copy(context.Background(), targetObjectKey, sourceObjectKey, nil)
 	if err != nil {
 		goo_log.ErrorF("copy %s error: %s", sourceObjectKey, err.Error())
 		return err
 	}
+	defer func() { _ = rsp.Body.Close() }()
 
 	return nil
 }
