@@ -20,6 +20,7 @@ import (
 type Request struct {
 	Headers map[string]string
 	Tls     *Tls
+	client  *http.Client
 	timeout time.Duration
 	debug   bool
 }
@@ -54,11 +55,8 @@ func (r *Request) getClient() *http.Client {
 		r.timeout = 30 * time.Second
 	}
 
-	client := &http.Client{
-		Timeout: r.timeout,
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse
-		},
+	if r.client != nil {
+		return r.client
 	}
 
 	transport := &http.Transport{
@@ -96,8 +94,15 @@ func (r *Request) getClient() *http.Client {
 		}
 	}
 
-	client.Transport = transport
+	client := &http.Client{
+		Timeout: r.timeout,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+		Transport: transport,
+	}
 
+	r.client = client
 	return client
 }
 
@@ -123,26 +128,12 @@ func (r *Request) Do(method, url string, reader io.Reader) (rst []byte, err erro
 	}
 	defer func() { _ = rsp.Body.Close() }()
 
-	var (
-		bf bytes.Buffer
-		n  int
-	)
-
-	for {
-		bts := make([]byte, 1024)
-		n, err = rsp.Body.Read(bts)
-		if err != nil && err != io.EOF {
-			return
-		}
-		if n == 0 {
-			err = nil
-			break
-		}
-
-		bf.Write(bts[:n])
+	var buf bytes.Buffer
+	if _, err = io.Copy(&buf, rsp.Body); err != nil {
+		return
 	}
 
-	rst = bf.Bytes()
+	rst = buf.Bytes()
 
 	return
 }
