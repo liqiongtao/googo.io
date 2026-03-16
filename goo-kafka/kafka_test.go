@@ -17,7 +17,7 @@ var (
 
 type TestMessage struct {
 	Id      int    `json:"id"`
-	TraceId string `json:"trace_id"`
+	TraceId string `json:"trace-id"`
 }
 
 func (t *TestMessage) Topic() string {

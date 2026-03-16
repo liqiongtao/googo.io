@@ -36,7 +36,7 @@ type Controller struct {
 }
 
 func (c Controller) Log(ctx *gin.Context) *goo_log.Entry {
-	return goo_log.WithField("trace_id", goo.RequestId(ctx))
+	return goo_log.WithField("trace-id", goo.RequestId(ctx))
 }
 
 type MyController struct {

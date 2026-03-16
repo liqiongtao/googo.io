@@ -16,8 +16,8 @@ import (
 type Key string
 
 const (
-	TraceIdKey     Key = "trace_id"
-	ServiceNameKey Key = "service_name"
+	TraceIdKey     Key = "trace-id"
+	ServiceNameKey Key = "service-name"
 )
 
 func Default(ctx context.Context) context.Context {
@@ -179,13 +179,13 @@ func WithSignalNotify(ctx context.Context, signals ...os.Signal) context.Context
 }
 
 func Log(ctx context.Context) *goo_log.Entry {
-	log := goo_log.WithField("trace_id", TraceId(ctx))
+	log := goo_log.WithField("trace-id", TraceId(ctx))
 
 	if v := ServiceName(ctx); v != "" {
-		log.WithField("service_name", v)
+		log.WithField("service-name", v)
 	}
-	if v := ValueString(ctx, "request_uri"); v != "" {
-		log.WithField("request_uri", v)
+	if v := ValueString(ctx, "request-uri"); v != "" {
+		log.WithField("request-uri", v)
 	}
 
 	return log

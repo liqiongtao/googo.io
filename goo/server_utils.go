@@ -23,6 +23,9 @@ func RequestId(c *gin.Context) string {
 	if v := c.Query("trace_id"); v != "" {
 		return v
 	}
+	if v := c.Query("trace-id"); v != "" {
+		return v
+	}
 	if v := c.GetString("__trace_id"); v != "" {
 		return v
 	}
