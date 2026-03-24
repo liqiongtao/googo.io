@@ -31,12 +31,20 @@ func (x *xlsxWrite) Handler() *excelize.File {
 	return x.fh
 }
 
+func (x *xlsxWrite) SheetName() string {
+	return x.sheetName
+}
+
 func (x *xlsxWrite) RowNum() int {
 	return x.sheetRowNums[x.sheetName]
 }
 
 func (x *xlsxWrite) SetRowNum(num int) {
 	x.sheetRowNums[x.sheetName] = num
+}
+
+func (x *xlsxWrite) IncrRowNum() {
+	x.sheetRowNums[x.sheetName]++
 }
 
 func (x *xlsxWrite) SetStyle(start, end string, style *excelize.Style) error {
@@ -64,8 +72,10 @@ func (x *xlsxWrite) SetStyleCenter(start, end string) error {
 	return x.SetStyle(start, end, style)
 }
 
-func (x *xlsxWrite) SetMergeCellTitle(start, end, title string) error {
-	x.sheetRowNums[x.sheetName]++
+func (x *xlsxWrite) SetMergeCellValue(start, end string, value any) error {
+	if x.RowNum() == 0 {
+		x.IncrRowNum()
+	}
 
 	left := fmt.Sprintf("%s%d", start, x.RowNum())
 	right := fmt.Sprintf("%s%d", end, x.RowNum())
@@ -74,7 +84,7 @@ func (x *xlsxWrite) SetMergeCellTitle(start, end, title string) error {
 		goo_log.Error(err)
 		return err
 	}
-	if err := x.Handler().SetCellValue(x.sheetName, left, title); err != nil {
+	if err := x.Handler().SetCellValue(x.sheetName, left, value); err != nil {
 		goo_log.Error(err)
 		return err
 	}
@@ -85,7 +95,7 @@ func (x *xlsxWrite) SetMergeCellTitle(start, end, title string) error {
 }
 
 func (x *xlsxWrite) SetTitles(titles []string) error {
-	x.sheetRowNums[x.sheetName]++
+	x.IncrRowNum()
 	if err := x.Handler().SetSheetRow(x.sheetName, fmt.Sprintf("A%d", x.RowNum()), &titles); err != nil {
 		goo_log.Error(err)
 		return err
@@ -94,7 +104,7 @@ func (x *xlsxWrite) SetTitles(titles []string) error {
 }
 
 func (x *xlsxWrite) SetData(data []interface{}) error {
-	x.sheetRowNums[x.sheetName]++
+	x.IncrRowNum()
 	if err := x.Handler().SetSheetRow(x.sheetName, fmt.Sprintf("A%d", x.RowNum()), &data); err != nil {
 		goo_log.Error(err)
 		return err
@@ -104,7 +114,7 @@ func (x *xlsxWrite) SetData(data []interface{}) error {
 
 func (x *xlsxWrite) SetRows(data [][]interface{}) *xlsxWrite {
 	for _, i := range data {
-		x.sheetRowNums[x.sheetName]++
+		x.IncrRowNum()
 		if err := x.Handler().SetSheetRow(x.sheetName, fmt.Sprintf("A%d", x.RowNum()), &i); err != nil {
 			goo_log.Error(err)
 			continue
