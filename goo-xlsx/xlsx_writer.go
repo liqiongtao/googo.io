@@ -2,12 +2,13 @@ package goo_xlsx
 
 import (
 	"fmt"
-	"github.com/gin-gonic/gin"
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
-	"github.com/xuri/excelize/v2"
 	"net/url"
 	"os"
 	"strconv"
+
+	"github.com/gin-gonic/gin"
+	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	"github.com/xuri/excelize/v2"
 )
 
 func Writer() *xlsxWrite {
@@ -30,9 +31,62 @@ func (x *xlsxWrite) Handler() *excelize.File {
 	return x.fh
 }
 
+func (x *xlsxWrite) RowNum() int {
+	return x.sheetRowNums[x.sheetName]
+}
+
+func (x *xlsxWrite) SetRowNum(num int) {
+	x.sheetRowNums[x.sheetName] = num
+}
+
+func (x *xlsxWrite) SetStyle(start, end string, style *excelize.Style) error {
+	left := fmt.Sprintf("%s%d", start, x.RowNum())
+	right := fmt.Sprintf("%s%d", end, x.RowNum())
+
+	styleId, _ := x.Handler().NewStyle(style)
+
+	return x.Handler().SetCellStyle(x.sheetName, left, right, styleId)
+}
+
+func (x *xlsxWrite) SetStyleCenter(start, end string) error {
+	style := &excelize.Style{
+		Alignment: &excelize.Alignment{
+			Horizontal: "center", // 水平居中
+			Vertical:   "center", // 垂直居中
+			WrapText:   true,     // 自动换行（可选）
+		},
+		//Font: &excelize.Font{
+		//	Size:  16,       // 字体大小
+		//	Color: "000000", // 字体颜色（十六进制，FF0000=红色）
+		//	Bold:  true,     // 是否加粗（可选）
+		//},
+	}
+	return x.SetStyle(start, end, style)
+}
+
+func (x *xlsxWrite) SetMergeCellTitle(start, end, title string) error {
+	x.sheetRowNums[x.sheetName]++
+
+	left := fmt.Sprintf("%s%d", start, x.RowNum())
+	right := fmt.Sprintf("%s%d", end, x.RowNum())
+
+	if err := x.Handler().MergeCell(x.sheetName, left, right); err != nil {
+		goo_log.Error(err)
+		return err
+	}
+	if err := x.Handler().SetCellValue(x.sheetName, left, title); err != nil {
+		goo_log.Error(err)
+		return err
+	}
+
+	x.SetStyleCenter(start, end)
+
+	return nil
+}
+
 func (x *xlsxWrite) SetTitles(titles []string) error {
 	x.sheetRowNums[x.sheetName]++
-	if err := x.fh.SetSheetRow(x.sheetName, fmt.Sprintf("A%d", x.sheetRowNums[x.sheetName]), &titles); err != nil {
+	if err := x.Handler().SetSheetRow(x.sheetName, fmt.Sprintf("A%d", x.RowNum()), &titles); err != nil {
 		goo_log.Error(err)
 		return err
 	}
@@ -41,7 +95,7 @@ func (x *xlsxWrite) SetTitles(titles []string) error {
 
 func (x *xlsxWrite) SetData(data []interface{}) error {
 	x.sheetRowNums[x.sheetName]++
-	if err := x.fh.SetSheetRow(x.sheetName, fmt.Sprintf("A%d", x.sheetRowNums[x.sheetName]), &data); err != nil {
+	if err := x.Handler().SetSheetRow(x.sheetName, fmt.Sprintf("A%d", x.RowNum()), &data); err != nil {
 		goo_log.Error(err)
 		return err
 	}
@@ -51,7 +105,7 @@ func (x *xlsxWrite) SetData(data []interface{}) error {
 func (x *xlsxWrite) SetRows(data [][]interface{}) *xlsxWrite {
 	for _, i := range data {
 		x.sheetRowNums[x.sheetName]++
-		if err := x.fh.SetSheetRow(x.sheetName, fmt.Sprintf("A%d", x.sheetRowNums[x.sheetName]), &i); err != nil {
+		if err := x.Handler().SetSheetRow(x.sheetName, fmt.Sprintf("A%d", x.RowNum()), &i); err != nil {
 			goo_log.Error(err)
 			continue
 		}
@@ -60,7 +114,7 @@ func (x *xlsxWrite) SetRows(data [][]interface{}) *xlsxWrite {
 }
 
 func (x *xlsxWrite) SetSheetName(sheetName string) *xlsxWrite {
-	x.fh.NewSheet(sheetName)
+	_, _ = x.Handler().NewSheet(sheetName)
 	x.sheetName = sheetName
 	x.sheetRowNums[sheetName] = 0
 	return x
@@ -68,22 +122,21 @@ func (x *xlsxWrite) SetSheetName(sheetName string) *xlsxWrite {
 
 func (x *xlsxWrite) Save2File(filename string) (err error) {
 	if x.sheetRowNums["Sheet1"] == 0 {
-		x.fh.DeleteSheet("Sheet1")
+		_ = x.Handler().DeleteSheet("Sheet1")
 	}
 
-	if err = x.fh.SaveAs(filename); err != nil {
+	if err = x.Handler().SaveAs(filename); err != nil {
 		goo_log.Error(err)
 		return
 	}
+	defer func() { _ = x.Handler().Close() }()
 
 	return nil
 }
 
 func (x *xlsxWrite) Output(ctx *gin.Context, filename string) (err error) {
 	tmpFile := fmt.Sprintf("/tmp/%s", filename)
-	defer func() {
-		os.Remove(tmpFile)
-	}()
+	defer func() { _ = os.Remove(tmpFile) }()
 
 	if err = x.Save2File(tmpFile); err != nil {
 		return err

@@ -8,6 +8,9 @@ func TestXlsxWrite_Handler(t *testing.T) {
 	w := Writer()
 
 	w.SetSheetName("数据导出")
+
+	w.SetMergeCellTitle("A", "D", "合并单元格标题")
+
 	w.SetTitles([]string{"姓名", "手机号"})
 	w.SetData([]interface{}{"李涛", "18510381580"})
 
