@@ -47,16 +47,12 @@ func (x *xlsxWrite) IncrRowNum() {
 	x.sheetRowNums[x.sheetName]++
 }
 
-func (x *xlsxWrite) SetStyle(start, end string, style *excelize.Style) error {
-	left := fmt.Sprintf("%s%d", start, x.RowNum())
-	right := fmt.Sprintf("%s%d", end, x.RowNum())
-
+func (x *xlsxWrite) SetStyle(left, right string, style *excelize.Style) error {
 	styleId, _ := x.Handler().NewStyle(style)
-
 	return x.Handler().SetCellStyle(x.sheetName, left, right, styleId)
 }
 
-func (x *xlsxWrite) SetStyleCenter(start, end string) error {
+func (x *xlsxWrite) SetStyleCenter(left, right string) error {
 	style := &excelize.Style{
 		Alignment: &excelize.Alignment{
 			Horizontal: "center", // 水平居中
@@ -69,16 +65,13 @@ func (x *xlsxWrite) SetStyleCenter(start, end string) error {
 		//	Bold:  true,     // 是否加粗（可选）
 		//},
 	}
-	return x.SetStyle(start, end, style)
+	return x.SetStyle(left, right, style)
 }
 
-func (x *xlsxWrite) SetMergeCellValue(start, end string, value any) error {
+func (x *xlsxWrite) SetMergeCellValue(left, right string, value any) error {
 	if x.RowNum() == 0 {
 		x.IncrRowNum()
 	}
-
-	left := fmt.Sprintf("%s%d", start, x.RowNum())
-	right := fmt.Sprintf("%s%d", end, x.RowNum())
 
 	if err := x.Handler().MergeCell(x.sheetName, left, right); err != nil {
 		goo_log.Error(err)
@@ -89,7 +82,7 @@ func (x *xlsxWrite) SetMergeCellValue(start, end string, value any) error {
 		return err
 	}
 
-	x.SetStyleCenter(start, end)
+	x.SetStyleCenter(left, right)
 
 	return nil
 }
