@@ -117,19 +117,19 @@ func (x *xlsxWrite) SetMergeCellValue(left, right string, value any, styles ...*
 	return nil
 }
 
-func (x *xlsxWrite) SetTitles(titles []string, styles ...*excelize.Style) (left string, right string, err error) {
+func (x *xlsxWrite) SetTitles(titles []string, styles ...*excelize.Style) error {
 	x.IncrRowNum()
 
-	left = fmt.Sprintf("A%d", x.RowNum())
+	left := fmt.Sprintf("A%d", x.RowNum())
 
-	if err = x.Handler().SetSheetRow(x.sheetName, left, &titles); err != nil {
+	if err := x.Handler().SetSheetRow(x.sheetName, left, &titles); err != nil {
 		goo_log.Error(err)
-		return
+		return err
 	}
 
 	if l := len(titles); l > 0 {
 		columns := generateColumns(l)
-		right = fmt.Sprintf("%s%d", columns[l-1], x.RowNum())
+		right := fmt.Sprintf("%s%d", columns[l-1], x.RowNum())
 
 		if len(styles) == 0 {
 			styles = append(styles, defaultTitleStyle)
@@ -138,22 +138,22 @@ func (x *xlsxWrite) SetTitles(titles []string, styles ...*excelize.Style) (left 
 		_ = x.SetStyle(left, right, styles[0])
 	}
 
-	return
+	return nil
 }
 
-func (x *xlsxWrite) SetData(data []interface{}, styles ...*excelize.Style) (left string, right string, err error) {
+func (x *xlsxWrite) SetData(data []interface{}, styles ...*excelize.Style) error {
 	x.IncrRowNum()
 
-	left = fmt.Sprintf("A%d", x.RowNum())
+	left := fmt.Sprintf("A%d", x.RowNum())
 
-	if err = x.Handler().SetSheetRow(x.sheetName, left, &data); err != nil {
+	if err := x.Handler().SetSheetRow(x.sheetName, left, &data); err != nil {
 		goo_log.Error(err)
-		return
+		return err
 	}
 
 	if l := len(data); l > 0 {
 		columns := generateColumns(l)
-		right = fmt.Sprintf("%s%d", columns[l-1], x.RowNum())
+		right := fmt.Sprintf("%s%d", columns[l-1], x.RowNum())
 
 		if len(styles) == 0 {
 			styles = append(styles, defaultTitleStyle)
@@ -162,7 +162,7 @@ func (x *xlsxWrite) SetData(data []interface{}, styles ...*excelize.Style) (left
 		_ = x.SetStyle(left, right, styles[0])
 	}
 
-	return
+	return nil
 }
 
 func (x *xlsxWrite) SetRows(data [][]interface{}, styles ...*excelize.Style) *xlsxWrite {
