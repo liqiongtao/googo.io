@@ -94,7 +94,7 @@ func (x *xlsxWrite) SetStyle(left, right string, style *excelize.Style) error {
 	return x.Handler().SetCellStyle(x.sheetName, left, right, styleId)
 }
 
-func (x *xlsxWrite) SetMergeCellValue(left, right string, value any) error {
+func (x *xlsxWrite) SetMergeCellValue(left, right string, value any, styles ...*excelize.Style) error {
 	if x.RowNum() == 0 {
 		x.IncrRowNum()
 	}
@@ -108,12 +108,16 @@ func (x *xlsxWrite) SetMergeCellValue(left, right string, value any) error {
 		return err
 	}
 
-	_ = x.SetStyle(left, right, defaultTitleStyle)
+	if len(styles) == 0 {
+		styles = append(styles, defaultTitleStyle)
+	}
+
+	_ = x.SetStyle(left, right, styles[0])
 
 	return nil
 }
 
-func (x *xlsxWrite) SetTitles(titles []string) (left string, right string, err error) {
+func (x *xlsxWrite) SetTitles(titles []string, styles ...*excelize.Style) (left string, right string, err error) {
 	x.IncrRowNum()
 
 	left = fmt.Sprintf("A%d", x.RowNum())
@@ -126,13 +130,18 @@ func (x *xlsxWrite) SetTitles(titles []string) (left string, right string, err e
 	if l := len(titles); l > 0 {
 		columns := generateColumns(l)
 		right = fmt.Sprintf("%s%d", columns[l-1], x.RowNum())
-		_ = x.SetStyle(left, right, defaultTitleStyle)
+
+		if len(styles) == 0 {
+			styles = append(styles, defaultTitleStyle)
+		}
+
+		_ = x.SetStyle(left, right, styles[0])
 	}
 
 	return
 }
 
-func (x *xlsxWrite) SetData(data []interface{}) (left string, right string, err error) {
+func (x *xlsxWrite) SetData(data []interface{}, styles ...*excelize.Style) (left string, right string, err error) {
 	x.IncrRowNum()
 
 	left = fmt.Sprintf("A%d", x.RowNum())
@@ -145,13 +154,18 @@ func (x *xlsxWrite) SetData(data []interface{}) (left string, right string, err 
 	if l := len(data); l > 0 {
 		columns := generateColumns(l)
 		right = fmt.Sprintf("%s%d", columns[l-1], x.RowNum())
-		_ = x.SetStyle(left, right, defaultCellStyle)
+
+		if len(styles) == 0 {
+			styles = append(styles, defaultTitleStyle)
+		}
+
+		_ = x.SetStyle(left, right, styles[0])
 	}
 
 	return
 }
 
-func (x *xlsxWrite) SetRows(data [][]interface{}) *xlsxWrite {
+func (x *xlsxWrite) SetRows(data [][]interface{}, styles ...*excelize.Style) *xlsxWrite {
 	for _, i := range data {
 		x.IncrRowNum()
 
@@ -165,7 +179,12 @@ func (x *xlsxWrite) SetRows(data [][]interface{}) *xlsxWrite {
 		if l := len(i); l > 0 {
 			columns := generateColumns(l)
 			right := fmt.Sprintf("%s%d", columns[l-1], x.RowNum())
-			_ = x.SetStyle(left, right, defaultCellStyle)
+
+			if len(styles) == 0 {
+				styles = append(styles, defaultTitleStyle)
+			}
+
+			_ = x.SetStyle(left, right, styles[0])
 		}
 	}
 
