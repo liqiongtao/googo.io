@@ -156,7 +156,7 @@ func (x *xlsxWrite) SetData(data []interface{}, styles ...*excelize.Style) error
 		right := fmt.Sprintf("%s%d", columns[l-1], x.RowNum())
 
 		if len(styles) == 0 {
-			styles = append(styles, defaultTitleStyle)
+			styles = append(styles, defaultCellStyle)
 		}
 
 		_ = x.SetStyle(left, right, styles[0])
@@ -181,7 +181,7 @@ func (x *xlsxWrite) SetRows(data [][]interface{}, styles ...*excelize.Style) *xl
 			right := fmt.Sprintf("%s%d", columns[l-1], x.RowNum())
 
 			if len(styles) == 0 {
-				styles = append(styles, defaultTitleStyle)
+				styles = append(styles, defaultCellStyle)
 			}
 
 			_ = x.SetStyle(left, right, styles[0])
