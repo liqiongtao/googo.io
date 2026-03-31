@@ -3,10 +3,11 @@ package goo_cron
 import (
 	"context"
 	"fmt"
+	"time"
+
 	goo_context "github.com/liqiongtao/googo.io/goo-context"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	"github.com/robfig/cron/v3"
-	"time"
 )
 
 type Cron struct {
@@ -72,6 +73,7 @@ func (c *Cron) AddJob(spec string, job ...cron.Job) *Cron {
 	for _, j := range job {
 		c.C.AddJob(spec, j)
 	}
+	c.C.Stop()
 	return c
 }
 
