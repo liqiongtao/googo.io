@@ -5,7 +5,7 @@ import (
 	"errors"
 )
 
-type CronTaskFunc func(ct *CronTaskData) func()
+type CronTaskFunc func(task *CronTaskData) func()
 
 type CronTaskStatus int
 
