@@ -18,7 +18,7 @@ var (
 type CronTaskData struct {
 	Code   string         `json:"code"`
 	Spec   string         `json:"spec"`
-	Data   map[string]any `json:"data"`
+	Data   string         `json:"data"`
 	Status CronTaskStatus `json:"status"`
 }
 
@@ -45,7 +45,7 @@ func ConvertCronTaskData(str string) (*CronTaskData, error) {
 	return ct, nil
 }
 
-func NewCronTaskDataWithCreate(code, expr string, data map[string]any) CronTaskData {
+func NewCronTaskDataWithCreate(code, expr, data string) CronTaskData {
 	return CronTaskData{
 		Code:   code,
 		Spec:   expr,
@@ -54,7 +54,7 @@ func NewCronTaskDataWithCreate(code, expr string, data map[string]any) CronTaskD
 	}
 }
 
-func NewCronTaskDataWithUpdate(code, expr string, data map[string]any) CronTaskData {
+func NewCronTaskDataWithUpdate(code, expr, data string) CronTaskData {
 	return CronTaskData{
 		Code:   code,
 		Spec:   expr,
@@ -63,7 +63,7 @@ func NewCronTaskDataWithUpdate(code, expr string, data map[string]any) CronTaskD
 	}
 }
 
-func NewCronTaskDataWithDelete(code, expr string, data map[string]any) CronTaskData {
+func NewCronTaskDataWithDelete(code, expr, data string) CronTaskData {
 	return CronTaskData{
 		Code:   code,
 		Spec:   expr,
