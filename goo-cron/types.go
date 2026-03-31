@@ -43,15 +43,15 @@ func (task *TaskData) Valid() error {
 }
 
 func ConvertTaskData(str string) (*TaskData, error) {
-	var ct *TaskData
-	if err := json.Unmarshal([]byte(str), &ct); err != nil {
+	var task *TaskData
+	if err := json.Unmarshal([]byte(str), &task); err != nil {
 		return nil, err
 	}
-	return ct, nil
+	return task, nil
 }
 
-func NewTaskDataWithDelete(code, spec, data string) TaskData {
-	return TaskData{
+func NewTaskDataWithDelete(code, spec, data string) *TaskData {
+	return &TaskData{
 		Code:   code,
 		Spec:   spec,
 		Data:   data,
@@ -59,8 +59,8 @@ func NewTaskDataWithDelete(code, spec, data string) TaskData {
 	}
 }
 
-func NewTaskDataWithCreate(code, spec, data string) TaskData {
-	return TaskData{
+func NewTaskDataWithCreate(code, spec, data string) *TaskData {
+	return &TaskData{
 		Code:   code,
 		Spec:   spec,
 		Data:   data,
@@ -68,8 +68,8 @@ func NewTaskDataWithCreate(code, spec, data string) TaskData {
 	}
 }
 
-func NewTaskDataWithUpdate(code, spec, data string) TaskData {
-	return TaskData{
+func NewTaskDataWithUpdate(code, spec, data string) *TaskData {
+	return &TaskData{
 		Code:   code,
 		Spec:   spec,
 		Data:   data,
@@ -77,8 +77,8 @@ func NewTaskDataWithUpdate(code, spec, data string) TaskData {
 	}
 }
 
-func NewTaskDataWithExecute(code, spec, data string) TaskData {
-	return TaskData{
+func NewTaskDataWithExecute(code, spec, data string) *TaskData {
+	return &TaskData{
 		Code:   code,
 		Spec:   spec,
 		Data:   data,
