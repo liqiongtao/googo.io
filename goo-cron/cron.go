@@ -32,10 +32,10 @@ func (c *Cron) Run() {
 		c.C.Remove(entry.ID)
 	}
 
+	time.Sleep(time.Second)
+
 	<-c.C.Stop().Done()
 	goo_log.WithTag("goo-cron").Debug("系统退出成功，全部任务执行结束")
-
-	time.Sleep(time.Second)
 }
 
 func (c *Cron) Start() {

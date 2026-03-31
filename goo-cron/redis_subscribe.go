@@ -20,6 +20,7 @@ func RedisSubscribe(r *redis.Client, c *cron.Cron, key string, tasks map[string]
 	for {
 		select {
 		case <-goo_context.WithCancel().Done():
+			goo_log.Info("定时任务订阅服务退出")
 			return
 
 		case msg := <-sub.Channel():
@@ -36,6 +37,8 @@ func RedisSubscribe(r *redis.Client, c *cron.Cron, key string, tasks map[string]
 				goo_log.WithField("task", task).ErrorF("validate cron task data err: %v", err)
 				continue
 			}
+
+			goo_log.WithField("task", task).Info("receive message")
 
 			taskFunc, ok := tasks[task.Code]
 			if !ok {
@@ -56,7 +59,7 @@ func RedisSubscribe(r *redis.Client, c *cron.Cron, key string, tasks map[string]
 					goo_log.WithField("task", task).ErrorF("add cron task err: %v", err)
 					continue
 				}
-				
+
 				cronTaskCode2EntryId.Store(task.Code, entryId)
 
 			case CronTaskStatusUpdate:
