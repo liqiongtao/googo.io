@@ -45,28 +45,28 @@ func ConvertCronTaskData(str string) (*CronTaskData, error) {
 	return ct, nil
 }
 
-func NewCronTaskDataWithCreate(code, expr, data string) CronTaskData {
+func NewCronTaskDataWithCreate(code, spec, data string) CronTaskData {
 	return CronTaskData{
 		Code:   code,
-		Spec:   expr,
+		Spec:   spec,
 		Data:   data,
 		Status: CronTaskStatusCreate,
 	}
 }
 
-func NewCronTaskDataWithUpdate(code, expr, data string) CronTaskData {
+func NewCronTaskDataWithUpdate(code, spec, data string) CronTaskData {
 	return CronTaskData{
 		Code:   code,
-		Spec:   expr,
+		Spec:   spec,
 		Data:   data,
 		Status: CronTaskStatusUpdate,
 	}
 }
 
-func NewCronTaskDataWithDelete(code, expr, data string) CronTaskData {
+func NewCronTaskDataWithDelete(code, spec, data string) CronTaskData {
 	return CronTaskData{
 		Code:   code,
-		Spec:   expr,
+		Spec:   spec,
 		Data:   data,
 		Status: CronTaskStatusDelete,
 	}
