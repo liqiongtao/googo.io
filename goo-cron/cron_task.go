@@ -1,7 +1,6 @@
 package goo_cron
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
@@ -17,17 +16,14 @@ type CronTask struct {
 	c            *cron.Cron
 	key          string
 	code2EntryId sync.Map
-	jobs         map[string]TaskFunc
 }
 
-func New(key string, r *redis.Client, jobs map[string]TaskFunc, opts ...cron.Option) *CronTask {
-	opts = append(opts, cron.WithSeconds())
-	return &CronTask{
-		r:    r,
-		c:    cron.New(opts...),
-		key:  key,
-		jobs: jobs,
+func New(key string, opts ...Option) *CronTask {
+	c := &CronTask{c: cron.New(cron.WithSeconds()), key: key}
+	for _, opt := range opts {
+		opt(c)
 	}
+	return c
 }
 
 func (c *CronTask) Cron() *cron.Cron {
@@ -35,7 +31,12 @@ func (c *CronTask) Cron() *cron.Cron {
 }
 
 func (c *CronTask) Run() {
-	goo_utils.AsyncFunc(c.Subscribe)
+	goo_utils.AsyncFunc(func() {
+		if c.r == nil {
+			return
+		}
+		c.Subscribe()
+	})
 
 	c.c.Start()
 
@@ -53,19 +54,17 @@ func (c *CronTask) Run() {
 }
 
 func (c *CronTask) Add(task *TaskData) error {
-	taskFunc, ok := c.jobs[task.Code]
-	if !ok {
-		return fmt.Errorf("task code %s not exists", task.Code)
+	entryId, err := c.c.AddFunc(task.Spec, func() {
+		if task.Handler == nil {
+			goo_log.WithField("task", task).Warn("no task handler")
+			return
+		}
+		task.Handler(task)
+	})
+	if err == nil {
+		c.code2EntryId.Store(task.Code, entryId)
 	}
-
-	entryId, err := c.c.AddFunc(task.Spec, taskFunc(task))
-	if err != nil {
-		return fmt.Errorf("add task %s err: %v", task.Code, err)
-	}
-
-	c.code2EntryId.Store(task.Code, entryId)
-
-	return nil
+	return err
 }
 
 func (c *CronTask) Remove(taskCode string) {
@@ -106,21 +105,30 @@ func (c *CronTask) Subscribe() {
 			goo_log.WithField("task", task).Info("receive message")
 
 			switch task.Status {
-			case TaskStatusDelete:
+			case TaskStatusDelete: // 删除任务
 				c.Remove(task.Code)
 
-			case TaskStatusCreate:
+			case TaskStatusCreate: // 添加任务
 				if err := c.Add(task); err != nil {
 					goo_log.WithField("task", task).ErrorF("add cron task err: %v", err)
 					continue
 				}
 
-			case TaskStatusUpdate:
+			case TaskStatusUpdate: // 更新任务
 				c.Remove(task.Code)
 				if err := c.Add(task); err != nil {
 					goo_log.WithField("task", task).ErrorF("add cron task err: %v", err)
 					continue
 				}
+
+			case TaskStatusExecute: // 立即执行
+				if task.Handler == nil {
+					goo_log.WithField("task", task).Warn("no task handler")
+					return
+				}
+				goo_utils.AsyncFunc(func() {
+					task.Handler(task)
+				})
 			}
 		}
 	}

@@ -5,34 +5,39 @@ import (
 	"errors"
 )
 
-type TaskFunc func(task *TaskData) func()
+type TaskFunc func(task *TaskData)
 
 type TaskStatus int
 
 var (
-	TaskStatusCreate = TaskStatus(1)
-	TaskStatusUpdate = TaskStatus(2)
-	TaskStatusDelete = TaskStatus(0)
+	TaskStatusDelete  = TaskStatus(0) // 删除任务
+	TaskStatusCreate  = TaskStatus(1) // 添加任务
+	TaskStatusUpdate  = TaskStatus(2) // 更新任务 -> 删除、添加
+	TaskStatusExecute = TaskStatus(9) // 立即执行
 )
 
 type TaskData struct {
-	Code   string     `json:"code"`
-	Spec   string     `json:"spec"`
-	Data   string     `json:"data"`
-	Status TaskStatus `json:"status"`
+	Code    string     `json:"code"`
+	Spec    string     `json:"spec"`
+	Data    string     `json:"data"`
+	Status  TaskStatus `json:"status"`
+	Handler func(task *TaskData)
 }
 
-func (d TaskData) String() string {
-	b, _ := json.Marshal(&d)
+func (task *TaskData) String() string {
+	b, _ := json.Marshal(&task)
 	return string(b)
 }
 
-func (d TaskData) Valid() error {
-	if d.Code == "" {
+func (task *TaskData) Valid() error {
+	if task.Code == "" {
 		return errors.New("empty code")
 	}
-	if d.Spec == "" {
+	if task.Spec == "" {
 		return errors.New("empty spec")
+	}
+	if task.Handler == nil {
+		return errors.New("nil handler")
 	}
 	return nil
 }
@@ -43,6 +48,15 @@ func ConvertTaskData(str string) (*TaskData, error) {
 		return nil, err
 	}
 	return ct, nil
+}
+
+func NewTaskDataWithDelete(code, spec, data string) TaskData {
+	return TaskData{
+		Code:   code,
+		Spec:   spec,
+		Data:   data,
+		Status: TaskStatusDelete,
+	}
 }
 
 func NewTaskDataWithCreate(code, spec, data string) TaskData {
@@ -63,11 +77,11 @@ func NewTaskDataWithUpdate(code, spec, data string) TaskData {
 	}
 }
 
-func NewTaskDataWithDelete(code, spec, data string) TaskData {
+func NewTaskDataWithExecute(code, spec, data string) TaskData {
 	return TaskData{
 		Code:   code,
 		Spec:   spec,
 		Data:   data,
-		Status: TaskStatusDelete,
+		Status: TaskStatusExecute,
 	}
 }
