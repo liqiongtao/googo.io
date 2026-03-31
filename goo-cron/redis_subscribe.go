@@ -56,6 +56,7 @@ func RedisSubscribe(r *redis.Client, c *cron.Cron, key string, tasks map[string]
 					goo_log.WithField("task", task).ErrorF("add cron task err: %v", err)
 					continue
 				}
+				
 				cronTaskCode2EntryId.Store(task.Code, entryId)
 
 			case CronTaskStatusUpdate:
