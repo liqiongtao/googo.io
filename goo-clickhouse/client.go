@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/ClickHouse/clickhouse-go"
-	goo_cron "github.com/liqiongtao/googo.io/goo-cron"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 )
 
@@ -27,10 +26,6 @@ func New(conf Config) (cli *Client, err error) {
 
 	if err = cli.connect(); err != nil {
 		return
-	}
-
-	if conf.AutoPing {
-		goo_cron.Default().SecondX(5, cli.ping).Start()
 	}
 
 	return

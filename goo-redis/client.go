@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/go-redis/redis"
-	goo_cron "github.com/liqiongtao/googo.io/goo-cron"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 )
 
@@ -36,14 +35,6 @@ func New(conf Config) (cli *Client, err error) {
 	if err = cli.Ping().Err(); err != nil {
 		goo_log.WithTag("goo-redis").Error(err)
 		return
-	}
-
-	if conf.AutoPing {
-		goo_cron.Default().SecondX(5, func() {
-			if err := cli.Ping().Err(); err != nil {
-				goo_log.WithTag("goo-redis").Error(err)
-			}
-		}).Start()
 	}
 
 	return

@@ -1,12 +1,12 @@
 package goo_db
 
 import (
+	"time"
+
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/go-xorm/xorm"
 	_ "github.com/lib/pq"
-	goo_cron "github.com/liqiongtao/googo.io/goo-cron"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
-	"time"
 )
 
 type Client struct {
@@ -40,14 +40,6 @@ func New(conf Config) (cli *Client, err error) {
 		cli.EngineGroup.SetConnMaxLifetime(time.Duration(conf.MaxLifetime) * time.Second)
 	} else {
 		cli.EngineGroup.SetConnMaxLifetime(600 * time.Second)
-	}
-
-	if conf.AutoPing {
-		goo_cron.Default().SecondX(5, func() {
-			if err := cli.Ping(); err != nil {
-				goo_log.WithTag("goo-db").Error(err)
-			}
-		}).Start()
 	}
 
 	return

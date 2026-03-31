@@ -3,7 +3,7 @@ package goo_mongo
 import (
 	"context"
 	"fmt"
-	goo_cron "github.com/liqiongtao/googo.io/goo-cron"
+
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -31,14 +31,6 @@ func New(conf Config) (cli *Client, err error) {
 	if err = cli.Ping(cli.ctx, readpref.Primary()); err != nil {
 		goo_log.WithTag("goo-mongo").Error(err)
 		return
-	}
-
-	if conf.AutoPing {
-		goo_cron.Default().SecondX(5, func() {
-			if err := cli.Ping(cli.ctx, readpref.Primary()); err != nil {
-				goo_log.WithTag("goo-mongo").Error(err)
-			}
-		}).Start()
 	}
 
 	return
