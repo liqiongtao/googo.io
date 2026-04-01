@@ -32,8 +32,10 @@ func (task *TaskData) Valid() error {
 	if task.Code == "" {
 		return errors.New("empty code")
 	}
-	if task.Spec == "" {
-		return errors.New("empty spec")
+	if task.Status == TaskStatusCreate || task.Status == TaskStatusUpdate {
+		if task.Spec == "" {
+			return errors.New("empty spec")
+		}
 	}
 	return nil
 }

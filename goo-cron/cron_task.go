@@ -127,13 +127,7 @@ func (c *CronTask) Subscribe() {
 			case TaskStatusDelete: // 删除任务
 				c.Remove(task.Code)
 
-			case TaskStatusCreate: // 添加任务
-				if err := c.Add(task); err != nil {
-					goo_log.WithTag("goo-cron").WithField("task", task).ErrorF("add cron task err: %v", err)
-					continue
-				}
-
-			case TaskStatusUpdate: // 更新任务
+			case TaskStatusCreate, TaskStatusUpdate: // 添加、更新任务
 				c.Remove(task.Code)
 				if err := c.Add(task); err != nil {
 					goo_log.WithTag("goo-cron").WithField("task", task).ErrorF("add cron task err: %v", err)
@@ -144,7 +138,7 @@ func (c *CronTask) Subscribe() {
 				handler, ok := c.code2Func[task.Code]
 				if !ok {
 					goo_log.WithTag("goo-cron").WithField("task", task).Warn("no task handler")
-					return
+					continue
 				}
 				goo_utils.AsyncFunc(func() {
 					handler(task)
