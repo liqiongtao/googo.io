@@ -144,8 +144,9 @@ func (c *CronTask) Subscribe(ctx context.Context) {
 					continue
 				}
 
-			case TaskStatusExecute: // 立即执行
-				goo_utils.AsyncFunc(func() { c.execTask(task) })
+			case TaskStatusExecute: // 立即执行（拷贝指针，避免异步晚于下一条消息执行时用到错误的 task）
+				t := task
+				goo_utils.AsyncFunc(func() { c.execTask(t) })
 			}
 		}
 	}
