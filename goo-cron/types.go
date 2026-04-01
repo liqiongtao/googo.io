@@ -17,11 +17,11 @@ var (
 )
 
 type TaskData struct {
-	Code    string     `json:"code"`
-	Spec    string     `json:"spec"`
-	Data    string     `json:"data"`
-	Status  TaskStatus `json:"status"`
-	Handler func(task *TaskData)
+	Code    string               `json:"code"`
+	Spec    string               `json:"spec"`
+	Data    string               `json:"data"`
+	Status  TaskStatus           `json:"status"`
+	Handler func(task *TaskData) `json:"-"`
 }
 
 func (task *TaskData) String() string {
