@@ -1,6 +1,7 @@
 package goo_cron
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -42,7 +43,7 @@ func (c *CronTask) Run() {
 		if c.r == nil {
 			return
 		}
-		c.Subscribe(ctx)
+		c.Subscribe(ctx.Context)
 	})
 
 	c.c.Start()
@@ -96,7 +97,7 @@ func (c *CronTask) Remove(taskCode string) {
 	}
 }
 
-func (c *CronTask) Subscribe(ctx *goo_context.Context) {
+func (c *CronTask) Subscribe(ctx context.Context) {
 	sub := c.r.Subscribe(c.key)
 	defer func() { _ = sub.Close() }()
 
