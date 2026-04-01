@@ -6,7 +6,16 @@ import (
 )
 
 func Publish(r *redis.Client, key string, task *TaskData) error {
-	payload := task.String()
-	goo_log.WithTag("goo-cron").WithField("payload", payload).Info("发布任务")
-	return r.Publish(key, payload).Err()
+	if err := task.Valid(); err != nil {
+		goo_log.WithTag("goo-cron").WithField("task", task).ErrorF("validate cron task data err: %v", err)
+		return err
+	}
+
+	err := r.Publish(key, task.String()).Err()
+	if err != nil {
+		goo_log.WithTag("goo-cron").WithField("task", task).ErrorF("publish cron task err: %v", err)
+	} else {
+		goo_log.WithTag("goo-cron").WithField("task", task).Info("publish cron task success")
+	}
+	return err
 }
