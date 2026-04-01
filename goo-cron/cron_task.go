@@ -16,10 +16,15 @@ type CronTask struct {
 	c            *cron.Cron
 	key          string
 	code2EntryId sync.Map
+	code2Func    map[string]TaskFunc
 }
 
-func New(key string, opts ...Option) *CronTask {
-	c := &CronTask{c: cron.New(cron.WithSeconds()), key: key}
+func New(key string, code2Func map[string]TaskFunc, opts ...Option) *CronTask {
+	c := &CronTask{
+		c:         cron.New(cron.WithSeconds()),
+		key:       key,
+		code2Func: code2Func,
+	}
 	for _, opt := range opts {
 		opt(c)
 	}
@@ -55,11 +60,12 @@ func (c *CronTask) Run() {
 
 func (c *CronTask) Add(task *TaskData) error {
 	entryId, err := c.c.AddFunc(task.Spec, func() {
-		if task.Handler == nil {
+		handler, ok := c.code2Func[task.Code]
+		if !ok {
 			goo_log.WithTag("goo-cron").WithField("task", task).Warn("no task handler")
 			return
 		}
-		task.Handler(task)
+		handler(task)
 	})
 	if err == nil {
 		c.code2EntryId.Store(task.Code, entryId)
@@ -126,12 +132,13 @@ func (c *CronTask) Subscribe() {
 				}
 
 			case TaskStatusExecute: // 立即执行
-				if task.Handler == nil {
+				handler, ok := c.code2Func[task.Code]
+				if !ok {
 					goo_log.WithTag("goo-cron").WithField("task", task).Warn("no task handler")
 					return
 				}
 				goo_utils.AsyncFunc(func() {
-					task.Handler(task)
+					handler(task)
 				})
 			}
 		}

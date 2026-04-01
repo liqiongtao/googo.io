@@ -17,11 +17,10 @@ var (
 )
 
 type TaskData struct {
-	Code    string               `json:"code"`
-	Spec    string               `json:"spec"`
-	Data    string               `json:"data"`
-	Status  TaskStatus           `json:"status"`
-	Handler func(task *TaskData) `json:"-"`
+	Code   string     `json:"code"`
+	Spec   string     `json:"spec"`
+	Data   string     `json:"data"`
+	Status TaskStatus `json:"status"`
 }
 
 func (task *TaskData) String() string {
@@ -35,9 +34,6 @@ func (task *TaskData) Valid() error {
 	}
 	if task.Spec == "" {
 		return errors.New("empty spec")
-	}
-	if task.Handler == nil {
-		return errors.New("nil handler")
 	}
 	return nil
 }
