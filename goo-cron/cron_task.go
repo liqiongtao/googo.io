@@ -18,6 +18,7 @@ type CronTask struct {
 	key          string
 	code2EntryId sync.Map
 	code2Func    map[string]TaskFunc
+	hooks        []TaskFunc
 }
 
 func New(key string, code2Func map[string]TaskFunc, opts ...Option) *CronTask {
@@ -61,23 +62,27 @@ func (c *CronTask) Run() {
 	goo_log.WithTag("goo-cron").Debug("系统退出成功，全部任务执行结束")
 }
 
-func (c *CronTask) Add(task *TaskData, hooks ...TaskFunc) error {
+func (c *CronTask) execTask(task *TaskData) {
+	handler, ok := c.code2Func[task.Code]
+	if !ok {
+		goo_log.WithTag("goo-cron").WithField("task", task).Warn("no task handler")
+		return
+	}
+
+	defer func() {
+		for _, hook := range c.hooks {
+			hook(task)
+		}
+	}()
+
+	handler(task)
+}
+
+func (c *CronTask) Add(task *TaskData) error {
 	c.Remove(task.Code)
 
 	entryId, err := c.c.AddFunc(task.Spec, func() {
-		handler, ok := c.code2Func[task.Code]
-		if !ok {
-			goo_log.WithTag("goo-cron").WithField("task", task).Warn("no task handler")
-			return
-		}
-
-		defer func() {
-			for _, hook := range hooks {
-				hook(task)
-			}
-		}()
-
-		handler(task)
+		c.execTask(task)
 	})
 
 	if err == nil {
@@ -139,14 +144,7 @@ func (c *CronTask) Subscribe(ctx context.Context) {
 				}
 
 			case TaskStatusExecute: // 立即执行
-				handler, ok := c.code2Func[task.Code]
-				if !ok {
-					goo_log.WithTag("goo-cron").WithField("task", task).Warn("no task handler")
-					continue
-				}
-				goo_utils.AsyncFunc(func() {
-					handler(task)
-				})
+				c.execTask(task)
 			}
 		}
 	}

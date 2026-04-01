@@ -11,3 +11,9 @@ func WithRedis(r *redis.Client) Option {
 		c.r = r
 	}
 }
+
+func WithHooks(hooks ...TaskFunc) Option {
+	return func(c *CronTask) {
+		c.hooks = append(c.hooks, hooks...)
+	}
+}
