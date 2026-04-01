@@ -58,18 +58,27 @@ func (c *CronTask) Run() {
 	goo_log.WithTag("goo-cron").Debug("系统退出成功，全部任务执行结束")
 }
 
-func (c *CronTask) Add(task *TaskData) error {
+func (c *CronTask) Add(task *TaskData, hooks ...TaskFunc) error {
 	entryId, err := c.c.AddFunc(task.Spec, func() {
 		handler, ok := c.code2Func[task.Code]
 		if !ok {
 			goo_log.WithTag("goo-cron").WithField("task", task).Warn("no task handler")
 			return
 		}
+
+		defer func() {
+			for _, hook := range hooks {
+				hook(task)
+			}
+		}()
+
 		handler(task)
 	})
+
 	if err == nil {
 		c.code2EntryId.Store(task.Code, entryId)
 	}
+
 	return err
 }
 
