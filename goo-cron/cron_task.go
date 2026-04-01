@@ -36,16 +36,18 @@ func (c *CronTask) Cron() *cron.Cron {
 }
 
 func (c *CronTask) Run() {
+	ctx := goo_context.WithCancel()
+
 	goo_utils.AsyncFunc(func() {
 		if c.r == nil {
 			return
 		}
-		c.Subscribe()
+		c.Subscribe(ctx)
 	})
 
 	c.c.Start()
 
-	<-goo_context.WithCancel().Done()
+	<-ctx.Done()
 	goo_log.WithTag("goo-cron").Debug("系统退出，等待全部任务执行结束...")
 
 	for _, entry := range c.c.Entries() {
@@ -92,13 +94,13 @@ func (c *CronTask) Remove(taskCode string) {
 	}
 }
 
-func (c *CronTask) Subscribe() {
+func (c *CronTask) Subscribe(ctx *goo_context.Context) {
 	sub := c.r.Subscribe(c.key)
 	defer func() { _ = sub.Close() }()
 
 	for {
 		select {
-		case <-goo_context.WithCancel().Done():
+		case <-ctx.Done():
 			goo_log.WithTag("goo-cron").Info("定时任务订阅服务退出")
 			return
 
