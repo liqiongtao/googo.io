@@ -56,7 +56,7 @@ func (c *CronTask) Run() {
 func (c *CronTask) Add(task *TaskData) error {
 	entryId, err := c.c.AddFunc(task.Spec, func() {
 		if task.Handler == nil {
-			goo_log.WithField("task", task).Warn("no task handler")
+			goo_log.WithTag("goo-cron").WithField("task", task).Warn("no task handler")
 			return
 		}
 		task.Handler(task)
@@ -84,7 +84,7 @@ func (c *CronTask) Subscribe() {
 	for {
 		select {
 		case <-goo_context.WithCancel().Done():
-			goo_log.Info("定时任务订阅服务退出")
+			goo_log.WithTag("goo-cron").Info("定时任务订阅服务退出")
 			return
 
 		case msg := <-sub.Channel():
@@ -92,21 +92,21 @@ func (c *CronTask) Subscribe() {
 				continue
 			}
 			if msg.Payload == "" {
-				goo_log.WithField("msg", msg).Warn("payload is empty")
+				goo_log.WithTag("goo-cron").WithField("msg", msg).Warn("payload is empty")
 				continue
 			}
 
 			task, err := ConvertTaskData(msg.Payload)
 			if err != nil {
-				goo_log.WithField("payload", msg.Payload).ErrorF("convert cron task data err: %v", err)
+				goo_log.WithTag("goo-cron").WithField("payload", msg.Payload).ErrorF("convert cron task data err: %v", err)
 				continue
 			}
 			if err = task.Valid(); err != nil {
-				goo_log.WithField("task", task).ErrorF("validate cron task data err: %v", err)
+				goo_log.WithTag("goo-cron").WithField("task", task).ErrorF("validate cron task data err: %v", err)
 				continue
 			}
 
-			goo_log.WithField("task", task).Info("receive message")
+			goo_log.WithTag("goo-cron").WithField("task", task).Info("receive message")
 
 			switch task.Status {
 			case TaskStatusDelete: // 删除任务
@@ -114,20 +114,20 @@ func (c *CronTask) Subscribe() {
 
 			case TaskStatusCreate: // 添加任务
 				if err := c.Add(task); err != nil {
-					goo_log.WithField("task", task).ErrorF("add cron task err: %v", err)
+					goo_log.WithTag("goo-cron").WithField("task", task).ErrorF("add cron task err: %v", err)
 					continue
 				}
 
 			case TaskStatusUpdate: // 更新任务
 				c.Remove(task.Code)
 				if err := c.Add(task); err != nil {
-					goo_log.WithField("task", task).ErrorF("add cron task err: %v", err)
+					goo_log.WithTag("goo-cron").WithField("task", task).ErrorF("add cron task err: %v", err)
 					continue
 				}
 
 			case TaskStatusExecute: // 立即执行
 				if task.Handler == nil {
-					goo_log.WithField("task", task).Warn("no task handler")
+					goo_log.WithTag("goo-cron").WithField("task", task).Warn("no task handler")
 					return
 				}
 				goo_utils.AsyncFunc(func() {
