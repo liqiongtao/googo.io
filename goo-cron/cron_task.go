@@ -91,6 +91,10 @@ func (c *CronTask) Subscribe() {
 			if msg.Channel != c.key {
 				continue
 			}
+			if msg.Payload == "" {
+				goo_log.WithField("msg", msg).Warn("payload is empty")
+				continue
+			}
 
 			task, err := ConvertTaskData(msg.Payload)
 			if err != nil {
