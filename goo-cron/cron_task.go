@@ -61,6 +61,8 @@ func (c *CronTask) Run() {
 }
 
 func (c *CronTask) Add(task *TaskData, hooks ...TaskFunc) error {
+	c.Remove(task.Code)
+
 	entryId, err := c.c.AddFunc(task.Spec, func() {
 		handler, ok := c.code2Func[task.Code]
 		if !ok {
@@ -130,7 +132,6 @@ func (c *CronTask) Subscribe(ctx *goo_context.Context) {
 				c.Remove(task.Code)
 
 			case TaskStatusCreate, TaskStatusUpdate: // 添加、更新任务
-				c.Remove(task.Code)
 				if err := c.Add(task); err != nil {
 					goo_log.WithTag("goo-cron").WithField("task", task).ErrorF("add cron task err: %v", err)
 					continue
