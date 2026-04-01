@@ -25,7 +25,7 @@ type TaskData struct {
 }
 
 func (task *TaskData) String() string {
-	b, _ := json.Marshal(&task)
+	b, _ := json.Marshal(task)
 	return string(b)
 }
 
