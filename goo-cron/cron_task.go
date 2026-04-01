@@ -41,9 +41,6 @@ func (c *CronTask) Run() {
 	ctx := goo_context.WithCancel()
 
 	goo_utils.AsyncFunc(func() {
-		if c.r == nil {
-			return
-		}
 		c.Subscribe(ctx.Context)
 	})
 
@@ -103,6 +100,10 @@ func (c *CronTask) Remove(taskCode string) {
 }
 
 func (c *CronTask) Subscribe(ctx context.Context) {
+	if c.r == nil {
+		return
+	}
+
 	sub := c.r.Subscribe(c.key)
 	defer func() { _ = sub.Close() }()
 
@@ -144,7 +145,7 @@ func (c *CronTask) Subscribe(ctx context.Context) {
 				}
 
 			case TaskStatusExecute: // 立即执行
-				c.execTask(task)
+				goo_utils.AsyncFunc(func() { c.execTask(task) })
 			}
 		}
 	}
