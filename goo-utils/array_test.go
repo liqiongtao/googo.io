@@ -47,3 +47,23 @@ func TestSlice2UniqInt64s(t *testing.T) {
 	})
 	fmt.Println(data)
 }
+
+type A struct {
+	Id int64
+}
+
+func TestSlice2UniqFloat32s(t *testing.T) {
+	var list []A
+	for i := 0; i < 10; i++ {
+		list = append(list, A{Id: int64(i)})
+	}
+
+	data := SplitSplice(list, 3)
+
+	for _, arr := range data {
+		ids := Slice2UniqInt64s(arr, func(i int) int64 {
+			return arr[i].Id
+		})
+		fmt.Println(ids)
+	}
+}

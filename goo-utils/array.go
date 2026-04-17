@@ -126,6 +126,37 @@ func SplitArray(arr []interface{}, size int) (list [][]interface{}) {
 	return
 }
 
+func SplitSplice[T any](arr []T, size int) (list [][]T) {
+	l := len(arr)
+
+	if l == 0 {
+		list = make([][]T, 0)
+		return
+	}
+
+	if l < size {
+		list = [][]T{arr}
+		return
+	}
+
+	var (
+		offset int
+	)
+
+	for {
+		if offset+size >= l {
+			list = append(list, arr[offset:])
+			break
+		}
+
+		list = append(list, arr[offset:offset+size])
+
+		offset += size
+	}
+
+	return
+}
+
 func SliceHas(x any, f func(i int) bool) bool {
 	rv := reflect.ValueOf(x)
 	for i := 0; i < rv.Len(); i++ {
