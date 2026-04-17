@@ -51,34 +51,51 @@ func (r *Request) SetTimeout(d time.Duration) *Request {
 }
 
 func (r *Request) getClient() *http.Client {
-	if r.timeout == 0 {
-		r.timeout = 30 * time.Second
+	if r.timeout.Seconds() == 0 {
+		r.timeout = 120 * time.Second
 	}
 
 	if r.client != nil {
 		return r.client
 	}
 
+	// 基于总超时时间动态计算 Transport 内部的各个超时阶段，确保逻辑一致性
+	// 分配策略：握手和建连占用较少比例，响应等待占用较多比例
+	dialTimeout := r.timeout / 5 // 20% 用于建立连接（DNS + TCP）
+	if dialTimeout < 5*time.Second {
+		dialTimeout = 5 * time.Second
+	}
+
+	tlsHandshakeTimeout := r.timeout / 5 // 20% 用于 TLS 握手
+	if tlsHandshakeTimeout < 5*time.Second {
+		tlsHandshakeTimeout = 5 * time.Second
+	}
+
+	responseHeaderTimeout := r.timeout - dialTimeout - tlsHandshakeTimeout
+	if responseHeaderTimeout < 10*time.Second {
+		responseHeaderTimeout = 10 * time.Second
+	}
+
 	transport := &http.Transport{
-		// 1. 连接复用与超时（核心，防泄露）
-		IdleConnTimeout:       90 * time.Second, // 空闲连接超时：高并发下可适当延长（30s→60s），提升复用率
-		ResponseHeaderTimeout: 15 * time.Second, // 响应头超时：高并发下服务端可能慢，适度放宽（10s→15s）
-		TLSHandshakeTimeout:   10 * time.Second, // TLS 握手超时：高并发下握手可能排队，放宽（5s→10s）
+		// 1. 连接复用与超时
+		IdleConnTimeout:       90 * time.Second, // 空闲连接保持时间，独立于请求超时
+		ResponseHeaderTimeout: responseHeaderTimeout,
+		TLSHandshakeTimeout:   tlsHandshakeTimeout,
 
 		// 2. 连接建立超时
 		DialContext: (&net.Dialer{
-			Timeout:   10 * time.Second, // 拨号超时：高并发下网络可能拥塞，放宽（5s→10s）
-			KeepAlive: 60 * time.Second, // TCP 保活：保持长连接，提升复用
+			Timeout:   dialTimeout,
+			KeepAlive: 60 * time.Second,
 		}).DialContext,
 
 		// 3. 连接池大小（高并发核心调优）
-		MaxIdleConns:        1000,  // 全局最大空闲连接：默认100，高并发下需大幅提升（根据QPS调整）
-		MaxIdleConnsPerHost: 200,   // 单Host最大空闲连接：默认2，高并发下必须调高（比如COS域名）
-		MaxConnsPerHost:     500,   // 单Host最大并发连接：默认无限制，限制避免压垮服务端
-		DisableCompression:  false, // 启用压缩：减少传输量，提升高并发下的吞吐量
+		MaxIdleConns:        1000,
+		MaxIdleConnsPerHost: 200,
+		MaxConnsPerHost:     500,
+		DisableCompression:  false,
 
-		// 4. 其他高并发优化
-		ExpectContinueTimeout: 2 * time.Second, // 处理 Expect: 100-Continue 的超时，缩短等待
+		// 4. 其他优化
+		ExpectContinueTimeout: 2 * time.Second,
 	}
 
 	if r.Tls != nil {
