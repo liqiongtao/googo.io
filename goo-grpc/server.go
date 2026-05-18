@@ -174,7 +174,7 @@ func (s *Server) handleSignal() {
 // 开启分析监控
 func (s *Server) pprofStart() {
 	if s.pprof == nil {
-		s.pprof = goo_pprof.New()
+		s.pprof = goo_pprof.New("logs")
 	}
 	s.pprof.Start()
 }

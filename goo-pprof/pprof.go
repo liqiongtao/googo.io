@@ -29,14 +29,21 @@ type PProf struct {
 	blockFH   *os.File
 }
 
-func New() *PProf {
-	ts := time.Now().Unix()
+func New(baseDir string) *PProf {
+	if baseDir == "" {
+		baseDir = "logs"
+	}
+
+	_ = os.MkdirAll(baseDir, 0755)
+
+	ts := time.Now().Format("20060102150304")
+
 	return &PProf{
-		cpuFile:       fmt.Sprintf("cpu.%d.prof", ts),
-		memoryFile:    fmt.Sprintf("memory.%d.prof", ts),
-		goroutineFile: fmt.Sprintf("goroutine.%d.prof", ts),
-		mutexFile:     fmt.Sprintf("mutex.%d.prof", ts),
-		blockFile:     fmt.Sprintf("block.%d.prof", ts),
+		cpuFile:       fmt.Sprintf("%s/cpu.%s.prof", baseDir, ts),
+		memoryFile:    fmt.Sprintf("%s/memory.%s.prof", baseDir, ts),
+		goroutineFile: fmt.Sprintf("%s/goroutine.%s.prof", baseDir, ts),
+		mutexFile:     fmt.Sprintf("%s/mutex.%s.prof", baseDir, ts),
+		blockFile:     fmt.Sprintf("%s/block.%s.prof", baseDir, ts),
 	}
 }
 

@@ -9,7 +9,7 @@ import (
 )
 
 func Run() {
-	pp := New()
+	pp := New("logs")
 
 	sig := make(chan os.Signal)
 	signal.Notify(sig, syscall.SIGUSR1, syscall.SIGUSR2)

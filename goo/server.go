@@ -3,20 +3,25 @@ package goo
 import (
 	"bytes"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"os"
+	"os/signal"
+	"strings"
+	"syscall"
+	"time"
+
 	"github.com/fvbock/endless"
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
-	"io"
-	"io/ioutil"
-	"os"
-	"strings"
-	"time"
+	goo_pprof "github.com/liqiongtao/googo.io/goo-pprof"
 )
 
 // 定义web服务
 type Server struct {
 	*gin.Engine
+	pprof *goo_pprof.PProf
 }
 
 func NewServer(opt ...Option) *Server {
@@ -46,11 +51,46 @@ func (s *Server) Run(addr string) {
 	// 性能分析
 	if defaultOptions.pprofEnable {
 		pprof.Register(s.Engine, "/goo/pprof")
+		s.pprofStart()
 	}
+
+	// 监听退出
+	s.setupSignalHandler()
 
 	goo_log.InfoF("server running, addr=%s pid=%s", addr, pid)
 
 	endless.NewServer(addr, s.Engine).ListenAndServe()
+}
+
+func (s *Server) setupSignalHandler() {
+	sigChan := make(chan os.Signal, 1)
+
+	signal.Notify(sigChan,
+		syscall.SIGINT,  // Ctrl+C 关闭
+		syscall.SIGTERM, // 停止服务
+		syscall.SIGHUP,  // 热重启
+	)
+
+	go func() {
+		<-sigChan
+		s.pprofStop()
+	}()
+}
+
+// 开启分析监控
+func (s *Server) pprofStart() {
+	if s.pprof == nil {
+		s.pprof = goo_pprof.New("logs")
+	}
+	s.pprof.Start()
+}
+
+// 停止分析监控
+func (s *Server) pprofStop() {
+	if s.pprof != nil {
+		s.pprof.Stop()
+	}
+	s.pprof = nil
 }
 
 // 跨域
