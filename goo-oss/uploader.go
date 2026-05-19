@@ -100,7 +100,10 @@ func (o *Uploader) UploadFile(filename, filepath string) (string, error) {
 }
 
 func (o *Uploader) getClient() (*oss.Client, error) {
-	return oss.New(o.conf.Endpoint, o.conf.AccessKeyId, o.conf.AccessKeySecret)
+	if strings.HasPrefix(o.conf.Endpoint, "http") {
+		return oss.New(o.conf.Endpoint, o.conf.AccessKeyId, o.conf.AccessKeySecret)
+	}
+	return oss.New("https://"+o.conf.Endpoint, o.conf.AccessKeyId, o.conf.AccessKeySecret)
 }
 
 func (o *Uploader) getBucket() (*oss.Bucket, error) {
