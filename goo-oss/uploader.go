@@ -79,7 +79,7 @@ func (o *Uploader) Upload(filename string, r io.Reader) (string, error) {
 		return domain + "/" + filename, nil
 	}
 
-	url := "https://" + o.conf.Bucket + "." + o.conf.Endpoint + "/" + filename
+	url := "https://" + o.conf.Bucket + "." + o.conf.Endpoint + path.Join("/", filename)
 	return url, nil
 }
 
