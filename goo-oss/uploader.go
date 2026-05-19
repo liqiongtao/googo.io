@@ -1,13 +1,13 @@
 package goo_oss
 
 import (
-	"fmt"
-	"github.com/aliyun/aliyun-oss-go-sdk/oss"
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	"io"
 	"os"
+	"path"
 	"strings"
-	"time"
+
+	"github.com/aliyun/aliyun-oss-go-sdk/oss"
+	goo_log "github.com/liqiongtao/googo.io/goo-log"
 )
 
 type Uploader struct {
@@ -65,37 +65,16 @@ func (o *Uploader) Upload(filename string, r io.Reader) (string, error) {
 	}
 
 	// 拼接前缀
-	filename = fmt.Sprintf("%s/%s", o.conf.Prefix, filename)
-	filename = strings.ReplaceAll(filename, "///", "/")
-	filename = strings.ReplaceAll(filename, "//", "/")
-	if filename[0:1] == "/" {
-		filename = filename[1:]
-	}
+	filename = path.Join(o.conf.Prefix, filename)
 
-	for i := 0; i < 3; i++ {
-		err := o.Bucket.PutObject(filename, r, options...)
-		if err == nil {
-			break
-		}
-
-		goo_log.Error(err.Error())
-
-		if i+1 == 3 {
-			return "", err
-		}
-
-		time.Sleep(time.Second)
-	}
-
-	if filename[0:1] != "/" {
-		filename = "/" + filename
+	if err := o.Bucket.PutObject(filename, r, options...); err != nil {
+		goo_log.Error("Oss Upload Failed", err.Error(), filename)
+		return "", err
 	}
 
 	if o.conf.Domain != "" {
-		if idx, l := strings.LastIndex(o.conf.Domain, "/"), len(o.conf.Domain); idx+1 == l {
-			o.conf.Domain = o.conf.Domain[:l-1]
-		}
-		return o.conf.Domain + filename, nil
+		domain := strings.TrimSuffix(o.conf.Domain, "/")
+		return domain + "/" + filename, nil
 	}
 
 	url := "https://" + o.conf.Bucket + "." + o.conf.Endpoint + filename
