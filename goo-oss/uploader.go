@@ -92,7 +92,7 @@ func (o *Uploader) UploadFile(filename, filepath string) (string, error) {
 		goo_log.Error(err.Error())
 		return "", err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	return o.Upload(filename, f)
 }
