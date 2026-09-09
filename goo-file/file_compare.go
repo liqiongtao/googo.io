@@ -36,14 +36,14 @@ func Compare(srcFile, targetFile, appendFile, reduceFile string) (err error) {
 		r1, r2         *bufio.Reader
 	)
 
-	f1, err = os.OpenFile(srcFile, os.O_RDWR, 0755)
+	f1, err = os.OpenFile(srcFile, os.O_RDONLY, 0)
 	if err != nil {
 		goo_log.Error(err)
 		return
 	}
 	defer f1.Close()
 
-	f2, err = os.OpenFile(targetFile, os.O_RDWR, 0755)
+	f2, err = os.OpenFile(targetFile, os.O_RDONLY, 0)
 	if err != nil {
 		goo_log.Error(err)
 		return

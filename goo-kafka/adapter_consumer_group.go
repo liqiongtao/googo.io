@@ -30,11 +30,12 @@ func (g group) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.Co
 	for {
 		select {
 		case <-session.Context().Done():
-			return fmt.Errorf("关闭会话上下文: %s", session.Context().Err())
+			// rebalance / shutdown 属正常结束，勿当错误触发外层重试噪音
+			return nil
 
 		case msg, ok := <-claim.Messages():
 			if !ok {
-				return fmt.Errorf("消费通道关闭: groupId=%s topic=%s partition=%d", g.id, claim.Topic(), claim.Partition())
+				return nil
 			}
 			func() {
 				defer goo_utils.Recovery()

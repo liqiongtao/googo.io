@@ -157,18 +157,22 @@ func TestEntryTraceNotLeakedOnReuse(t *testing.T) {
 	}})
 
 	e := NewEntry(l)
-	e.Trace = []string{"fake 1L"} // 模拟上次 WARN+ 残留
-	e.Info("with-stale-trace")
-	e.Info("after-clear")
+	e.Trace = []string{"fake 1L"} // 等同 WithTrace 预置
+	e.Info("with-trace")
+	e2 := NewEntry(l)
+	e2.Info("clean")
 
 	if len(got) != 2 {
 		t.Fatalf("writes=%d, want 2", len(got))
 	}
 	if len(got[0]) != 1 || got[0][0] != "fake 1L" {
-		t.Fatalf("first write trace=%v", got[0])
+		t.Fatalf("WithTrace/预置 Trace 应保留, got %v", got[0])
 	}
 	if len(got[1]) != 0 {
-		t.Fatalf("second write leaked trace: %v", got[1])
+		t.Fatalf("干净 Entry 不应带 Trace: %v", got[1])
+	}
+	if len(e.Trace) != 1 || e.Trace[0] != "fake 1L" {
+		t.Fatalf("output 不得改写调用方 Trace, got %v", e.Trace)
 	}
 }
 

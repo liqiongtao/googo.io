@@ -1,6 +1,9 @@
 package goo_http
 
-import "github.com/gin-gonic/gin"
+import (
+	"github.com/gin-gonic/gin"
+	"github.com/liqiongtao/googo.io/goo"
+)
 
 func newDefaultOptions() *options {
 	return &options{
@@ -26,7 +29,7 @@ type options struct {
 	pprofEnable bool
 
 	serverName string
-	env        Env
+	env        goo.Env
 
 	corsHeaders  []string
 	noAccessPath map[string]struct{}
@@ -70,7 +73,7 @@ func ServerNameOption(serverName string) Option {
 }
 
 // 运行环境
-func EnvOption(env Env) Option {
+func EnvOption(env goo.Env) Option {
 	return newFuncOption(func(opts *options) {
 		opts.env = env
 	})

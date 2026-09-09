@@ -118,31 +118,29 @@ func (entry *Entry) FatalF(format string, v ...interface{}) {
 }
 
 func (entry *Entry) output(level Level, v ...interface{}) {
-	entry.msg = &Message{
+	// 拷贝后再写，避免同一 Entry 并发打日志时互相覆盖 msg/Trace
+	e := entry.clone()
+	e.msg = &Message{
 		Level:   level,
 		Message: v,
 		Time:    time.Now(),
-		Entry:   entry,
+		Entry:   e,
 	}
 
-	if level >= WARN {
-		// 仅为本条日志填充 Trace，不经 WithTrace，避免 copy-on-write 丢掉栈信息
-		entry.Trace = entry.trace()
+	// 保留 WithTrace() 预置的栈；WARN+ 且未预置时自动采集
+	if level >= WARN && len(e.Trace) == 0 {
+		e.Trace = e.trace()
 	}
 
-	_, hooks := entry.l.snapshot()
+	_, hooks := e.l.snapshot()
 	for _, fn := range hooks {
-		entry.hookHandler(fn)
+		e.hookHandler(fn)
 	}
 
-	// hook 内可能 SetAdapter；写之前重新取，避免写到已 Close 的旧适配器
-	adapter, _ := entry.l.snapshot()
+	adapter, _ := e.l.snapshot()
 	if adapter != nil {
-		adapter.Write(entry.msg)
+		adapter.Write(e.msg)
 	}
-
-	// Adapter/Hook 已同步读完 Trace；清空以免 Entry 复用时污染后续日志
-	entry.Trace = nil
 }
 
 func (entry *Entry) hookHandler(fn func(msg *Message)) {

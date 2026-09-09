@@ -22,6 +22,9 @@ func serverUnaryInterceptorAuth(authFunc AuthFunc) grpc.UnaryServerInterceptor {
 		if err != nil {
 			return nil, status.Errorf(codes.Unauthenticated, "认证失败，原因：%s", err)
 		}
+		if ctxx == nil {
+			ctxx = ctx
+		}
 
 		return handler(ctxx, req)
 	}
@@ -38,6 +41,9 @@ func serverStreamInterceptorAuth(authFunc AuthFunc) grpc.StreamServerInterceptor
 		ctxx, err := authFunc(md, ss.Context(), info.FullMethod)
 		if err != nil {
 			return status.Errorf(codes.Unauthenticated, "认证失败，原因：%s", err)
+		}
+		if ctxx == nil {
+			ctxx = ss.Context()
 		}
 
 		ssa := newServerStreamAuth(ss)

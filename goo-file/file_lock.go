@@ -15,6 +15,10 @@ func (fl *FileLock) Lock() (err error) {
 		fl.Filename = ".lock"
 	}
 
+	if fl.fh != nil {
+		return nil
+	}
+
 	fl.fh, err = os.Create(fl.Filename)
 	if err != nil {
 		return

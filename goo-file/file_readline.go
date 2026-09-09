@@ -13,7 +13,7 @@ func ReadByLine(filename string, cb func(b []byte, end bool) error) error {
 		return errors.New("文件不存在")
 	}
 
-	f, err := os.OpenFile(filename, os.O_RDWR, 0755)
+	f, err := os.OpenFile(filename, os.O_RDONLY, 0)
 	if err != nil {
 		goo_log.Error(err)
 		return err

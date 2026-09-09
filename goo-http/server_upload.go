@@ -2,11 +2,12 @@ package goo_http
 
 import (
 	"fmt"
-	"github.com/gin-gonic/gin"
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
-	"io/ioutil"
+	"io"
 	"os"
 	"path"
+
+	"github.com/gin-gonic/gin"
+	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 )
 
 type LocalUpload struct {
@@ -17,13 +18,12 @@ func (lu LocalUpload) Upload(c *gin.Context, uploadDir string) *Response {
 	if err != nil {
 		return Error(7001, fmt.Sprintf("上传失败，原因：%s", err.Error()))
 	}
+	defer f.Close()
 
-	data, err := ioutil.ReadAll(f)
+	data, err := io.ReadAll(f)
 	if err != nil {
 		return Error(7002, fmt.Sprintf("上传失败，原因：%s", err.Error()))
 	}
-
-	f.Close()
 
 	md5str := goo_utils.MD5(data)
 	filepath := md5str[0:2] + "/" + md5str[2:4] + "/"

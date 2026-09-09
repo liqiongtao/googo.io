@@ -22,9 +22,7 @@ func (l *TaskQueueLeader) Generate(ctx context.Context) {
 		default:
 		}
 
-		if l.handler(ctx) {
-			return
-		}
+		l.handler(ctx)
 
 		select {
 		case <-ctx.Done():
@@ -34,16 +32,27 @@ func (l *TaskQueueLeader) Generate(ctx context.Context) {
 	}
 }
 
-func (l *TaskQueueLeader) handler(ctx context.Context) bool {
+// handler 尝试执政；丢锁或 ctx 取消后返回，由 Generate 继续竞选。
+func (l *TaskQueueLeader) handler(ctx context.Context) {
 	if !l.lock() {
-		return false
+		return
 	}
 	defer l.unlock()
 
 	lost := make(chan struct{})
 	var lostOnce sync.Once
+	var wg sync.WaitGroup
 
-	goo_utils.AsyncFuncGroup(func() {
+	run := func(fn func()) {
+		wg.Add(1)
+		goo_utils.AsyncFunc(func() {
+			defer wg.Done()
+			fn()
+		})
+	}
+
+	// 不用 AsyncFuncGroup：其信号量容量=NumCPU，低核时会卡住长驻循环
+	run(func() {
 		for {
 			select {
 			case <-ctx.Done():
@@ -60,7 +69,8 @@ func (l *TaskQueueLeader) handler(ctx context.Context) bool {
 				}
 			}
 		}
-	}, func() {
+	})
+	run(func() {
 		for {
 			select {
 			case <-ctx.Done():
@@ -74,7 +84,8 @@ func (l *TaskQueueLeader) handler(ctx context.Context) bool {
 				}
 			}
 		}
-	}, func() {
+	})
+	run(func() {
 		for {
 			select {
 			case <-ctx.Done():
@@ -90,7 +101,7 @@ func (l *TaskQueueLeader) handler(ctx context.Context) bool {
 		}
 	})
 
-	return true
+	wg.Wait()
 }
 
 // recover 按名次从最老开始分批扫描 processing，避免同 score exclusive 游标跳过成员

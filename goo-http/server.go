@@ -188,28 +188,31 @@ func (s *Server) encrypt(c *gin.Context) {
 		}
 	}
 
-	var buf bytes.Buffer
-	io.Copy(&buf, c.Request.Body)
+	raw, err := io.ReadAll(c.Request.Body)
+	_ = c.Request.Body.Close()
+	if err != nil {
+		s.abortWithStatus50X(c, 5002, "读取请求失败，原因："+err.Error())
+		return
+	}
 
-	b, err := s.opts.encryptionFn(c).Decode(buf.String())
+	b, err := s.opts.encryptionFn(c).Decode(string(raw))
 	if err != nil {
 		s.abortWithStatus50X(c, 5002, "解码失败，原因："+err.Error())
 		return
 	}
 
-	if l := len(b); l == 0 {
-		c.Request.Body = io.NopCloser(bytes.NewBuffer(nil))
-		c.Next()
-		return
-	}
-
-	c.Request.Body = io.NopCloser(bytes.NewBuffer(b))
+	c.Request.Body = io.NopCloser(bytes.NewReader(b))
+	c.Request.ContentLength = int64(len(b))
 
 	c.Next()
 }
 
 // log
 func (s *Server) log(c *gin.Context) {
+	if _, ok := s.opts.noLogPath[c.Request.URL.Path]; ok {
+		c.Next()
+		return
+	}
 	if _, ok := s.opts.noLogPath[c.Request.RequestURI]; ok {
 		c.Next()
 		return

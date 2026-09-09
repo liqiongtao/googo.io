@@ -12,7 +12,6 @@ var (
 )
 
 func Init(configs ...Config) (err error) {
-	added := make([]string, 0, len(configs))
 	for _, conf := range configs {
 		name := conf.Name
 		if name == "" {
@@ -21,20 +20,12 @@ func Init(configs ...Config) (err error) {
 
 		cli, e := New(conf)
 		if e != nil {
-			__mu.Lock()
-			for _, n := range added {
-				if c := __clients[n]; c != nil {
-					_ = c.Close()
-				}
-				delete(__clients, n)
-			}
-			__mu.Unlock()
 			return e
 		}
+
 		__mu.Lock()
 		__clients[name] = cli
 		__mu.Unlock()
-		added = append(added, name)
 	}
 	return
 }
@@ -52,14 +43,13 @@ func GetClient(names ...string) *Client {
 		return cli
 	}
 
-	if l := len(__clients); l == 1 {
+	if name == "default" && len(__clients) == 1 {
 		for _, cli := range __clients {
 			return cli
 		}
 	}
 
-	goo_log.WithTag("goo-db").Error("no default db client")
-
+	goo_log.WithTag("goo-db").ErrorF("db client not found: %s", name)
 	return nil
 }
 
@@ -78,6 +68,5 @@ func Default() *Client {
 	}
 
 	goo_log.WithTag("goo-db").Error("no default db client")
-
 	return nil
 }

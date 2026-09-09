@@ -195,7 +195,9 @@ func (x *xlsxWrite) SetRows(data [][]interface{}, styles ...*excelize.Style) *xl
 func (x *xlsxWrite) SetSheetName(sheetName string) *xlsxWrite {
 	_, _ = x.Handler().NewSheet(sheetName)
 	x.sheetName = sheetName
-	x.sheetRowNums[sheetName] = 0
+	if _, ok := x.sheetRowNums[sheetName]; !ok {
+		x.sheetRowNums[sheetName] = 0
+	}
 	return x
 }
 

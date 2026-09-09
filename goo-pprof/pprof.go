@@ -5,12 +5,14 @@ import (
 	"os"
 	"runtime"
 	"runtime/pprof"
+	"sync"
 	"time"
 
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 )
 
 type PProf struct {
+	mu   sync.Mutex
 	flag bool
 
 	cpuFile string
@@ -48,6 +50,9 @@ func New(baseDir string) *PProf {
 }
 
 func (pp *PProf) Start() {
+	pp.mu.Lock()
+	defer pp.mu.Unlock()
+
 	if pp.flag {
 		goo_log.WithTag("goo-pprof").Info("正在执行")
 		return
@@ -55,64 +60,54 @@ func (pp *PProf) Start() {
 
 	goo_log.WithTag("goo-pprof").Info("开始执行")
 
-	pp.flag = true
-
 	// 开启对锁调用的跟踪
 	runtime.SetMutexProfileFraction(1)
 	// 开启对阻塞操作的跟踪
 	runtime.SetBlockProfileRate(1)
 
-	// CPU profile 必须同步启动，避免 StopCPUProfile 与异步 StartCPUProfile 竞态
+	// 全部同步写盘，避免 Stop 关文件时与异步写竞态
 	if err := pp.startCPU(); err != nil {
 		goo_log.WithTag("goo-pprof").Error(err)
 	}
-	go pp.memory()
-	go pp.goroutine()
-	go pp.mutex()
-	go pp.block()
+	pp.writeMemory()
+	pp.writeGoroutine()
+	pp.writeMutex()
+	pp.writeBlock()
+
+	pp.flag = true
 }
 
 func (pp *PProf) Stop() {
+	pp.mu.Lock()
+	defer pp.mu.Unlock()
+
+	if !pp.flag {
+		return
+	}
 	pp.flag = false
 
 	pprof.StopCPUProfile()
 	runtime.SetMutexProfileFraction(0)
 	runtime.SetBlockProfileRate(0)
 
-	// 给异步 memory/goroutine/mutex/block 写盘一点时间，再关文件
-	time.Sleep(200 * time.Millisecond)
-
-	if pp.cpuFH != nil {
-		_ = pp.cpuFH.Close()
-		pp.cpuFH = nil
-	}
-
-	if pp.memoryFH != nil {
-		_ = pp.memoryFH.Close()
-		pp.memoryFH = nil
-	}
-
-	if pp.goroutineFH != nil {
-		_ = pp.goroutineFH.Close()
-		pp.goroutineFH = nil
-	}
-
-	if pp.mutexFH != nil {
-		_ = pp.mutexFH.Close()
-		pp.mutexFH = nil
-	}
-
-	if pp.blockFH != nil {
-		_ = pp.blockFH.Close()
-		pp.blockFH = nil
-	}
-
-	time.Sleep(time.Second)
+	pp.closeFH(&pp.cpuFH)
+	pp.closeFH(&pp.memoryFH)
+	pp.closeFH(&pp.goroutineFH)
+	pp.closeFH(&pp.mutexFH)
+	pp.closeFH(&pp.blockFH)
 
 	goo_log.WithTag("goo-pprof").InfoF(
 		"执行结束:\n%s\n%s\n%s\n%s\n%s",
 		pp.memoryFile, pp.cpuFile, pp.goroutineFile, pp.blockFile, pp.mutexFile,
 	)
+}
+
+func (pp *PProf) closeFH(fh **os.File) {
+	if fh == nil || *fh == nil {
+		return
+	}
+	_ = (*fh).Close()
+	*fh = nil
 }
 
 func (pp *PProf) startCPU() error {
@@ -128,53 +123,45 @@ func (pp *PProf) startCPU() error {
 	return nil
 }
 
-func (pp *PProf) memory() {
+func (pp *PProf) writeMemory() {
 	var err error
-
 	if pp.memoryFH, err = os.Create(pp.memoryFile); err != nil {
 		goo_log.WithTag("goo-pprof").Error(err)
 		return
 	}
-
 	runtime.GC()
-	pprof.WriteHeapProfile(pp.memoryFH)
+	_ = pprof.WriteHeapProfile(pp.memoryFH)
 }
 
-func (pp *PProf) goroutine() {
+func (pp *PProf) writeGoroutine() {
 	var err error
-
 	if pp.goroutineFH, err = os.Create(pp.goroutineFile); err != nil {
 		goo_log.WithTag("goo-pprof").Error(err)
 		return
 	}
-
 	if prof := pprof.Lookup("goroutine"); prof != nil {
-		prof.WriteTo(pp.goroutineFH, 1)
+		_ = prof.WriteTo(pp.goroutineFH, 1)
 	}
 }
 
-func (pp *PProf) mutex() {
+func (pp *PProf) writeMutex() {
 	var err error
-
 	if pp.mutexFH, err = os.Create(pp.mutexFile); err != nil {
 		goo_log.WithTag("goo-pprof").Error(err)
 		return
 	}
-
 	if prof := pprof.Lookup("mutex"); prof != nil {
-		prof.WriteTo(pp.mutexFH, 1)
+		_ = prof.WriteTo(pp.mutexFH, 1)
 	}
 }
 
-func (pp *PProf) block() {
+func (pp *PProf) writeBlock() {
 	var err error
-
 	if pp.blockFH, err = os.Create(pp.blockFile); err != nil {
 		goo_log.WithTag("goo-pprof").Error(err)
 		return
 	}
-
 	if prof := pprof.Lookup("block"); prof != nil {
-		prof.WriteTo(pp.blockFH, 1)
+		_ = prof.WriteTo(pp.blockFH, 1)
 	}
 }

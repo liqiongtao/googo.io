@@ -5,9 +5,9 @@ import (
 	"github.com/elastic/go-elasticsearch/v7/esapi"
 )
 
-// 删除索引模版
+// 删除索引模版（与 IndexTemplatePut 同属 composable `_index_template`）
 func (c *ESClient) IndexTemplateDel(name string) (*esapi.Response, error) {
-	req := esapi.IndicesDeleteTemplateRequest{
+	req := esapi.IndicesDeleteIndexTemplateRequest{
 		Name: name,
 	}
 	return c.exec(req)

@@ -6,7 +6,11 @@ import (
 )
 
 func Mongo(names ...string) *mongo.Database {
-	return goo_mongo.GetClient(names...).DB()
+	cli := goo_mongo.GetClient(names...)
+	if cli == nil {
+		return nil
+	}
+	return cli.DB()
 }
 
 func MongoClient(names ...string) *goo_mongo.Client {

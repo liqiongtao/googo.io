@@ -2,8 +2,9 @@ package goo_request
 
 import (
 	"crypto/tls"
+	"os"
+
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
-	"io/ioutil"
 )
 
 type Tls struct {
@@ -16,7 +17,7 @@ func (s *Tls) CaCrt() []byte {
 	if s.CaCrtFile == "" {
 		return caCert
 	}
-	bts, err := ioutil.ReadFile(s.CaCrtFile)
+	bts, err := os.ReadFile(s.CaCrtFile)
 	if err != nil {
 		goo_log.Error(err.Error())
 	}

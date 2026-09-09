@@ -95,6 +95,7 @@ func (cli *Client) SetTTL(key, val string, ttl int64, opts ...clientv3.OpOption)
 	opts = append(opts, clientv3.WithLease(lease.ID))
 	resp, err = cli.Client.Put(cli.ctx, key, val, opts...)
 	if err != nil {
+		_, _ = cli.Client.Revoke(cli.ctx, lease.ID)
 		goo_log.WithTag("goo-etcd").WithField("key", key).WithField("val", val).WithField("ttl", ttl).Error(err)
 		return
 	}

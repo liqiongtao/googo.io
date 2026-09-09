@@ -169,7 +169,7 @@ func fileMergeHandler(file string, files []string) (err error) {
 					break
 				}
 				goo_log.Error(err)
-				continue
+				return
 			}
 			if strings.TrimSpace(s) == "" {
 				continue
@@ -227,7 +227,7 @@ func fileMergeHandler(file string, files []string) (err error) {
 					break
 				}
 				goo_log.Error(err)
-				continue
+				return
 			}
 			if strings.TrimSpace(s) == "" {
 				continue
