@@ -63,7 +63,7 @@ func (l *Logger) WithTag(tags ...string) *Entry {
 	return NewEntry(l).WithTag(tags...)
 }
 
-func (l *Logger) WithField(field string, value interface{}) *Entry {
+func (l *Logger) WithField(field string, value any) *Entry {
 	return NewEntry(l).WithField(field, value)
 }
 
@@ -71,50 +71,50 @@ func (l *Logger) WithTrace() *Entry {
 	return NewEntry(l).WithTrace()
 }
 
-func (l *Logger) Debug(v ...interface{}) {
+func (l *Logger) Debug(v ...any) {
 	NewEntry(l).Debug(v...)
 }
 
-func (l *Logger) DebugF(format string, v ...interface{}) {
+func (l *Logger) DebugF(format string, v ...any) {
 	NewEntry(l).DebugF(format, v...)
 }
 
-func (l *Logger) Info(v ...interface{}) {
+func (l *Logger) Info(v ...any) {
 	NewEntry(l).Info(v...)
 }
 
-func (l *Logger) InfoF(format string, v ...interface{}) {
+func (l *Logger) InfoF(format string, v ...any) {
 	NewEntry(l).InfoF(format, v...)
 }
 
-func (l *Logger) Warn(v ...interface{}) {
+func (l *Logger) Warn(v ...any) {
 	NewEntry(l).Warn(v...)
 }
 
-func (l *Logger) WarnF(format string, v ...interface{}) {
+func (l *Logger) WarnF(format string, v ...any) {
 	NewEntry(l).WarnF(format, v...)
 }
 
-func (l *Logger) Error(v ...interface{}) {
+func (l *Logger) Error(v ...any) {
 	NewEntry(l).Error(v...)
 }
 
-func (l *Logger) ErrorF(format string, v ...interface{}) {
+func (l *Logger) ErrorF(format string, v ...any) {
 	NewEntry(l).ErrorF(format, v...)
 }
 
-func (l *Logger) Panic(v ...interface{}) {
+func (l *Logger) Panic(v ...any) {
 	NewEntry(l).Panic(v...)
 }
 
-func (l *Logger) PanicF(format string, v ...interface{}) {
+func (l *Logger) PanicF(format string, v ...any) {
 	NewEntry(l).PanicF(format, v...)
 }
 
-func (l *Logger) Fatal(v ...interface{}) {
+func (l *Logger) Fatal(v ...any) {
 	NewEntry(l).Fatal(v...)
 }
 
-func (l *Logger) FatalF(format string, v ...interface{}) {
+func (l *Logger) FatalF(format string, v ...any) {
 	NewEntry(l).FatalF(format, v...)
 }

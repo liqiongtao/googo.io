@@ -9,7 +9,7 @@ import (
 
 type Message struct {
 	Level   Level
-	Message []interface{}
+	Message []any
 	Time    time.Time
 	Entry   *Entry
 }
@@ -19,7 +19,7 @@ func (msg *Message) JSON() []byte {
 		return nil
 	}
 
-	data := map[string]interface{}{}
+	data := map[string]any{}
 
 	if l := len(msg.Entry.Data); l > 0 {
 		for _, i := range msg.Entry.Data {
