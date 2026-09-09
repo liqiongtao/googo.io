@@ -130,13 +130,28 @@ func (l *TaskQueueLeader) recover(ctx context.Context) error {
 			taskId, _ := z.Member.(string)
 			startMs := int64(z.Score)
 
-			if taskId == "" || !l.taskExists(taskId) {
+			if taskId == "" {
 				l.r.ZRem(l.TaskProcessingKey, z.Member)
 				requeued++
 				continue
 			}
 
-			task := getTaskByCache(l.r, l.taskInfoKey(taskId))
+			exists, err := l.taskExists(taskId)
+			if err != nil {
+				l.log().WithTag("recover").WithField("task_id", taskId).Error(err)
+				continue
+			}
+			if !exists {
+				l.r.ZRem(l.TaskProcessingKey, z.Member)
+				requeued++
+				continue
+			}
+
+			task, err := getTaskByCache(l.r, l.taskInfoKey(taskId))
+			if err != nil {
+				l.log().WithTag("recover").WithField("task_id", taskId).Error(err)
+				continue
+			}
 			if task.Id == "" {
 				_ = l.TaskQueueTasks.taskDelForce(taskId)
 				requeued++

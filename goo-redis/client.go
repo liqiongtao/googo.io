@@ -139,6 +139,10 @@ func (c *Client) HGet(key, field string) *redis.StringCmd {
 	return c.Client.HGet(c.ctx(), key, field)
 }
 
+func (c *Client) HGetAll(key string) *redis.MapStringStringCmd {
+	return c.Client.HGetAll(c.ctx(), key)
+}
+
 func (c *Client) HDel(key string, fields ...string) *redis.IntCmd {
 	return c.Client.HDel(c.ctx(), key, fields...)
 }

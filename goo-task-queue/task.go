@@ -2,6 +2,7 @@ package goo_task_queue
 
 import (
 	"encoding/json"
+	"strconv"
 	"time"
 
 	goo_redis "github.com/liqiongtao/googo.io/goo-redis"
@@ -24,19 +25,27 @@ type Task struct {
 	Generation   int64  `json:"generation,omitempty"`    // 执行代数（抢占时分配，收尾校验用，业务勿写）
 }
 
-func getTaskByCache(r *goo_redis.Client, key string) *Task {
-	task := &Task{
-		Id:      r.HGet(key, "id").Val(),
-		Type:    r.HGet(key, "type").Val(),
-		Payload: r.HGet(key, "payload").Val(),
+func getTaskByCache(r *goo_redis.Client, key string) (*Task, error) {
+	m, err := r.HGetAll(key).Result()
+	if err != nil {
+		return nil, err
+	}
+	if len(m) == 0 {
+		return &Task{}, nil
 	}
 
-	task.HighPriority, _ = r.HGet(key, "high_priority").Int()
-	task.MaxRetry, _ = r.HGet(key, "max_retry").Int()
-	task.RetryTimes, _ = r.HGet(key, "retry_times").Int()
-	task.Timeout, _ = r.HGet(key, "timeout").Int64()
-	task.Ts, _ = r.HGet(key, "ts").Int64()
-	task.Generation, _ = r.HGet(key, "generation").Int64()
+	task := &Task{
+		Id:      m["id"],
+		Type:    m["type"],
+		Payload: m["payload"],
+	}
+
+	task.HighPriority, _ = strconv.Atoi(m["high_priority"])
+	task.MaxRetry, _ = strconv.Atoi(m["max_retry"])
+	task.RetryTimes, _ = strconv.Atoi(m["retry_times"])
+	task.Timeout, _ = strconv.ParseInt(m["timeout"], 10, 64)
+	task.Ts, _ = strconv.ParseInt(m["ts"], 10, 64)
+	task.Generation, _ = strconv.ParseInt(m["generation"], 10, 64)
 
 	if task.Ts == 0 {
 		task.Ts = time.Now().UnixMilli()
@@ -49,7 +58,7 @@ func getTaskByCache(r *goo_redis.Client, key string) *Task {
 		task.Timeout = defaultTaskTimeout
 	}
 
-	return task
+	return task, nil
 }
 
 func (t *Task) MapData() map[string]interface{} {

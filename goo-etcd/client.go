@@ -289,9 +289,11 @@ func (cli *Client) Watch(key string) <-chan []string {
 			data[string(kv.Key)] = string(kv.Value)
 		}
 		rev = resp.Header.Revision
+		ch <- cli.map2array(data)
+	} else if err != nil {
+		// Get 失败不推空快照，避免服务发现短暂丢节点
+		goo_log.WithTag("goo-etcd").WithField("key", key).Error(err)
 	}
-
-	ch <- cli.map2array(data)
 
 	go func() {
 		defer func() {
@@ -318,23 +320,41 @@ func (cli *Client) Watch(key string) <-chan []string {
 				}
 				if err := w.Err(); err != nil {
 					goo_log.WithTag("goo-etcd").WithField("key", key).Error(err)
-					// 可能因 compact 等失败：重新 Get 对齐后再 Watch
-					mu.Lock()
-					data = map[string]string{}
+					// compact 等失败：重新 Get 对齐；Get 失败保留旧快照，不推空列表
 					nextRev := int64(0)
-					if resp, gerr := cli.Get(key, clientv3.WithPrefix()); gerr == nil && resp != nil {
-						for _, kv := range resp.Kvs {
-							data[string(kv.Key)] = string(kv.Value)
+					synced := false
+					for attempt := 0; attempt < 3; attempt++ {
+						resp, gerr := cli.Get(key, clientv3.WithPrefix())
+						if gerr != nil {
+							goo_log.WithTag("goo-etcd").WithField("key", key).Error(gerr)
+							select {
+							case <-cli.ctx.Done():
+								return
+							case <-time.After(time.Second):
+							}
+							continue
 						}
-						nextRev = resp.Header.Revision
-					}
-					arr := cli.map2array(data)
-					mu.Unlock()
+						mu.Lock()
+						data = map[string]string{}
+						if resp != nil {
+							for _, kv := range resp.Kvs {
+								data[string(kv.Key)] = string(kv.Value)
+							}
+							nextRev = resp.Header.Revision
+						}
+						arr := cli.map2array(data)
+						mu.Unlock()
 
-					select {
-					case ch <- arr:
-					case <-cli.ctx.Done():
-						return
+						select {
+						case ch <- arr:
+						case <-cli.ctx.Done():
+							return
+						}
+						synced = true
+						break
+					}
+					if !synced {
+						goo_log.WithTag("goo-etcd").WithField("key", key).Warn("resync get failed, keep previous snapshot")
 					}
 
 					opts = []clientv3.OpOption{clientv3.WithPrefix()}

@@ -3,11 +3,15 @@ package goo_cos
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
+	"strings"
+	"time"
+
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	goo_redis "github.com/liqiongtao/googo.io/goo-redis"
+	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	sts "github.com/tencentyun/qcloud-cos-sts-sdk/go"
 	"golang.org/x/sync/singleflight"
-	"time"
 )
 
 // 获取临时密钥
@@ -45,9 +49,19 @@ var (
 	sfSts = singleflight.Group{}
 )
 
+func stsCacheKey(cfg StsConfig) string {
+	actions := append([]string{}, cfg.GetAction()...)
+	sort.Strings(actions)
+	fp := goo_utils.MD5([]byte(strings.Join(actions, ",") + "|" +
+		fmt.Sprintf("%d", cfg.GetExpire()) + "|" +
+		cfg.SecretId + "|" +
+		strings.Join(cfg.GetResource(), ",")))
+	return fmt.Sprintf("cos:sts:%s:%s:%s:%s", cfg.Region, cfg.Appid, cfg.Bucket, fp)
+}
+
 // 获取临时密钥(带缓存)
 func STSCredentialWithCache(cfg StsConfig, redis *goo_redis.Client) (*sts.Credentials, error) {
-	key := fmt.Sprintf("cos:sts:%s:%s:%s", cfg.Region, cfg.Appid, cfg.Bucket)
+	key := stsCacheKey(cfg)
 
 	result, err, _ := sfSts.Do(key, func() (interface{}, error) {
 		var str string

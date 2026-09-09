@@ -146,7 +146,7 @@ func (p *producer) SendAsyncMessage(msg IMessage, cb MessageHandler) (err error)
 	return
 }
 
-// tryDedup 用 SetNX 原子占位去重；focus 时先删旧 key 再占位。
+// tryDedup 用 SetNX 原子占位去重；focus 时用 Set 原子覆盖旧 key。
 // 返回已占用的 dedupKey（空表示未启用去重）；发送失败时需 clearDedup。
 func (p *producer) tryDedup(msg IMessage) (dedupKey string, err error) {
 	if p.cli.redis == nil || len(msg.Key()) == 0 {
@@ -154,16 +154,22 @@ func (p *producer) tryDedup(msg IMessage) (dedupKey string, err error) {
 	}
 
 	dedupKey = msg.Key()
-	if p.focus {
-		p.cli.redis.Del(dedupKey)
-	}
-
-	ok, setErr := p.cli.redis.SetNX(dedupKey, goo_utils.M{
+	val := goo_utils.M{
 		"topic":     msg.Topic(),
 		"body":      msg,
 		"headers":   msg.Headers(),
 		"timestamp": time.Now().Format("2006-01-02 15:04:05"),
-	}.String(), time.Hour).Result()
+	}.String()
+
+	if p.focus {
+		// Set 原子覆盖，避免 Del+SetNX 竞态导致双占位
+		if setErr := p.cli.redis.Set(dedupKey, val, time.Hour).Err(); setErr != nil {
+			return "", setErr
+		}
+		return dedupKey, nil
+	}
+
+	ok, setErr := p.cli.redis.SetNX(dedupKey, val, time.Hour).Result()
 	if setErr != nil {
 		return "", setErr
 	}

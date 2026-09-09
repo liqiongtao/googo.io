@@ -3,6 +3,8 @@ package goo_http
 import (
 	"bytes"
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -38,6 +40,7 @@ func NewServer(opt ...Option) *Server {
 		opts:   opts,
 	}
 
+	s.Engine.MaxMultipartMemory = opts.maxBodyBytes
 	s.Engine.NoRoute(s.noRoute)
 	s.Engine.NoMethod(s.noMethod)
 
@@ -188,21 +191,30 @@ func (s *Server) encrypt(c *gin.Context) {
 		}
 	}
 
-	raw, err := io.ReadAll(c.Request.Body)
+	raw, err := readBodyLimited(c.Request.Body, s.opts.maxBodyBytes)
 	_ = c.Request.Body.Close()
 	if err != nil {
+		if errors.Is(err, ErrBodyTooLarge) {
+			s.abortWithStatus40X(c, 413, err.Error())
+			return
+		}
 		s.abortWithStatus50X(c, 5002, "读取请求失败，原因："+err.Error())
 		return
 	}
 
-	b, err := s.opts.encryptionFn(c).Decode(string(raw))
+	enc, err := resolveEncryption(s.opts, c)
+	if err != nil {
+		s.abortWithStatus50X(c, 5002, "解码失败，原因："+err.Error())
+		return
+	}
+	decoded, err := enc.Decode(string(raw))
 	if err != nil {
 		s.abortWithStatus50X(c, 5002, "解码失败，原因："+err.Error())
 		return
 	}
 
-	c.Request.Body = io.NopCloser(bytes.NewReader(b))
-	c.Request.ContentLength = int64(len(b))
+	c.Request.Body = io.NopCloser(bytes.NewReader(decoded))
+	c.Request.ContentLength = int64(len(decoded))
 
 	c.Next()
 }
@@ -233,8 +245,29 @@ func (s *Server) log(c *gin.Context) {
 		"uri":    c.Request.RequestURI,
 		"header": header,
 	}
-	if v := RequestBody(c); v != nil {
-		req["body"] = v
+	switch c.ContentType() {
+	case "application/x-www-form-urlencoded", "text/xml", "application/json":
+		b, err := readAndRestoreBody(c)
+		if err != nil {
+			if errors.Is(err, ErrBodyTooLarge) {
+				s.abortWithStatus40X(c, 413, err.Error())
+			} else {
+				s.abortWithStatus50X(c, 5002, "读取请求失败，原因："+err.Error())
+			}
+			return
+		}
+		if len(b) > 0 {
+			if c.ContentType() == "application/json" {
+				var body interface{}
+				if err := json.Unmarshal(b, &body); err == nil {
+					req["body"] = body
+				} else {
+					req["body"] = string(b)
+				}
+			} else {
+				req["body"] = string(b)
+			}
+		}
 	}
 
 	l := goo_log.WithTag("goo-api").

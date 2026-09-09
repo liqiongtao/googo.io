@@ -1,5 +1,5 @@
 ---
-description: 代码审查时忽略的已知/接受项（goo-http/grpc/es/request/db）
+description: 代码审查时忽略的已知/接受项（goo-http/grpc/es/request/db/redis/mongo/etcd/kafka/oss/log）
 alwaysApply: true
 ---
 
@@ -18,6 +18,8 @@ alwaysApply: true
 
 ## goo-es
 - `Loop` / `Query`（及 V2）出错或深分页失败时返回空列表，循环静默当作扫完退出
+- 部分 API（如 Index/Delete/Search）返回的 Response 需调用方自行 `Body.Close`
+- 重复 `Init` 丢弃旧客户端
 
 ## goo-request
 - 未配置 TLS 时默认 `InsecureSkipVerify: true`
@@ -26,5 +28,14 @@ alwaysApply: true
 ## goo-db
 - `Ping()` 无超时
 - 重复 `Init` 不关闭旧连接 / EngineGroup
+
+## goo-redis / goo-mongo / goo-etcd / goo-kafka
+- 重复 `Init` 不关闭旧连接 / 客户端
+
+## goo-oss
+- 重复 `Init` 丢弃旧 Uploader / 客户端
+
+## goo-log
+- `Panic` / `PanicF` 未先 `Sync`；FileAdapter 异步写时 panic 日志可能丢失
 
 检查时只报告上述清单之外的新问题。若用户明确要求修复其中某一项，再处理该项。

@@ -25,10 +25,17 @@ func (q *TaskQueueList) getTasks(key string) []*Task {
 
 	var tasks []*Task
 	for _, taskId := range taskIds {
-		if taskId == "" || !q.TaskQueueTasks.taskExists(taskId) {
+		if taskId == "" {
 			continue
 		}
-		task := getTaskByCache(q.r, q.TaskQueueTasks.taskInfoKey(taskId))
+		exists, err := q.TaskQueueTasks.taskExists(taskId)
+		if err != nil || !exists {
+			continue
+		}
+		task, err := getTaskByCache(q.r, q.TaskQueueTasks.taskInfoKey(taskId))
+		if err != nil || task.Id == "" {
+			continue
+		}
 		tasks = append(tasks, task)
 	}
 

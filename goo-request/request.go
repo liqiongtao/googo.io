@@ -128,6 +128,10 @@ func (r *Request) getClient() *http.Client {
 }
 
 func (r *Request) Do(method, url string, reader io.Reader) (rst []byte, err error) {
+	return r.do(method, url, reader, nil)
+}
+
+func (r *Request) do(method, url string, reader io.Reader, extraHeaders map[string]string) (rst []byte, err error) {
 	var (
 		req *http.Request
 		rsp *http.Response
@@ -149,6 +153,9 @@ func (r *Request) Do(method, url string, reader io.Reader) (rst []byte, err erro
 	for k, v := range r.Headers {
 		req.Header.Set(k, v)
 	}
+	for k, v := range extraHeaders {
+		req.Header.Set(k, v)
+	}
 
 	rsp, err = r.getClient().Do(req)
 	if err != nil {
@@ -162,12 +169,20 @@ func (r *Request) Do(method, url string, reader io.Reader) (rst []byte, err erro
 	}
 
 	rst = buf.Bytes()
+	if rsp.StatusCode < 200 || rsp.StatusCode >= 300 {
+		err = fmt.Errorf("request failed, status code: %d", rsp.StatusCode)
+		return
+	}
 
 	return
 }
 
 func (r *Request) handle(method, url string, data []byte) (rsp []byte, err error) {
-	rsp, err = r.Do(method, url, bytes.NewReader(data))
+	return r.handleWithHeaders(method, url, data, nil)
+}
+
+func (r *Request) handleWithHeaders(method, url string, data []byte, extraHeaders map[string]string) (rsp []byte, err error) {
+	rsp, err = r.do(method, url, bytes.NewReader(data), extraHeaders)
 	if r.debug {
 		l := goo_log.WithTag(TAG).
 			WithField("method", method).
@@ -197,7 +212,10 @@ func (r *Request) Post(url string, data []byte) ([]byte, error) {
 }
 
 func (r *Request) PostJson(url string, data []byte) ([]byte, error) {
-	return r.JsonContentType().handle("POST", url, data)
+	// 仅对本次请求设置 Content-Type，避免污染共享 Headers
+	return r.handleWithHeaders("POST", url, data, map[string]string{
+		"Content-Type": CONTENT_TYPE_JSON,
+	})
 }
 
 func (r *Request) Put(url string, data []byte) ([]byte, error) {
@@ -220,6 +238,10 @@ func (r *Request) GPTStream(url string, data []byte, cb func(b []byte)) error {
 	}
 
 	defer rsp.Body.Close()
+
+	if rsp.StatusCode < 200 || rsp.StatusCode >= 300 {
+		return fmt.Errorf("request failed, status code: %d", rsp.StatusCode)
+	}
 
 	var (
 		reader   = bufio.NewReader(rsp.Body)
@@ -253,6 +275,7 @@ func (r *Request) GPTStream(url string, data []byte, cb func(b []byte)) error {
 func (r *Request) Upload(url, fileField, fileName string, fh io.Reader, data map[string]string) ([]byte, error) {
 	pr, pw := io.Pipe()
 	w := multipart.NewWriter(pw)
+	contentType := w.FormDataContentType()
 
 	goo_utils.AsyncFunc(func() {
 		defer pw.Close()
@@ -277,9 +300,10 @@ func (r *Request) Upload(url, fileField, fileName string, fh io.Reader, data map
 		}
 	})
 
-	r.SetHeader("Content-Type", w.FormDataContentType())
-
-	return r.Do("POST", url, pr)
+	// 仅对本次请求设置 multipart Content-Type，避免污染共享 Headers
+	return r.do("POST", url, pr, map[string]string{
+		"Content-Type": contentType,
+	})
 }
 
 func (r *Request) Download(url, filename string) (err error) {

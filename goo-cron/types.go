@@ -10,9 +10,9 @@ type TaskFunc func(task *TaskData)
 type TaskStatus int
 
 var (
-	TaskStatusDelete  = TaskStatus(0) // 删除任务
 	TaskStatusCreate  = TaskStatus(1) // 添加任务
 	TaskStatusUpdate  = TaskStatus(2) // 更新任务 -> 删除、添加
+	TaskStatusDelete  = TaskStatus(3) // 删除任务（勿用 0，JSON 缺省 status 为零值）
 	TaskStatusExecute = TaskStatus(9) // 立即执行
 )
 
@@ -31,6 +31,11 @@ func (task *TaskData) String() string {
 func (task *TaskData) Valid() error {
 	if task.Code == "" {
 		return errors.New("empty code")
+	}
+	switch task.Status {
+	case TaskStatusDelete, TaskStatusCreate, TaskStatusUpdate, TaskStatusExecute:
+	default:
+		return errors.New("invalid or missing status")
 	}
 	if task.Status == TaskStatusCreate || task.Status == TaskStatusUpdate {
 		if task.Spec == "" {

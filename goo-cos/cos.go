@@ -22,8 +22,11 @@ type CosClient struct {
 	Config CosConfig
 }
 
-func NewCosClient(cfg CosConfig) *CosClient {
-	bucketUrl, _ := url.Parse(cfg.BucketURL())
+func NewCosClient(cfg CosConfig) (*CosClient, error) {
+	bucketUrl, err := url.Parse(cfg.BucketURL())
+	if err != nil {
+		return nil, fmt.Errorf("invalid cos bucket url: %w", err)
+	}
 
 	c := cos.NewClient(
 		&cos.BaseURL{BucketURL: bucketUrl},
@@ -60,7 +63,7 @@ func NewCosClient(cfg CosConfig) *CosClient {
 	return &CosClient{
 		Client: c,
 		Config: cfg,
-	}
+	}, nil
 }
 
 func trimObjectKey(objectKey string) string {
@@ -142,6 +145,7 @@ func (c *CosClient) Get(objectKey string) ([]byte, error) {
 	// 使用cos客户端获取文件内容
 	resp, err := c.Object.Get(context.Background(), objectKey, nil)
 	if err != nil {
+		closeCOSResponse(resp)
 		goo_log.ErrorF("get %s error: %s", objectKey, err.Error())
 		return nil, err
 	}
@@ -195,6 +199,7 @@ func (c *CosClient) Head(objectKey string) (*cos.Response, error) {
 
 	rsp, err := c.Object.Head(context.Background(), objectKey, nil)
 	if err != nil {
+		closeCOSResponse(rsp)
 		goo_log.ErrorF("head %s error: %s", objectKey, err.Error())
 		return nil, err
 	}

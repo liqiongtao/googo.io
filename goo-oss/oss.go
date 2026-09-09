@@ -44,33 +44,36 @@ func Default() *Uploader {
 	return __oss
 }
 
-func Client() *oss.Client {
+func Client() (*oss.Client, error) {
 	o, err := requireOSS()
 	if err != nil {
-		goo_log.Error(err)
-		return nil
+		return nil, err
 	}
-	return o.Client
+	if o.Client == nil {
+		return nil, errors.New("oss client is nil")
+	}
+	return o.Client, nil
 }
 
-func Bucket() *oss.Bucket {
+func Bucket() (*oss.Bucket, error) {
 	o, err := requireOSS()
 	if err != nil {
-		goo_log.Error(err)
-		return nil
+		return nil, err
+	}
+	if o.Bucket != nil {
+		return o.Bucket, nil
 	}
 	bucket, err := o.Client.Bucket(o.conf.Bucket)
 	if err != nil {
-		goo_log.Error(err)
+		return nil, err
 	}
-	return bucket
+	return bucket, nil
 }
 
-func ContentType(value string) *Uploader {
+func ContentType(value string) (*Uploader, error) {
 	o, err := requireOSS()
 	if err != nil {
-		goo_log.Error(err)
-		return nil
+		return nil, err
 	}
 	// 返回独立副本，避免污染全局单例 options
 	return &Uploader{
@@ -78,14 +81,13 @@ func ContentType(value string) *Uploader {
 		Client:  o.Client,
 		Bucket:  o.Bucket,
 		options: []oss.Option{oss.ContentType(value)},
-	}
+	}, nil
 }
 
-func Options(opts ...oss.Option) *Uploader {
+func Options(opts ...oss.Option) (*Uploader, error) {
 	o, err := requireOSS()
 	if err != nil {
-		goo_log.Error(err)
-		return nil
+		return nil, err
 	}
 	copied := make([]oss.Option, len(opts))
 	copy(copied, opts)
@@ -94,7 +96,7 @@ func Options(opts ...oss.Option) *Uploader {
 		Client:  o.Client,
 		Bucket:  o.Bucket,
 		options: copied,
-	}
+	}, nil
 }
 
 func Upload(filename string, r io.Reader) (string, error) {
@@ -146,14 +148,30 @@ func GetAppendPosition(objectKey string) (int64, error) {
 	return position, nil
 }
 
+// AppendObject 追加写入；遇 PositionNotEqualToLength 时重新取 position 重试，缓解并发追加冲突。
 func AppendObject(objectKey string, b []byte) (int64, error) {
 	o, err := requireOSS()
 	if err != nil {
 		return 0, err
 	}
-	appendPosition, err := GetAppendPosition(objectKey)
-	if err != nil {
+
+	const maxRetry = 5
+	var lastErr error
+	for i := 0; i < maxRetry; i++ {
+		appendPosition, err := GetAppendPosition(objectKey)
+		if err != nil {
+			return 0, err
+		}
+		next, err := o.Bucket.AppendObject(objectKey, bytes.NewReader(b), appendPosition)
+		if err == nil {
+			return next, nil
+		}
+		lastErr = err
+		var se oss.ServiceError
+		if errors.As(err, &se) && se.Code == "PositionNotEqualToLength" {
+			continue
+		}
 		return 0, err
 	}
-	return o.Bucket.AppendObject(objectKey, bytes.NewReader(b), appendPosition)
+	return 0, lastErr
 }

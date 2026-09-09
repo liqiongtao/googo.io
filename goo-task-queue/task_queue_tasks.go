@@ -52,14 +52,28 @@ return {member, tostring(gen)}
 
 	taskId := luaResultString(arr[0])
 	genStr := luaResultString(arr[1])
+	if taskId == "" {
+		return nil, nil
+	}
 
-	if taskId == "" || !t.taskExists(taskId) {
+	exists, err := t.taskExists(taskId)
+	if err != nil {
+		t.log().WithTag("getOneTask").Error(err)
+		t.putBackOnReadError(taskId, genStr)
+		return nil, err
+	}
+	if !exists {
 		t.r.ZRem(t.TaskPendingKey, taskId)
 		t.r.ZRem(t.TaskProcessingKey, taskId)
 		return nil, nil
 	}
 
-	task := getTaskByCache(t.r, t.taskInfoKey(taskId))
+	task, err := getTaskByCache(t.r, t.taskInfoKey(taskId))
+	if err != nil {
+		t.log().WithTag("getOneTask").Error(err)
+		t.putBackOnReadError(taskId, genStr)
+		return nil, err
+	}
 	if task.Id == "" {
 		t.log().WithTag("getOneTask").Warn(fmt.Sprintf("%s not exists", taskId))
 		_ = t.taskDelForce(taskId)
@@ -79,6 +93,14 @@ return {member, tostring(gen)}
 	return task, nil
 }
 
+func (t *TaskQueueTasks) putBackOnReadError(taskId, genStr string) {
+	gen, _ := strconv.ParseInt(genStr, 10, 64)
+	task := &Task{Id: taskId, Generation: gen}
+	if pbErr := t.putBack(task); pbErr != nil {
+		t.log().WithTag("getOneTask").WithField("task_id", taskId).ErrorF("putBack after redis read error: %v", pbErr)
+	}
+}
+
 func luaResultString(v any) string {
 	switch x := v.(type) {
 	case string:
@@ -92,8 +114,12 @@ func luaResultString(v any) string {
 	}
 }
 
-func (t *TaskQueueTasks) taskExists(taskId string) bool {
-	return t.r.Exists(t.taskInfoKey(taskId)).Val() > 0
+func (t *TaskQueueTasks) taskExists(taskId string) (bool, error) {
+	n, err := t.r.Exists(t.taskInfoKey(taskId)).Result()
+	if err != nil {
+		return false, err
+	}
+	return n > 0, nil
 }
 
 func (t *TaskQueueTasks) log() *goo_log.Entry {

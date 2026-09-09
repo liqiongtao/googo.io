@@ -22,8 +22,12 @@ func StartDefault() {
 	if currentPP != nil {
 		return
 	}
-	currentPP = New("logs")
-	currentPP.Start()
+	pp := New("logs")
+	if err := pp.Start(); err != nil {
+		goo_log.WithTag("goo-pprof").Error(err)
+		return
+	}
+	currentPP = pp
 }
 
 // StopDefault 停止进程级默认 pprof。
@@ -47,8 +51,12 @@ func Toggle() {
 		goo_log.WithTag("goo-pprof").Info("pprof 已停止")
 		return
 	}
-	currentPP = New("logs")
-	currentPP.Start()
+	pp := New("logs")
+	if err := pp.Start(); err != nil {
+		goo_log.WithTag("goo-pprof").Error(err)
+		return
+	}
+	currentPP = pp
 	goo_log.WithTag("goo-pprof").Info("pprof 已开始")
 }
 

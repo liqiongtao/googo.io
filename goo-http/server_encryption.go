@@ -2,13 +2,27 @@ package goo_http
 
 import (
 	"encoding/hex"
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
+	"errors"
 	"strings"
+
+	"github.com/gin-gonic/gin"
+	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 )
 
 type Encryption struct {
 	Key    string
 	Secret string
+}
+
+func resolveEncryption(opts *options, c *gin.Context) (*Encryption, error) {
+	if opts == nil || opts.encryptionFn == nil {
+		return nil, errors.New("encryption not configured")
+	}
+	enc := opts.encryptionFn(c)
+	if enc == nil {
+		return nil, errors.New("encryption is nil")
+	}
+	return enc, nil
 }
 
 func (enc *Encryption) Encode(b []byte) (str string, err error) {

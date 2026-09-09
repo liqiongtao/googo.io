@@ -28,13 +28,17 @@ func TestCosClient(t *testing.T) {
 		return
 	}
 
-	c := NewCosClient(CosConfig{
+	c, err := NewCosClient(CosConfig{
 		SecretId:     res.TmpSecretID,
 		SecretKey:    res.TmpSecretKey,
 		SessionToken: res.SessionToken,
 		Bucket:       cfg.Bucket,
 		Region:       cfg.Region,
 	})
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 
 	if err := c.Upload("./1.log", "2025/1.log"); err != nil {
 		fmt.Println(err)

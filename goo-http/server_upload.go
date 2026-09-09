@@ -2,7 +2,6 @@ package goo_http
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"path"
 
@@ -20,7 +19,8 @@ func (lu LocalUpload) Upload(c *gin.Context, uploadDir string) *Response {
 	}
 	defer f.Close()
 
-	data, err := io.ReadAll(f)
+	limit := maxBodyBytesFromContext(c)
+	data, err := readBodyLimited(f, limit)
 	if err != nil {
 		return Error(7002, fmt.Sprintf("上传失败，原因：%s", err.Error()))
 	}

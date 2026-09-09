@@ -18,7 +18,8 @@ type consumer struct {
 	hasSetPartition bool  // 是否设置分区
 	partition       int32 // 分区
 
-	offset int64
+	hasSetOffset bool  // 是否设置起始位置
+	offset       int64 // 起始位置（0 为合法绝对 offset）
 }
 
 func (c *consumer) Client() sarama.Client {
@@ -34,18 +35,21 @@ func (c *consumer) WithPartition(partition int32) IConsumer {
 
 // 设置 起始位置
 func (c *consumer) WithOffset(offset int64) IConsumer {
+	c.hasSetOffset = true
 	c.offset = offset
 	return c
 }
 
 // 设置 起始位置 = 最新位置
 func (c *consumer) WithOffsetNewest() IConsumer {
+	c.hasSetOffset = true
 	c.offset = sarama.OffsetNewest
 	return c
 }
 
 // 设置 起始位置 = 从头开始
 func (c *consumer) WithOffsetOldest() IConsumer {
+	c.hasSetOffset = true
 	c.offset = sarama.OffsetOldest
 	return c
 }
@@ -65,8 +69,9 @@ func (c *consumer) Consume(topic string, handler ConsumerHandler) {
 		}
 	}()
 
-	if c.offset == 0 {
-		c.offset = sarama.OffsetNewest
+	offset := c.offset
+	if !c.hasSetOffset {
+		offset = sarama.OffsetNewest
 	}
 
 	partitions := []int32{c.partition}
@@ -80,7 +85,7 @@ func (c *consumer) Consume(topic string, handler ConsumerHandler) {
 
 	var wg sync.WaitGroup
 	for _, partition := range partitions {
-		pc, err := consumer.ConsumePartition(topic, partition, c.offset)
+		pc, err := consumer.ConsumePartition(topic, partition, offset)
 		if err != nil {
 			log.WithField("partition", partition).Error(err)
 			continue
@@ -106,7 +111,11 @@ func (c *consumer) consumePartition(topic string, pc sarama.PartitionConsumer, h
 			log.Debug("Context被取消,停止消费")
 			return
 
-		case err := <-pc.Errors():
+		case err, ok := <-pc.Errors():
+			if !ok {
+				log.Debug("错误通道被关闭,停止消费")
+				return
+			}
 			if err != nil {
 				log.Error(err)
 			}

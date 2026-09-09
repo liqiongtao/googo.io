@@ -78,7 +78,11 @@ func (q *TaskQueueCount) countType(zsetKey, taskType string) int64 {
 	}
 	var n int64
 	for _, taskId := range q.r.ZRange(zsetKey, 0, -1).Val() {
-		if taskId == "" || !q.TaskQueueTasks.taskExists(taskId) {
+		if taskId == "" {
+			continue
+		}
+		exists, err := q.TaskQueueTasks.taskExists(taskId)
+		if err != nil || !exists {
 			continue
 		}
 		if q.r.HGet(q.taskInfoKey(taskId), "type").Val() == taskType {
@@ -92,7 +96,11 @@ func (q *TaskQueueCount) countGroupByType(zsetKey string) map[string]int64 {
 	taskIds := q.r.ZRange(zsetKey, 0, -1).Val()
 	counts := make(map[string]int64)
 	for _, taskId := range taskIds {
-		if taskId == "" || !q.TaskQueueTasks.taskExists(taskId) {
+		if taskId == "" {
+			continue
+		}
+		exists, err := q.TaskQueueTasks.taskExists(taskId)
+		if err != nil || !exists {
 			continue
 		}
 		typ := q.r.HGet(q.taskInfoKey(taskId), "type").Val()

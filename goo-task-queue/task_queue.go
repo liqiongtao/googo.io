@@ -65,6 +65,7 @@ func New(r *goo_redis.Client) *TaskQueue {
 }
 
 func (q *TaskQueue) WithMaxMemoryPercent(percent float64) *TaskQueue {
+	// <=0 表示关闭内存门控；>0 为占用上限百分比
 	q.MaxMemoryPercent = percent
 	return q
 }

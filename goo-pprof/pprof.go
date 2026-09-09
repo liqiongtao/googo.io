@@ -49,13 +49,13 @@ func New(baseDir string) *PProf {
 	}
 }
 
-func (pp *PProf) Start() {
+func (pp *PProf) Start() error {
 	pp.mu.Lock()
 	defer pp.mu.Unlock()
 
 	if pp.flag {
 		goo_log.WithTag("goo-pprof").Info("正在执行")
-		return
+		return nil
 	}
 
 	goo_log.WithTag("goo-pprof").Info("开始执行")
@@ -68,9 +68,13 @@ func (pp *PProf) Start() {
 	// 仅启动 CPU 采样；memory/goroutine/mutex/block 在 Stop 时写入，此时才有有效样本
 	if err := pp.startCPU(); err != nil {
 		goo_log.WithTag("goo-pprof").Error(err)
+		runtime.SetMutexProfileFraction(0)
+		runtime.SetBlockProfileRate(0)
+		return err
 	}
 
 	pp.flag = true
+	return nil
 }
 
 func (pp *PProf) Stop() {

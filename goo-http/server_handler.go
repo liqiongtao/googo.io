@@ -65,7 +65,12 @@ func Handler(controller iController) gin.HandlerFunc {
 			return
 		}
 
-		body, err := opts.encryptionFn(c).Encode(b)
+		enc, err := resolveEncryption(opts, c)
+		if err != nil {
+			c.JSON(500, Error(5004, "数据解析失败，原因："+err.Error()))
+			return
+		}
+		body, err := enc.Encode(b)
 		if err != nil {
 			c.JSON(500, Error(5004, "数据解析失败，原因："+err.Error()))
 			return

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/IBM/sarama"
+	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	"github.com/liqiongtao/googo.io/goocontext"
 )
@@ -37,10 +38,26 @@ func (g group) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.Co
 			if !ok {
 				return nil
 			}
+			var err error
 			func() {
-				defer goo_utils.Recovery()
-				g.doHandler(msg, session)
+				defer func() {
+					if r := recover(); r != nil {
+						goo_log.WithTag("goo-kafka-consumer-group", g.id).Error(r)
+						// panic 视为消费失败，避免 err==nil 继续消费导致 AutoCommit 跨过
+						err = fmt.Errorf("panic: %v", r)
+					}
+				}()
+				err = g.doHandler(msg, session)
 			}()
+			if err != nil {
+				// 失败消息未 Mark：停止继续消费，避免后续成功 Mark + AutoCommit 跨过失败 offset
+				select {
+				case <-session.Context().Done():
+					return nil
+				case <-time.After(time.Second):
+				}
+				return err
+			}
 		}
 	}
 }
@@ -93,12 +110,18 @@ func (g group) doHandler(msg *sarama.ConsumerMessage, session sarama.ConsumerGro
 			uniqKey = fmt.Sprintf("%s:%s:%s", g.id, msg.Topic, goo_utils.MD5([]byte(g.id+msg.Topic+string(msg.Value))))
 		}
 		if g.cli.redis != nil {
-			ok := g.cli.redis.SetNX(uniqKey, goo_utils.M{
+			ok, setErr := g.cli.redis.SetNX(uniqKey, goo_utils.M{
 				"topic":     msg.Topic,
 				"body":      m["body"],
 				"headers":   m["headers"],
 				"timestamp": m["timestamp"],
-			}.String(), 300*time.Second).Val()
+			}.String(), 300*time.Second).Result()
+			if setErr != nil {
+				// Redis 故障时不能当去重命中，否则会 MarkMessage 丢消息
+				log.Error("消息去重失败", setErr)
+				err = setErr
+				return
+			}
 			if !ok {
 				log.Warn("消息消费失败，并发消费")
 				// 去重命中视为已处理，提交 offset，避免卡在重投循环
