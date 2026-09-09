@@ -217,6 +217,16 @@ func (cli *Client) registerServiceOnce(serviceName, addr string) (err error) {
 		return
 	}
 
+	// Grant 成功后若后续步骤失败，必须 Revoke，避免 lease/endpoint 泄漏
+	registered := false
+	defer func() {
+		if err != nil && !registered {
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+			_, _ = cli.Client.Revoke(ctx, lease.ID)
+			cancel()
+		}
+	}()
+
 	em, err = endpoints.NewManager(cli.Client, serviceName)
 	if err != nil {
 		goo_log.WithTag("goo-etcd").WithField("serviceName", serviceName).WithField("addr", addr).Error(err)
@@ -235,6 +245,7 @@ func (cli *Client) registerServiceOnce(serviceName, addr string) (err error) {
 		goo_log.WithTag("goo-etcd").WithField("serviceName", serviceName).WithField("addr", addr).Error(err)
 		return
 	}
+	registered = true
 
 	goo_log.WithTag("goo-etcd").WithField("serviceName", serviceName).WithField("addr", addr).Debug("服务注册成功")
 
@@ -268,8 +279,17 @@ func (cli *Client) Watch(key string) <-chan []string {
 	var (
 		mu   sync.Mutex
 		ch   = make(chan []string, runtime.NumCPU()*2)
-		data = cli.GetMap(key)
+		data = map[string]string{}
+		rev  int64
 	)
+
+	// 先 Get 拿到一致快照与 revision，再从 rev+1 Watch，避免中间变更丢失
+	if resp, err := cli.Get(key, clientv3.WithPrefix()); err == nil && resp != nil {
+		for _, kv := range resp.Kvs {
+			data[string(kv.Key)] = string(kv.Value)
+		}
+		rev = resp.Header.Revision
+	}
 
 	ch <- cli.map2array(data)
 
@@ -281,7 +301,12 @@ func (cli *Client) Watch(key string) <-chan []string {
 			close(ch)
 		}()
 
-		wc := cli.Client.Watch(cli.ctx, key, clientv3.WithPrefix())
+		opts := []clientv3.OpOption{clientv3.WithPrefix()}
+		if rev > 0 {
+			opts = append(opts, clientv3.WithRev(rev+1))
+		}
+		wc := cli.Client.Watch(cli.ctx, key, opts...)
+
 		for {
 			select {
 			case <-cli.ctx.Done():
@@ -293,6 +318,30 @@ func (cli *Client) Watch(key string) <-chan []string {
 				}
 				if err := w.Err(); err != nil {
 					goo_log.WithTag("goo-etcd").WithField("key", key).Error(err)
+					// 可能因 compact 等失败：重新 Get 对齐后再 Watch
+					mu.Lock()
+					data = map[string]string{}
+					nextRev := int64(0)
+					if resp, gerr := cli.Get(key, clientv3.WithPrefix()); gerr == nil && resp != nil {
+						for _, kv := range resp.Kvs {
+							data[string(kv.Key)] = string(kv.Value)
+						}
+						nextRev = resp.Header.Revision
+					}
+					arr := cli.map2array(data)
+					mu.Unlock()
+
+					select {
+					case ch <- arr:
+					case <-cli.ctx.Done():
+						return
+					}
+
+					opts = []clientv3.OpOption{clientv3.WithPrefix()}
+					if nextRev > 0 {
+						opts = append(opts, clientv3.WithRev(nextRev+1))
+					}
+					wc = cli.Client.Watch(cli.ctx, key, opts...)
 					continue
 				}
 

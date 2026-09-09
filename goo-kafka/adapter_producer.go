@@ -55,39 +55,23 @@ func (p *producer) SendMessage(msg IMessage) (partition int32, offset int64, err
 		log.Debug("消息发送成功")
 	}()
 
-	// 添加缓存
-	dedupKey := ""
-	if p.cli.redis != nil && len(msg.Key()) > 0 {
-		dedupKey = msg.Key()
-		if p.focus {
-			p.cli.redis.Del(dedupKey)
-		}
-		if p.cli.redis.Exists(dedupKey).Val() > 0 {
-			err = errors.New("KEY已存在")
-			return
-		}
-		p.cli.redis.Set(dedupKey, goo_utils.M{
-			"topic":     msg.Topic(),
-			"body":      msg,
-			"headers":   msg.Headers(),
-			"timestamp": time.Now().Format("2006-01-02 15:04:05"),
-		}.String(), time.Hour)
+	dedupKey, err := p.tryDedup(msg)
+	if err != nil {
+		return
 	}
 
 	var producer sarama.SyncProducer
 
 	producer, err = sarama.NewSyncProducerFromClient(p.Client())
 	if err != nil {
-		if dedupKey != "" {
-			p.cli.redis.Del(dedupKey)
-		}
+		p.clearDedup(dedupKey)
 		return
 	}
 	defer producer.Close()
 
 	partition, offset, err = producer.SendMessage(m)
-	if err != nil && dedupKey != "" {
-		p.cli.redis.Del(dedupKey)
+	if err != nil {
+		p.clearDedup(dedupKey)
 	}
 
 	return
@@ -130,32 +114,16 @@ func (p *producer) SendAsyncMessage(msg IMessage, cb MessageHandler) (err error)
 		log.Debug("消息发送成功")
 	}()
 
-	// 添加缓存
-	dedupKey := ""
-	if p.cli.redis != nil && len(msg.Key()) > 0 {
-		dedupKey = msg.Key()
-		if p.focus {
-			p.cli.redis.Del(dedupKey)
-		}
-		if p.cli.redis.Exists(dedupKey).Val() > 0 {
-			err = errors.New("KEY已存在")
-			return
-		}
-		p.cli.redis.Set(dedupKey, goo_utils.M{
-			"topic":     msg.Topic(),
-			"body":      msg,
-			"headers":   msg.Headers(),
-			"timestamp": time.Now().Format("2006-01-02 15:04:05"),
-		}.String(), time.Hour)
+	dedupKey, err := p.tryDedup(msg)
+	if err != nil {
+		return
 	}
 
 	var producer sarama.AsyncProducer
 
 	producer, err = sarama.NewAsyncProducerFromClient(p.Client())
 	if err != nil {
-		if dedupKey != "" {
-			p.cli.redis.Del(dedupKey)
-		}
+		p.clearDedup(dedupKey)
 		return
 	}
 	defer producer.Close()
@@ -169,13 +137,45 @@ func (p *producer) SendAsyncMessage(msg IMessage, cb MessageHandler) (err error)
 		}
 	case e := <-producer.Errors():
 		err = e.Err
-		if dedupKey != "" {
-			p.cli.redis.Del(dedupKey)
-		}
+		p.clearDedup(dedupKey)
 		if cb != nil {
 			cb(&ProducerMessage{e.Msg}, e.Err)
 		}
 	}
 
 	return
+}
+
+// tryDedup 用 SetNX 原子占位去重；focus 时先删旧 key 再占位。
+// 返回已占用的 dedupKey（空表示未启用去重）；发送失败时需 clearDedup。
+func (p *producer) tryDedup(msg IMessage) (dedupKey string, err error) {
+	if p.cli.redis == nil || len(msg.Key()) == 0 {
+		return "", nil
+	}
+
+	dedupKey = msg.Key()
+	if p.focus {
+		p.cli.redis.Del(dedupKey)
+	}
+
+	ok, setErr := p.cli.redis.SetNX(dedupKey, goo_utils.M{
+		"topic":     msg.Topic(),
+		"body":      msg,
+		"headers":   msg.Headers(),
+		"timestamp": time.Now().Format("2006-01-02 15:04:05"),
+	}.String(), time.Hour).Result()
+	if setErr != nil {
+		return "", setErr
+	}
+	if !ok {
+		return "", errors.New("KEY已存在")
+	}
+	return dedupKey, nil
+}
+
+func (p *producer) clearDedup(dedupKey string) {
+	if dedupKey == "" || p.cli.redis == nil {
+		return
+	}
+	p.cli.redis.Del(dedupKey)
 }
