@@ -1,4 +1,4 @@
-package goo
+package goo_http
 
 import (
 	"encoding/hex"

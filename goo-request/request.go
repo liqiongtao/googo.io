@@ -1,4 +1,4 @@
-package goo_http_request
+package goo_request
 
 import (
 	"bufio"

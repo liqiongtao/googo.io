@@ -1,4 +1,4 @@
-package goo
+package goo_http
 
 import "github.com/gin-gonic/gin"
 

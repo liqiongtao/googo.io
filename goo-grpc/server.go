@@ -7,11 +7,9 @@ import (
 	"os"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"syscall"
-	"time"
 
-	"github.com/facebookgo/grace/gracenet"
+	"github.com/cloudflare/tableflip"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	goo_pprof "github.com/liqiongtao/googo.io/goo-pprof"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
@@ -23,17 +21,14 @@ type Server struct {
 	conf Config
 	opts serverOptions
 
-	*gracenet.Net
 	*grpc.Server
+	upg *tableflip.Upgrader
 
 	lis net.Listener
 
 	stopOnce  sync.Once
 	hooksOnce sync.Once
 }
-
-// restarting 防止连发 SIGHUP 重复 StartProcess
-var restarting int32
 
 func New(conf Config, opt ...ServerOption) *Server {
 	opts := newDefaultServerOptions(conf)
@@ -65,7 +60,6 @@ func New(conf Config, opt ...ServerOption) *Server {
 	return &Server{
 		conf:   conf,
 		opts:   opts,
-		Net:    &gracenet.Net{},
 		Server: grpc.NewServer(serverOptions...),
 	}
 }
@@ -76,6 +70,13 @@ func (s *Server) Serve() (err error) {
 			goo_log.WithTag("goo-grpc").Error(r)
 		}
 	}()
+
+	s.upg, err = tableflip.New(tableflip.Options{})
+	if err != nil {
+		goo_log.WithTag("goo-grpc").Error(err)
+		return
+	}
+	defer s.upg.Stop()
 
 	// 本机内网IP
 	if s.conf.ServiceEndpoint == "" || s.conf.Addr == "" {
@@ -99,7 +100,7 @@ func (s *Server) Serve() (err error) {
 		s.conf.Addr += ":0"
 	}
 
-	s.lis, err = s.Net.Listen("tcp", s.conf.Addr)
+	s.lis, err = s.upg.Listen("tcp", s.conf.Addr)
 	if err != nil {
 		goo_log.WithTag("goo-grpc").Error(err)
 		return
@@ -145,13 +146,21 @@ func (s *Server) Serve() (err error) {
 
 	s.storePID()
 
-	// 继承 listener 的子进程就绪后，延迟通知父进程优雅退出
-	goocontext.NotifyParentExitAfter(300 * time.Millisecond)
+	// 通知父进程：本进程已就绪可接管
+	if readyErr := s.upg.Ready(); readyErr != nil {
+		goo_log.WithTag("goo-grpc").Error(readyErr)
+	}
+
+	// 父进程在子进程 Ready 后会收到 Exit，走统一优雅退出路径
+	go func() {
+		<-s.upg.Exit()
+		_ = syscall.Kill(os.Getpid(), syscall.SIGTERM)
+	}()
 
 	select {
 	case <-goocontext.Root().Done():
 	case serveErr := <-serveErrCh:
-		// Serve 立刻失败时触发退出钩子，避免 AsyncFunc(Serve)+<-Root().Done() 假活
+		// Serve 立刻失败时触发退出钩子，避免假活
 		err = serveErr
 		_ = syscall.Kill(os.Getpid(), syscall.SIGTERM)
 		<-goocontext.Root().Done()
@@ -165,20 +174,14 @@ func (s *Server) registerSignalHooks() {
 		goo_pprof.RegisterSignal()
 
 		goocontext.OnRestart(func() {
-			// 防止连发 SIGHUP 重复 fork；失败则允许重试
-			if !atomic.CompareAndSwapInt32(&restarting, 0, 1) {
+			if s.upg == nil {
 				return
 			}
-			if _, err := s.Net.StartProcess(); err != nil {
-				atomic.StoreInt32(&restarting, 0)
+			if err := s.upg.Upgrade(); err != nil {
 				goo_log.WithTag("goo-grpc").Error(err)
 				return
 			}
 			goo_log.WithTag("goo-grpc").Warn("服务重启")
-			// handoff 失败时父进程仍存活，超时后允许再次热重启
-			time.AfterFunc(10*time.Second, func() {
-				atomic.StoreInt32(&restarting, 0)
-			})
 		})
 		goocontext.OnExit(func() {
 			goo_pprof.StopDefault()

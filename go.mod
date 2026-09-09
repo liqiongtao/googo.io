@@ -6,9 +6,9 @@ require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.48.0
 	github.com/IBM/sarama v1.43.3
 	github.com/aliyun/aliyun-oss-go-sdk v3.0.2+incompatible
+	github.com/cloudflare/tableflip v1.2.3
 	github.com/dchest/captcha v1.0.0
 	github.com/elastic/go-elasticsearch/v7 v7.17.10
-	github.com/facebookgo/grace v0.0.0-20180706040059-75cf19382434
 	github.com/gin-contrib/pprof v1.5.0
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-jose/go-jose/v4 v4.1.5
@@ -51,10 +51,6 @@ require (
 	github.com/eapache/go-resiliency v1.7.0 // indirect
 	github.com/eapache/go-xerial-snappy v0.0.0-20230731223053-c322873962e3 // indirect
 	github.com/eapache/queue v1.1.0 // indirect
-	github.com/facebookgo/ensure v0.0.0-20200202191622-63f1cf65ac4c // indirect
-	github.com/facebookgo/freeport v0.0.0-20150612182905-d4adf43b75b9 // indirect
-	github.com/facebookgo/stack v0.0.0-20160209184415-751773369052 // indirect
-	github.com/facebookgo/subset v0.0.0-20200203212716-c811ad88dec4 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-faster/city v1.0.1 // indirect

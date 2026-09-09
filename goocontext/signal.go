@@ -7,7 +7,6 @@ import (
 	"sync"
 	"sync/atomic"
 	"syscall"
-	"time"
 
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 )
@@ -73,28 +72,6 @@ func isExitSignal(sig os.Signal) bool {
 	return sig == syscall.SIGTERM || sig == syscall.SIGINT || sig == syscall.SIGQUIT
 }
 
-// NotifyParentExit 子进程继承 listener 启动成功后，通知父进程退出（grace handoff）。
-func NotifyParentExit() {
-	if os.Getenv("LISTEN_FDS") == "" {
-		return
-	}
-	ppid := os.Getppid()
-	if ppid <= 1 {
-		return
-	}
-	if err := syscall.Kill(ppid, syscall.SIGTERM); err != nil {
-		goo_log.ErrorF("NotifyParentExit kill ppid=%d err=%v", ppid, err)
-	}
-}
-
-// NotifyParentExitAfter 延迟通知父进程退出，给 Serve 进入 Accept 留出时间。
-func NotifyParentExitAfter(d time.Duration) {
-	if os.Getenv("LISTEN_FDS") == "" {
-		return
-	}
-	time.AfterFunc(d, NotifyParentExit)
-}
-
 // Root 返回进程级共享 Context：全进程只监听一次信号。
 func Root() context.Context {
 	rootOnce.Do(func() {
@@ -128,7 +105,7 @@ func Root() context.Context {
 					})
 					continue
 				}
-				// 已进入退出流程则忽略 HUP/USR*，避免 Shutdown 中再 StartProcess
+				// 已进入退出流程则忽略 HUP/USR*，避免 Shutdown 中再 Upgrade
 				if exiting.Load() {
 					continue
 				}

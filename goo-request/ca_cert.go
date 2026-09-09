@@ -1,4 +1,4 @@
-package goo_http_request
+package goo_request
 
 var caCert = []byte(`
 # Issuer: CN=GlobalSign Root CA O=GlobalSign nv-sa OU=Root CA

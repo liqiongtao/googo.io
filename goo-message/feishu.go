@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	goo_http_request "github.com/liqiongtao/googo.io/goo-http-request"
+	goo_request "github.com/liqiongtao/googo.io/goo-request"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	"runtime"
 	"sync"
@@ -42,7 +42,7 @@ func FeiShu(hookUrl string, text string) error {
 		return err
 	}
 
-	buf, err := goo_http_request.PostJson(hookUrl, b)
+	buf, err := goo_request.PostJson(hookUrl, b)
 	if err != nil {
 		fmt.Println("[goo-msg][1002]", text, err)
 		return err

@@ -1,7 +1,7 @@
-package goo_http_request
+package goo_request
 
 const (
-	TAG = "goo-http-request"
+	TAG = "goo-request"
 
 	CONTENT_TYPE_XML  = "application/xml"
 	CONTENT_TYPE_JSON = "application/json"

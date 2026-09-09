@@ -1,4 +1,4 @@
-package goo
+package goo_http
 
 import (
 	"bytes"
@@ -9,10 +9,10 @@ import (
 	"os"
 	"strings"
 	"sync"
-	"sync/atomic"
+	"syscall"
 	"time"
 
-	"github.com/facebookgo/grace/gracenet"
+	"github.com/cloudflare/tableflip"
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
@@ -26,9 +26,6 @@ type Server struct {
 	opts      *options
 	hooksOnce sync.Once
 }
-
-// restarting 防止连发 SIGHUP 重复 StartProcess
-var restarting int32
 
 func NewServer(opt ...Option) *Server {
 	opts := newDefaultOptions()
@@ -56,7 +53,12 @@ func (s *Server) Run(addr string) {
 		goo_log.Panic(err.Error())
 	}
 
-	gnet := &gracenet.Net{}
+	upg, err := tableflip.New(tableflip.Options{})
+	if err != nil {
+		goo_log.Panic(err.Error())
+	}
+	defer upg.Stop()
+
 	httpServer := &http.Server{
 		Handler:           s.Engine,
 		ReadHeaderTimeout: 10 * time.Second,
@@ -65,20 +67,11 @@ func (s *Server) Run(addr string) {
 	// 先注册钩子再 Listen/Root，避免信号窗口内空钩子直接 cancel
 	s.hooksOnce.Do(func() {
 		goocontext.OnRestart(func() {
-			// 防止连发 SIGHUP 重复 fork；失败则允许重试
-			if !atomic.CompareAndSwapInt32(&restarting, 0, 1) {
-				return
-			}
-			if _, err := gnet.StartProcess(); err != nil {
-				atomic.StoreInt32(&restarting, 0)
+			if err := upg.Upgrade(); err != nil {
 				goo_log.Error(err.Error())
 				return
 			}
 			goo_log.Warn("服务重启")
-			// handoff 失败时父进程仍存活，超时后允许再次热重启
-			time.AfterFunc(10*time.Second, func() {
-				atomic.StoreInt32(&restarting, 0)
-			})
 		})
 		goocontext.OnExit(func() {
 			goo_pprof.StopDefault()
@@ -98,7 +91,7 @@ func (s *Server) Run(addr string) {
 		goo_pprof.StartDefault()
 	}
 
-	lis, err := gnet.Listen("tcp", addr)
+	lis, err := upg.Listen("tcp", addr)
 	if err != nil {
 		goo_log.Panic(err.Error())
 	}
@@ -111,8 +104,16 @@ func (s *Server) Run(addr string) {
 
 	goo_log.InfoF("server running, addr=%s pid=%s", lis.Addr().String(), pid)
 
-	// 继承 listener 的子进程就绪后，延迟通知父进程优雅退出
-	goocontext.NotifyParentExitAfter(300 * time.Millisecond)
+	// 通知父进程：本进程已就绪可接管
+	if err := upg.Ready(); err != nil {
+		goo_log.Error(err.Error())
+	}
+
+	// 父进程在子进程 Ready 后会收到 Exit，走统一优雅退出路径
+	go func() {
+		<-upg.Exit()
+		_ = syscall.Kill(os.Getpid(), syscall.SIGTERM)
+	}()
 
 	<-goocontext.Root().Done()
 }

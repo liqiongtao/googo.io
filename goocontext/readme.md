@@ -1,12 +1,12 @@
 # goocontext
 
-统一的 Context 框架：**进程根 + 请求派生**。HTTP / gRPC 用 `gracenet`，信号只在本包 Notify 一次。
+统一的 Context 框架：**进程根 + 请求派生**。HTTP / gRPC 热重启使用 `cloudflare/tableflip`，信号只在本包 Notify 一次。
 
 ## 进程根与信号
 
 | 档位 | 信号 | 命令 | 框架默认 | 钩子 |
 |------|------|------|----------|------|
-| Restart | `SIGHUP` | `kill -1` | 不 cancel | `OnRestart` |
+| Restart | `SIGHUP` | `kill -1` | 不 cancel | `OnRestart` → `upg.Upgrade()` |
 | Exit | `SIGTERM` / `SIGINT` / `SIGQUIT` | `kill` / `Ctrl+C` / `kill -3` | 钩子后 `cancel(Root)`（只一次） | `OnExit` |
 | Action | `SIGUSR1` | `kill -USR1` | 无 | `OnSignal`（pprof） |
 
@@ -14,12 +14,23 @@
 
 **启动顺序**：先 `OnExit`/`OnRestart`，再让其它组件调用 `Root()`（如 `etcd.New`、`RegisterSignal`）。若钩子尚未注册就收到退出信号，会直接 `cancel(Root)`，优雅退出钩子来不及执行。
 
-平滑重启只 `StartProcess`，父进程继续服务；子进程 `NotifyParentExitAfter` 后父进程走 Exit 退出。handoff 依赖子进程通知；父进程侧对 `restarting` 有超时复位，避免子进程异常时永久无法再 HUP。
+平滑重启由 **tableflip** 完成：子进程 `Ready()` 后父进程 `Exit()`，再走 Exit 钩子优雅退出。子进程初始化失败或超时时，父进程可继续服务。
 
 ```go
-goocontext.OnExit(func() { /* 平滑退出 */ })
-goocontext.OnRestart(func() { /* StartProcess */ })
-goocontext.NotifyParentExitAfter(300 * time.Millisecond)
+upg, _ := tableflip.New(tableflip.Options{})
+defer upg.Stop()
+
+goocontext.OnExit(func() { /* Shutdown / GracefulStop */ })
+goocontext.OnRestart(func() { _ = upg.Upgrade() })
+
+ln, _ := upg.Listen("tcp", addr)
+go serve(ln)
+_ = upg.Ready()
+
+go func() {
+	<-upg.Exit()
+	_ = syscall.Kill(os.Getpid(), syscall.SIGTERM)
+}()
 <-goocontext.Root().Done()
 ```
 
