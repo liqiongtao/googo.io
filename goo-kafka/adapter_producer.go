@@ -164,13 +164,17 @@ func (p *producer) SendAsyncMessage(msg IMessage, cb MessageHandler) (err error)
 
 	select {
 	case msg := <-producer.Successes():
-		cb(&ProducerMessage{msg}, nil)
+		if cb != nil {
+			cb(&ProducerMessage{msg}, nil)
+		}
 	case e := <-producer.Errors():
 		err = e.Err
 		if dedupKey != "" {
 			p.cli.redis.Del(dedupKey)
 		}
-		cb(&ProducerMessage{e.Msg}, e.Err)
+		if cb != nil {
+			cb(&ProducerMessage{e.Msg}, e.Err)
+		}
 	}
 
 	return

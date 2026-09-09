@@ -90,7 +90,9 @@ func FileSplit(filename string, maxLine int) (files []string, err error) {
 			partNum++
 		}()
 
-		data = append(data, string(b))
+		if len(b) > 0 {
+			data = append(data, string(b))
+		}
 		return nil
 	})
 

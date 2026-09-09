@@ -63,6 +63,7 @@ func (cli *Client) connect() (err error) {
 		},
 		Settings: clickhouse.Settings{
 			"max_execution_time": 60,
+			"send_timeout":       cli.Config.WriteTimeout,
 		},
 		DialTimeout:      10 * time.Second,
 		ReadTimeout:      time.Duration(cli.Config.ReadTimeout) * time.Second,

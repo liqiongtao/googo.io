@@ -136,6 +136,13 @@ q.PendingCount()     // 待执行数量
 q.ProcessingCount()  // 执行中数量
 q.FailCount()        // 失败数量
 
+q.PendingCountByType("order")      // 指定类型待执行数量
+q.ProcessingCountByType("order")   // 指定类型执行中数量
+q.TypeCount("order")               // 指定类型：pending + processing
+q.PendingCountGroupByType()        // 待执行按类型分组
+q.ProcessingCountGroupByType()     // 执行中按类型分组
+q.TypeCounts()                     // 全部类型：pending + processing
+
 q.PendingTasks()     // 待执行任务列表
 q.ProcessingTasks()  // 执行中任务列表
 q.FailTasks()        // 失败任务列表

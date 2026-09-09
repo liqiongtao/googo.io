@@ -87,7 +87,9 @@ func FileSort(filename, sortedFile string) (err error) {
 			partNum++
 		}()
 
-		data = append(data, string(b))
+		if len(b) > 0 {
+			data = append(data, string(b))
+		}
 
 		return
 	})

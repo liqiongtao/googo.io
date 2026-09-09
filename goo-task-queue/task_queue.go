@@ -37,7 +37,14 @@ func New(r *goo_redis.Client) *TaskQueue {
 		keys.WithPrefix(r.Config.Prefix)
 	}
 
-	localIp, _ := goo_utils.LocalIP()
+	localIp, err := goo_utils.LocalIP()
+	if err != nil || localIp == "" {
+		if host, herr := os.Hostname(); herr == nil && host != "" {
+			localIp = host
+		} else {
+			localIp = "unknown"
+		}
+	}
 	pid := os.Getpid()
 	q := &TaskQueue{
 		pid:              strconv.Itoa(pid),

@@ -26,17 +26,14 @@ func (lu LocalUpload) Upload(c *gin.Context, uploadDir string) *Response {
 	}
 
 	md5str := goo_utils.MD5(data)
-	filepath := md5str[0:2] + "/" + md5str[2:4] + "/"
+	relDir := path.Join(md5str[0:2], md5str[2:4])
+	relFile := path.Join(relDir, path.Base(fh.Filename)+"_"+md5str[8:16]+path.Ext(fh.Filename))
 
-	if err := os.MkdirAll(uploadDir+filepath, 0755); err != nil {
+	if err := os.MkdirAll(path.Join(uploadDir, relDir), 0755); err != nil {
 		return Error(7003, fmt.Sprintf("上传失败，原因：%s", err.Error()))
 	}
 
-	fileExt := path.Ext(fh.Filename)
-	fileBasename := path.Base(fh.Filename)
-	filename := filepath + fileBasename + "_" + md5str[8:16] + fileExt
-
-	ff, err := os.Create(uploadDir + filename)
+	ff, err := os.Create(path.Join(uploadDir, relFile))
 	if err != nil {
 		return Error(7004, fmt.Sprintf("上传失败，原因：%s", err.Error()))
 	}
@@ -47,6 +44,6 @@ func (lu LocalUpload) Upload(c *gin.Context, uploadDir string) *Response {
 	}
 
 	return Success(gin.H{
-		"url": filename,
+		"url": relFile,
 	})
 }

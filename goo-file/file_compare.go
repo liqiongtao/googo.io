@@ -164,40 +164,73 @@ func Compare(srcFile, targetFile, appendFile, reduceFile string) (err error) {
 	}
 
 	if end1 {
-		for {
-			f4.WriteString(s2)
+		// 先结算残留的 s1/s2，再排空 file2 剩余行
+		if s1 != "" && s2 != "" {
+			if s1 != s2 {
+				if s1 < s2 {
+					_, _ = f3.WriteString(s1)
+					_, _ = f4.WriteString(s2)
+				} else {
+					_, _ = f4.WriteString(s2)
+					_, _ = f3.WriteString(s1)
+				}
+			}
+		} else if s1 != "" {
+			_, _ = f3.WriteString(s1)
+		} else if s2 != "" {
+			_, _ = f4.WriteString(s2)
+		}
 
+		for {
 			s2, err = r2.ReadString('\n')
 			if err != nil {
 				if io.EOF == err {
+					if s2 != "" {
+						_, _ = f4.WriteString(s2)
+					}
 					err = nil
 					break
 				}
-
 				goo_log.Error(err)
 				return
 			}
+			_, _ = f4.WriteString(s2)
 		}
-
 		return
 	}
 
 	if end2 {
-		for {
-			f3.WriteString(s1)
+		if s1 != "" && s2 != "" {
+			if s1 != s2 {
+				if s1 < s2 {
+					_, _ = f3.WriteString(s1)
+					_, _ = f4.WriteString(s2)
+				} else {
+					_, _ = f4.WriteString(s2)
+					_, _ = f3.WriteString(s1)
+				}
+			}
+		} else if s2 != "" {
+			_, _ = f4.WriteString(s2)
+		} else if s1 != "" {
+			_, _ = f3.WriteString(s1)
+		}
 
+		for {
 			s1, err = r1.ReadString('\n')
 			if err != nil {
 				if io.EOF == err {
+					if s1 != "" {
+						_, _ = f3.WriteString(s1)
+					}
 					err = nil
 					break
 				}
-
 				goo_log.Error(err)
 				return
 			}
+			_, _ = f3.WriteString(s1)
 		}
-
 		return
 	}
 

@@ -135,6 +135,9 @@ func (r *Request) Do(method, url string, reader io.Reader) (rst []byte, err erro
 
 	req, err = http.NewRequest(method, url, reader)
 	if err != nil {
+		if c, ok := reader.(io.Closer); ok {
+			_ = c.Close()
+		}
 		return
 	}
 	defer func() {
@@ -227,6 +230,9 @@ func (r *Request) GPTStream(url string, data []byte, cb func(b []byte)) error {
 	for {
 		b, err := reader.ReadBytes('\n')
 		if err != nil {
+			if err == io.EOF {
+				return nil
+			}
 			return err
 		}
 
@@ -235,7 +241,9 @@ func (r *Request) GPTStream(url string, data []byte, cb func(b []byte)) error {
 			continue
 		}
 
-		cb(append(b, '\n'))
+		if cb != nil {
+			cb(append(b, '\n'))
+		}
 
 		b3 := bytes.TrimPrefix(b2, headData)
 		if string(b3) == done {

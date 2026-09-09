@@ -26,6 +26,9 @@ func ReadByLine(filename string, cb func(b []byte, end bool) error) error {
 
 		if err != nil {
 			if io.EOF == err {
+				if len(b) == 0 {
+					return cb(nil, true)
+				}
 				return cb(b, true)
 			}
 
