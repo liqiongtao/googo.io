@@ -8,6 +8,11 @@ import (
 	goo_redis "github.com/liqiongtao/googo.io/goo-redis"
 )
 
+const (
+	defaultMaxRetry    = 99
+	defaultTaskTimeout = 7200 // 秒，默认 2小时
+)
+
 type Task struct {
 	Id           string `json:"id,omitempty"`            // 任务唯一ID 必填
 	Type         string `json:"type,omitempty"`          // 任务类型 必填
@@ -37,10 +42,10 @@ func getTaskByCache(r *goo_redis.Client, key string) *Task {
 	}
 
 	if task.MaxRetry == 0 {
-		task.MaxRetry = 99
+		task.MaxRetry = defaultMaxRetry
 	}
 	if task.Timeout == 0 {
-		task.Timeout = 3600
+		task.Timeout = defaultTaskTimeout
 	}
 
 	return task

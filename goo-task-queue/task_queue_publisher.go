@@ -31,10 +31,10 @@ func (p *TaskQueuePublisher) Publish(tasks ...*Task) error {
 		}
 
 		if task.MaxRetry == 0 {
-			task.MaxRetry = 99 // 默认重试次数 99次
+			task.MaxRetry = defaultMaxRetry
 		}
 		if task.Timeout == 0 {
-			task.Timeout = 1800 // 默认超时时间 30分钟
+			task.Timeout = defaultTaskTimeout
 		}
 
 		task.Ts = time.Now().Unix()

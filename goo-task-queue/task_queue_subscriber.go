@@ -116,9 +116,8 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 		var wg sync.WaitGroup
 
 		for {
-			// 1. 检查是否退出
+			// 1. 检查是否退出：不再向 limitCH 申请槽位，也不 close（避免 send on closed channel）
 			if willExit {
-				close(limitCH)
 				break
 			}
 
@@ -135,11 +134,10 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 			wg.Add(1)
 			limitCH <- struct{}{}
 
-			// 4. 执行任务
+			// 4. 拉取任务
 			goo_utils.AsyncFunc(func() {
 				defer wg.Done()
 
-				// 获取任务
 				task, err := s.getOneTask()
 				if err != nil || task == nil {
 					time.Sleep(time.Duration(rand.Intn(600)+200) * time.Millisecond)
@@ -147,13 +145,11 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 					return
 				}
 
-				// 发布任务
 				taskCH <- task
 			})
 		}
 
 		wg.Wait()
-
 		close(taskCH)
 	})
 
@@ -211,25 +207,26 @@ func (s *TaskQueueSubscriber) taskHandle(task *Task, handler TaskQueueHandler) {
 		return
 	}
 
-	// 任务执行超时
+	elapsed := time.Since(startTime).Seconds()
+	reason := "执行任务失败"
 	if errors.Is(err, context.DeadlineExceeded) {
-		log().WithField("执行时长", time.Since(startTime).Seconds()).WarnF("执行任务超时, 准备重试(%d/%d)", task.RetryTimes, task.MaxRetry)
-		s.retry(task)
-		return
+		reason = "执行任务超时"
 	}
 
-	// 达到最大执行次数
+	// 超时与普通失败统一：达到 MaxRetry 进 fail，否则重试
+	s.onFailure(task, log, elapsed, reason)
+}
+
+// onFailure 统一处理失败（含超时）
+func (s *TaskQueueSubscriber) onFailure(task *Task, log func() *goo_log.Entry, elapsed float64, reason string) {
 	if task.MaxRetry != 0 && task.RetryTimes >= task.MaxRetry {
-		log().WithField("执行时长", time.Since(startTime).Seconds()).WarnF("执行任务失败，达到最大重试次数(%d/%d)", task.RetryTimes, task.MaxRetry)
+		log().WithField("执行时长", elapsed).WarnF("%s，达到最大重试次数(%d/%d)", reason, task.RetryTimes, task.MaxRetry)
 		s.taskFail(task)
 		return
 	}
 
-	log().WithField("执行时长", time.Since(startTime).Seconds()).WarnF("执行任务失败，重试(%d/%d)", task.RetryTimes, task.MaxRetry)
-
-	// 增加重试次数
+	log().WithField("执行时长", elapsed).WarnF("%s，重试(%d/%d)", reason, task.RetryTimes, task.MaxRetry)
 	s.retry(task)
-
 	time.Sleep(time.Duration(rand.Intn(600)+200) * time.Millisecond)
 }
 
