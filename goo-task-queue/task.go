@@ -2,7 +2,6 @@ package goo_task_queue
 
 import (
 	"encoding/json"
-	"math/rand"
 	"time"
 
 	goo_redis "github.com/liqiongtao/googo.io/goo-redis"
@@ -10,7 +9,7 @@ import (
 
 const (
 	defaultMaxRetry    = 99
-	defaultTaskTimeout = 7200 // 秒，默认 2小时
+	defaultTaskTimeout = int64(2 * time.Hour / time.Millisecond) // 毫秒，默认 2 小时
 )
 
 type Task struct {
@@ -20,8 +19,8 @@ type Task struct {
 	HighPriority int    `json:"high_priority,omitempty"` // 任务优先级 非必填 1=高优先级, 0=低优先级
 	MaxRetry     int    `json:"max_retry,omitempty"`     // 最大重试次数 非必填 默认99次
 	RetryTimes   int    `json:"retry_times,omitempty"`   // 重试次数 非必填 默认0次
-	Timeout      int64  `json:"timeout,omitempty"`       // 任务超时时间 非必填 默认30分钟
-	Ts           int64  `json:"ts,omitempty"`            // 任务时间
+	Timeout      int64  `json:"timeout,omitempty"`       // 任务超时时间（毫秒）非必填 默认2小时
+	Ts           int64  `json:"ts,omitempty"`            // 调度时间（毫秒时间戳），可设为未来表示延迟执行
 }
 
 func getTaskByCache(r *goo_redis.Client, key string) *Task {
@@ -38,7 +37,7 @@ func getTaskByCache(r *goo_redis.Client, key string) *Task {
 	task.Ts, _ = r.HGet(key, "ts").Int64()
 
 	if task.Ts == 0 {
-		task.Ts = time.Now().Unix() + int64(rand.Intn(60)+60)
+		task.Ts = time.Now().UnixMilli()
 	}
 
 	if task.MaxRetry == 0 {

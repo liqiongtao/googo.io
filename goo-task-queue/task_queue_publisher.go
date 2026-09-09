@@ -38,17 +38,14 @@ func (p *TaskQueuePublisher) Publish(tasks ...*Task) error {
 		}
 
 		if task.Ts == 0 {
-			task.Ts = time.Now().Unix()
+			task.Ts = time.Now().UnixMilli()
 		}
 
-		score := task.Ts
-		if task.HighPriority == 1 {
-			score = 1
-		}
+		score := priorityScore(task.HighPriority, task.Ts)
 
 		pi.HMSet(p.taskInfoKey(task.Id), task.MapData())
 		pi.Expire(p.taskInfoKey(task.Id), 48*time.Hour)
-		pi.ZAdd(p.TaskPendingKey, redis.Z{Score: float64(score), Member: task.Id})
+		pi.ZAdd(p.TaskPendingKey, redis.Z{Score: score, Member: task.Id})
 		pi.ZRem(p.TaskFailKey, task.Id)
 	}
 

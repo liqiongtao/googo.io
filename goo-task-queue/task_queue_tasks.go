@@ -23,14 +23,16 @@ end
 local member = tasks[1]
 
 redis.call('ZREM', KEYS[1], member)
-redis.call('ZADD', KEYS[2], ARGV[1], member)
+redis.call('ZADD', KEYS[2], ARGV[2], member)
 
 return member
 
 `
 
+	nowMs := float64(time.Now().UnixMilli())
 	keys := []string{t.TaskPendingKey, t.TaskProcessingKey}
-	args := []any{float64(time.Now().Unix())}
+	// ARGV[1]=可调度上限（含普通优先级 +0.5）；ARGV[2]=进入 processing 的开始时间
+	args := []any{nowMs + 0.5, nowMs}
 
 	member, err := t.r.Eval(luaScript, keys, args...).Result()
 	if err != nil {

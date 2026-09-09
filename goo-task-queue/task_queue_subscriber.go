@@ -10,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-redis/redis"
 	"github.com/liqiongtao/googo.io/goo"
 	goo_context "github.com/liqiongtao/googo.io/goo-context"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
@@ -191,8 +190,8 @@ func (s *TaskQueueSubscriber) taskHandle(task *Task, handler TaskQueueHandler) {
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, "trace-id", traceId)
 
-	// 超时控制
-	ctx, cancel := context.WithTimeout(ctx, time.Second*time.Duration(task.Timeout))
+	// 超时控制（Timeout 单位：毫秒）
+	ctx, cancel := context.WithTimeout(ctx, time.Duration(task.Timeout)*time.Millisecond)
 	defer cancel()
 
 	startTime := time.Now()
@@ -202,72 +201,38 @@ func (s *TaskQueueSubscriber) taskHandle(task *Task, handler TaskQueueHandler) {
 
 	// 执行成功
 	if err == nil {
-		log().WithField("执行时长", time.Since(startTime).Seconds()).InfoF("执行任务成功(%d/%d)", task.RetryTimes, task.MaxRetry)
+		log().WithField("执行时长_ms", time.Since(startTime).Milliseconds()).InfoF("执行任务成功(%d/%d)", task.RetryTimes, task.MaxRetry)
 		s.TaskQueueTasks.taskDel(task.Id)
 		return
 	}
 
-	elapsed := time.Since(startTime).Seconds()
+	elapsedMs := time.Since(startTime).Milliseconds()
 	reason := "执行任务失败"
 	if errors.Is(err, context.DeadlineExceeded) {
 		reason = "执行任务超时"
 	}
 
-	// 超时与普通失败统一：达到 MaxRetry 进 fail，否则重试
-	s.onFailure(task, log, elapsed, reason)
+	// 超时与普通失败统一：达到 MaxRetry 进 fail，否则重试（业务可通过 RetryAfter 控制延迟）
+	s.onFailure(task, err, log, elapsedMs, reason)
 }
 
 // onFailure 统一处理失败（含超时）
-func (s *TaskQueueSubscriber) onFailure(task *Task, log func() *goo_log.Entry, elapsed float64, reason string) {
+func (s *TaskQueueSubscriber) onFailure(task *Task, err error, log func() *goo_log.Entry, elapsedMs int64, reason string) {
+	nextRunAtMs := time.Now().UnixMilli()
+	if d, ok := retryAfterDuration(err); ok && d > 0 {
+		nextRunAtMs = time.Now().Add(d).UnixMilli()
+	}
+
 	if task.MaxRetry != 0 && task.RetryTimes >= task.MaxRetry {
-		log().WithField("执行时长", elapsed).WarnF("%s，达到最大重试次数(%d/%d)", reason, task.RetryTimes, task.MaxRetry)
-		s.taskFail(task)
+		log().WithField("执行时长_ms", elapsedMs).WarnF("%s，达到最大重试次数(%d/%d)", reason, task.RetryTimes, task.MaxRetry)
+		_ = s.TaskQueueTasks.taskFail(task)
 		return
 	}
 
-	log().WithField("执行时长", elapsed).WarnF("%s，重试(%d/%d)", reason, task.RetryTimes, task.MaxRetry)
-	s.retry(task)
+	log().WithField("执行时长_ms", elapsedMs).WithField("next_run_at_ms", nextRunAtMs).
+		WarnF("%s，重试(%d/%d)", reason, task.RetryTimes, task.MaxRetry)
+	_ = s.TaskQueueTasks.requeue(task, nextRunAtMs)
 	time.Sleep(time.Duration(rand.Intn(600)+200) * time.Millisecond)
-}
-
-// 重试
-func (s *TaskQueueSubscriber) retry(tasks ...*Task) error {
-	pi := s.r.TxPipeline()
-
-	for _, task := range tasks {
-		// 重试次数+1
-		pi.HIncrBy(s.taskInfoKey(task.Id), "retry_times", 1)
-		// 删除执行队列
-		pi.ZRem(s.TaskProcessingKey, task.Id)
-		// 添加待执行队列
-		pi.ZAdd(s.TaskPendingKey, redis.Z{Member: task.Id, Score: float64(task.Ts)})
-	}
-
-	if _, err := pi.Exec(); err != nil {
-		s.log().WithTag("retry").Error(err)
-		return err
-	}
-
-	return nil
-}
-
-// 任务失败
-func (s *TaskQueueSubscriber) taskFail(tasks ...*Task) error {
-	pi := s.r.TxPipeline()
-
-	for _, task := range tasks {
-		// 删除执行队列
-		pi.ZRem(s.TaskProcessingKey, task.Id)
-		// 添加失败队列
-		pi.ZAdd(s.TaskFailKey, redis.Z{Member: task.Id, Score: float64(task.Ts)})
-	}
-
-	if _, err := pi.Exec(); err != nil {
-		s.log().WithTag("taskFail").Error(err)
-		return err
-	}
-
-	return nil
 }
 
 // 节点ID

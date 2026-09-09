@@ -4,7 +4,6 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/go-redis/redis"
 	goo_context "github.com/liqiongtao/googo.io/goo-context"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
@@ -91,16 +90,10 @@ func (l *TaskQueueLeader) recover() error {
 			continue
 		}
 
-		if ts := time.Now().Unix() - int64(z.Score); ts > task.Timeout {
-			pi := l.r.TxPipeline()
-
-			// 删除执行队列
-			pi.ZRem(l.TaskProcessingKey, taskId)
-			// 添加待执行队列
-			pi.ZAdd(l.TaskPendingKey, redis.Z{Member: taskId, Score: float64(task.Ts)})
-
-			if _, err := pi.Exec(); err != nil {
-				l.log().WithTag("retry").Error(err)
+		if time.Now().UnixMilli()-int64(z.Score) > task.Timeout {
+			// Leader 无业务上下文，默认立即再入队（now）；与 Worker 共用计数 / MaxRetry
+			if err := l.TaskQueueTasks.requeueOrFail(task, time.Now().UnixMilli()); err != nil {
+				l.log().WithTag("recover").Error(err)
 			}
 		}
 	}
