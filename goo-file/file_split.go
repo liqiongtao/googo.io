@@ -26,12 +26,25 @@ func FileSplit(filename string, maxLine int) (files []string, err error) {
 
 		base, ext = splitFilename(filename)
 
-		wg sync.WaitGroup
-		mu sync.Mutex
-		ch = make(chan struct{}, runtime.NumCPU()*2)
+		wg       sync.WaitGroup
+		mu       sync.Mutex
+		splitErr error
+		ch       = make(chan struct{}, runtime.NumCPU()*2)
+		parts    = map[int]string{}
 	)
 
-	err = ReadByLine(filename, func(b []byte, end bool) (err error) {
+	setErr := func(e error) {
+		if e == nil {
+			return
+		}
+		mu.Lock()
+		if splitErr == nil {
+			splitErr = e
+		}
+		mu.Unlock()
+	}
+
+	readErr := ReadByLine(filename, func(b []byte, end bool) error {
 		defer func() {
 			if l := len(data); l < maxLine && !end {
 				return
@@ -52,11 +65,7 @@ func FileSplit(filename string, maxLine int) (files []string, err error) {
 					fh, openErr := os.OpenFile(partFile, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0644)
 					if openErr != nil {
 						goo_log.Error(openErr)
-						mu.Lock()
-						if err == nil {
-							err = openErr
-						}
-						mu.Unlock()
+						setErr(openErr)
 						return
 					}
 					defer fh.Close()
@@ -64,11 +73,7 @@ func FileSplit(filename string, maxLine int) (files []string, err error) {
 					for _, s := range data {
 						if _, werr := fh.WriteString(s); werr != nil {
 							goo_log.Error(werr)
-							mu.Lock()
-							if err == nil {
-								err = werr
-							}
-							mu.Unlock()
+							setErr(werr)
 							return
 						}
 					}
@@ -76,7 +81,7 @@ func FileSplit(filename string, maxLine int) (files []string, err error) {
 					goo_log.DebugF("产生一个文件: %s", partFile)
 
 					mu.Lock()
-					files = append(files, partFile)
+					parts[partNum] = partFile
 					mu.Unlock()
 				})
 			}(partNum, data)
@@ -86,11 +91,19 @@ func FileSplit(filename string, maxLine int) (files []string, err error) {
 		}()
 
 		data = append(data, string(b))
-		return
+		return nil
 	})
 
 	wg.Wait()
-	return
+	if readErr != nil {
+		return files, readErr
+	}
+	for i := 0; i < partNum; i++ {
+		if f, ok := parts[i]; ok {
+			files = append(files, f)
+		}
+	}
+	return files, splitErr
 }
 
 func splitFilename(filename string) (base, ext string) {

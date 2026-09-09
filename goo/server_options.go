@@ -2,22 +2,24 @@ package goo
 
 import "github.com/gin-gonic/gin"
 
-var defaultOptions = &options{
-	noAccessPath: map[string]struct{}{
-		"/favicon.ico": {},
-	},
-	noLogPath: map[string]struct{}{
-		"/favicon.ico": {},
-	},
-	corsHeaders: []string{
-		"Content-Type", "Content-Length",
-		"Accept", "Referer", "User-Agent", "Authorization",
-		"X-Requested-Id", "X-Request-Timestamp", "X-Request-Sign",
-		"X-Request-AppId", "X-Request-Source", "X-Request-Token",
-		"X-Client-Id", "X-Client-Token", "X-User-Agent", "X-Trace-Id",
-	},
-	encryptionExcludeUris: map[string]struct{}{},
-	responseHookFunc:      func(c *gin.Context, res *Response) {},
+func newDefaultOptions() *options {
+	return &options{
+		noAccessPath: map[string]struct{}{
+			"/favicon.ico": {},
+		},
+		noLogPath: map[string]struct{}{
+			"/favicon.ico": {},
+		},
+		corsHeaders: []string{
+			"Content-Type", "Content-Length",
+			"Accept", "Referer", "User-Agent", "Authorization",
+			"X-Requested-Id", "X-Request-Timestamp", "X-Request-Sign",
+			"X-Request-AppId", "X-Request-Source", "X-Request-Token",
+			"X-Client-Id", "X-Client-Token", "X-User-Agent", "X-Trace-Id",
+		},
+		encryptionExcludeUris: map[string]struct{}{},
+		responseHookFunc:      func(c *gin.Context, res *Response) {},
+	}
 }
 
 type options struct {

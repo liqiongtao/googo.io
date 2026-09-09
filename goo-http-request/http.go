@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 )
 
 func New(opts ...Option) *Request {
@@ -28,6 +29,8 @@ func New(opts ...Option) *Request {
 			for field, value := range v {
 				r.SetHeader(field, value)
 			}
+		case "debug":
+			r.debug = true
 		}
 	}
 	return r
@@ -70,7 +73,7 @@ func SetHeader(name, value string) *Request {
 }
 
 func Exists(url string) (bool, error) {
-	resp, err := http.Head(url)
+	resp, err := New().SetTimeout(10 * time.Second).getClient().Head(url)
 	if err != nil {
 		return false, err
 	}

@@ -204,11 +204,12 @@ func (x *xlsxWrite) Save2File(filename string) (err error) {
 		_ = x.Handler().DeleteSheet("Sheet1")
 	}
 
+	defer func() { _ = x.Handler().Close() }()
+
 	if err = x.Handler().SaveAs(filename); err != nil {
 		goo_log.Error(err)
 		return
 	}
-	defer func() { _ = x.Handler().Close() }()
 
 	return nil
 }
@@ -219,14 +220,19 @@ func (x *xlsxWrite) Output(ctx *gin.Context, filename string) (err error) {
 		return fmt.Errorf("invalid filename")
 	}
 
-	tmpFile := filepath.Join(os.TempDir(), filename)
-	defer func() { _ = os.Remove(tmpFile) }()
+	tmpFile, err := os.CreateTemp("", "goo-xlsx-*.xlsx")
+	if err != nil {
+		return err
+	}
+	tmpPath := tmpFile.Name()
+	_ = tmpFile.Close()
+	defer func() { _ = os.Remove(tmpPath) }()
 
-	if err = x.Save2File(tmpFile); err != nil {
+	if err = x.Save2File(tmpPath); err != nil {
 		return err
 	}
 
-	fileInfo, err := os.Stat(tmpFile)
+	fileInfo, err := os.Stat(tmpPath)
 	if err != nil {
 		return err
 	}
@@ -238,7 +244,7 @@ func (x *xlsxWrite) Output(ctx *gin.Context, filename string) (err error) {
 	ctx.Header("Access-Control-Expose-Headers", "Content-Disposition")
 	ctx.Header("content-length", strconv.FormatInt(fileSize, 10))
 
-	ctx.File(tmpFile)
+	ctx.File(tmpPath)
 
 	return
 }

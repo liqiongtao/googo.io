@@ -12,6 +12,9 @@ import (
 )
 
 func DialWithEtcd(serviceName string, cli *goo_etcd.Client, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
+	if cli == nil || cli.Client == nil {
+		return nil, fmt.Errorf("etcd client is nil")
+	}
 	builder, err := resolver.NewBuilder(cli.Client)
 	if err != nil {
 		return nil, err
@@ -49,6 +52,9 @@ func DialWithEtcd(serviceName string, cli *goo_etcd.Client, opts ...grpc.DialOpt
 }
 
 func DialContextWithEtcd(ctx context.Context, serviceName string, cli *goo_etcd.Client, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
+	if cli == nil || cli.Client == nil {
+		return nil, fmt.Errorf("etcd client is nil")
+	}
 	builder, err := resolver.NewBuilder(cli.Client)
 	if err != nil {
 		return nil, err

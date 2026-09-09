@@ -73,6 +73,7 @@ func (c *Client) init() (err error) {
 	c.Client, err = sarama.NewClient(c.conf.Addrs, config)
 	if err != nil {
 		goo_log.WithTag("goo-kafka").Error(err)
+		return
 	}
 
 	if cfg := c.conf.RedisConfig; cfg.Addr != "" {
@@ -81,9 +82,9 @@ func (c *Client) init() (err error) {
 		if redisErr != nil {
 			goo_log.WithTag("goo-kafka").Error("Redis 初始化失败", redisErr)
 			c.redis = nil
-			if err == nil {
-				err = redisErr
-			}
+			_ = c.Client.Close()
+			c.Client = nil
+			err = redisErr
 		}
 	}
 
@@ -91,8 +92,11 @@ func (c *Client) init() (err error) {
 }
 
 func (c *Client) Close() {
+	if c == nil || c.Client == nil {
+		return
+	}
 	if !c.Client.Closed() {
-		c.Client.Close()
+		_ = c.Client.Close()
 	}
 }
 
@@ -147,7 +151,7 @@ func (c *Client) Partitions(topic string) []int32 {
 func (c *Client) OffsetInfo(topic, groupId string) (data []map[string]int64) {
 	data = []map[string]int64{}
 
-	partitions := Partitions(topic)
+	partitions := c.Partitions(topic)
 	if l := len(partitions); l == 0 {
 		return
 	}

@@ -44,6 +44,8 @@ func ClientIP(c *gin.Context) string {
 	}
 	if v := c.ClientIP(); v == "::1" {
 		return "127.0.0.1"
+	} else if v != "" {
+		return v
 	}
 	return ""
 }

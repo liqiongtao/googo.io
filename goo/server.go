@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -22,24 +23,28 @@ import (
 // 定义web服务
 type Server struct {
 	*gin.Engine
+	opts      *options
+	hooksOnce sync.Once
 }
 
 // restarting 防止连发 SIGHUP 重复 StartProcess
 var restarting int32
 
 func NewServer(opt ...Option) *Server {
+	opts := newDefaultOptions()
 	for _, o := range opt {
-		o.apply(defaultOptions)
+		o.apply(opts)
 	}
 
 	s := &Server{
 		Engine: gin.New(),
+		opts:   opts,
 	}
 
 	s.Engine.NoRoute(s.noRoute)
 	s.Engine.NoMethod(s.noMethod)
 
-	s.Use(s.cors, s.noAccess, s.setFields, s.encrypt, s.log, s.recovery)
+	s.Use(s.injectOpts, s.cors, s.noAccess, s.setFields, s.recovery, s.encrypt, s.log)
 
 	return s
 }
@@ -58,35 +63,37 @@ func (s *Server) Run(addr string) {
 	}
 
 	// 先注册钩子再 Listen/Root，避免信号窗口内空钩子直接 cancel
-	goocontext.OnRestart(func() {
-		// 防止连发 SIGHUP 重复 fork；失败则允许重试
-		if !atomic.CompareAndSwapInt32(&restarting, 0, 1) {
-			return
-		}
-		if _, err := gnet.StartProcess(); err != nil {
-			atomic.StoreInt32(&restarting, 0)
-			goo_log.Error(err.Error())
-			return
-		}
-		goo_log.Warn("服务重启")
-		// handoff 失败时父进程仍存活，超时后允许再次热重启
-		time.AfterFunc(10*time.Second, func() {
-			atomic.StoreInt32(&restarting, 0)
+	s.hooksOnce.Do(func() {
+		goocontext.OnRestart(func() {
+			// 防止连发 SIGHUP 重复 fork；失败则允许重试
+			if !atomic.CompareAndSwapInt32(&restarting, 0, 1) {
+				return
+			}
+			if _, err := gnet.StartProcess(); err != nil {
+				atomic.StoreInt32(&restarting, 0)
+				goo_log.Error(err.Error())
+				return
+			}
+			goo_log.Warn("服务重启")
+			// handoff 失败时父进程仍存活，超时后允许再次热重启
+			time.AfterFunc(10*time.Second, func() {
+				atomic.StoreInt32(&restarting, 0)
+			})
 		})
-	})
-	goocontext.OnExit(func() {
-		goo_pprof.StopDefault()
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-		if err := httpServer.Shutdown(ctx); err != nil {
-			goo_log.Error(err.Error())
-		}
-		goo_log.Warn("服务退出")
+		goocontext.OnExit(func() {
+			goo_pprof.StopDefault()
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			if err := httpServer.Shutdown(ctx); err != nil {
+				goo_log.Error(err.Error())
+			}
+			goo_log.Warn("服务退出")
+		})
+		goo_pprof.RegisterSignal()
 	})
 
 	// 性能分析：HTTP endpoint + 进程级 pprof（USR1 统一由 goo_pprof 注册）
-	goo_pprof.RegisterSignal()
-	if defaultOptions.pprofEnable {
+	if s.opts.pprofEnable {
 		pprof.Register(s.Engine, "/goo/pprof")
 		goo_pprof.StartDefault()
 	}
@@ -110,11 +117,27 @@ func (s *Server) Run(addr string) {
 	<-goocontext.Root().Done()
 }
 
+const gooOptsKey = "__goo_opts"
+
+func (s *Server) injectOpts(c *gin.Context) {
+	c.Set(gooOptsKey, s.opts)
+	c.Next()
+}
+
+func optsFromContext(c *gin.Context) *options {
+	if v, ok := c.Get(gooOptsKey); ok {
+		if opts, ok := v.(*options); ok && opts != nil {
+			return opts
+		}
+	}
+	return newDefaultOptions()
+}
+
 // 跨域
 func (s *Server) cors(c *gin.Context) {
 	c.Header("Access-Control-Allow-Origin", "*")
 	c.Header("Access-Control-Allow-Methods", "PUT, POST, GET, DELETE, OPTIONS")
-	c.Header("Access-Control-Allow-Headers", strings.Join(defaultOptions.corsHeaders, ","))
+	c.Header("Access-Control-Allow-Headers", strings.Join(s.opts.corsHeaders, ","))
 	c.Next()
 }
 
@@ -125,7 +148,7 @@ func (s *Server) noAccess(c *gin.Context) {
 		return
 	}
 
-	if _, ok := defaultOptions.noAccessPath[c.Request.URL.Path]; ok {
+	if _, ok := s.opts.noAccessPath[c.Request.URL.Path]; ok {
 		c.AbortWithStatus(200)
 		return
 	}
@@ -140,7 +163,7 @@ func (s *Server) setFields(c *gin.Context) {
 
 // 加解密
 func (s *Server) encrypt(c *gin.Context) {
-	if !defaultOptions.encryptionEnable {
+	if !s.opts.encryptionEnable {
 		c.Next()
 		return
 	}
@@ -157,7 +180,7 @@ func (s *Server) encrypt(c *gin.Context) {
 		return
 	}
 
-	for v := range defaultOptions.encryptionExcludeUris {
+	for v := range s.opts.encryptionExcludeUris {
 		if v == c.Request.RequestURI || strings.HasPrefix(c.Request.RequestURI, v) {
 			c.Next()
 			return
@@ -167,13 +190,14 @@ func (s *Server) encrypt(c *gin.Context) {
 	var buf bytes.Buffer
 	io.Copy(&buf, c.Request.Body)
 
-	b, err := defaultOptions.encryptionFn(c).Decode(buf.String())
+	b, err := s.opts.encryptionFn(c).Decode(buf.String())
 	if err != nil {
 		s.abortWithStatus50X(c, 5002, "解码失败，原因："+err.Error())
 		return
 	}
 
 	if l := len(b); l == 0 {
+		c.Request.Body = io.NopCloser(bytes.NewBuffer(nil))
 		c.Next()
 		return
 	}
@@ -185,7 +209,7 @@ func (s *Server) encrypt(c *gin.Context) {
 
 // log
 func (s *Server) log(c *gin.Context) {
-	if _, ok := defaultOptions.noLogPath[c.Request.RequestURI]; ok {
+	if _, ok := s.opts.noLogPath[c.Request.RequestURI]; ok {
 		c.Next()
 		return
 	}

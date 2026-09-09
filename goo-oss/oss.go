@@ -18,16 +18,33 @@ func Init(conf Config) (err error) {
 	return
 }
 
+func requireOSS() (*Uploader, error) {
+	if __oss == nil {
+		return nil, errors.New("oss not initialized, call goo_oss.Init first")
+	}
+	return __oss, nil
+}
+
 func Default() *Uploader {
 	return __oss
 }
 
 func Client() *oss.Client {
-	return __oss.Client
+	o, err := requireOSS()
+	if err != nil {
+		goo_log.Error(err)
+		return nil
+	}
+	return o.Client
 }
 
 func Bucket() *oss.Bucket {
-	bucket, err := __oss.Client.Bucket(__oss.conf.Bucket)
+	o, err := requireOSS()
+	if err != nil {
+		goo_log.Error(err)
+		return nil
+	}
+	bucket, err := o.Client.Bucket(o.conf.Bucket)
 	if err != nil {
 		goo_log.Error(err)
 	}
@@ -35,23 +52,58 @@ func Bucket() *oss.Bucket {
 }
 
 func ContentType(value string) *Uploader {
-	return __oss.ContentType(value)
+	o, err := requireOSS()
+	if err != nil {
+		goo_log.Error(err)
+		return nil
+	}
+	// 返回独立副本，避免污染全局单例 options
+	return &Uploader{
+		conf:    o.conf,
+		Client:  o.Client,
+		Bucket:  o.Bucket,
+		options: []oss.Option{oss.ContentType(value)},
+	}
 }
 
 func Options(opts ...oss.Option) *Uploader {
-	return __oss.Options(opts...)
+	o, err := requireOSS()
+	if err != nil {
+		goo_log.Error(err)
+		return nil
+	}
+	copied := make([]oss.Option, len(opts))
+	copy(copied, opts)
+	return &Uploader{
+		conf:    o.conf,
+		Client:  o.Client,
+		Bucket:  o.Bucket,
+		options: copied,
+	}
 }
 
 func Upload(filename string, r io.Reader) (string, error) {
-	return __oss.Upload(filename, r)
+	o, err := requireOSS()
+	if err != nil {
+		return "", err
+	}
+	return o.Upload(filename, r)
 }
 
 func UploadFile(filename, filepath string) (string, error) {
-	return __oss.UploadFile(filename, filepath)
+	o, err := requireOSS()
+	if err != nil {
+		return "", err
+	}
+	return o.UploadFile(filename, filepath)
 }
 
 func GetAppendPosition(objectKey string) (int64, error) {
-	hd, err := __oss.Bucket.GetObjectDetailedMeta(objectKey)
+	o, err := requireOSS()
+	if err != nil {
+		return 0, err
+	}
+	hd, err := o.Bucket.GetObjectDetailedMeta(objectKey)
 	if err != nil {
 		var v oss.ServiceError
 		if errors.As(err, &v) {
@@ -80,9 +132,13 @@ func GetAppendPosition(objectKey string) (int64, error) {
 }
 
 func AppendObject(objectKey string, b []byte) (int64, error) {
+	o, err := requireOSS()
+	if err != nil {
+		return 0, err
+	}
 	appendPosition, err := GetAppendPosition(objectKey)
 	if err != nil {
 		return 0, err
 	}
-	return __oss.Bucket.AppendObject(objectKey, bytes.NewReader(b), appendPosition)
+	return o.Bucket.AppendObject(objectKey, bytes.NewReader(b), appendPosition)
 }

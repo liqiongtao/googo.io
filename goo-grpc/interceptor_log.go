@@ -31,7 +31,7 @@ func clientUnaryInterceptorLog() grpc.UnaryClientInterceptor {
 // 客户端 - 流式拦截器 - 日志
 func clientStreamInterceptorLog() grpc.StreamClientInterceptor {
 	return func(ctx context.Context, desc *grpc.StreamDesc, cc *grpc.ClientConn, method string, streamer grpc.Streamer, opts ...grpc.CallOption) (grpc.ClientStream, error) {
-		stream, err := cc.NewStream(ctx, desc, method, opts...)
+		stream, err := streamer(ctx, desc, cc, method, opts...)
 		if err != nil {
 			//log := goo_log.WithTag("goo-grpc").WithField("method", method).WithField("desc", desc)
 			//if md, ok := metadata.FromIncomingContext(ctx); ok {

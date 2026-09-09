@@ -39,7 +39,9 @@ func FileMerge(file string, files []string) (err error) {
 		}
 		if l == 1 {
 			if _file := files[0]; Exist(_file) {
-				os.Rename(_file, file)
+				if e := os.Rename(_file, file); e != nil {
+					err = e
+				}
 			}
 			return
 		}
@@ -47,22 +49,27 @@ func FileMerge(file string, files []string) (err error) {
 		filename := fmt.Sprintf("%s.%d", file, index)
 		filesArr := goo_utils.SplitStringArray(files, size)
 
-		files, tempFiles = fileGroupMerge(filename, filesArr)
-
+		var mergeErr error
+		files, tempFiles, mergeErr = fileGroupMerge(filename, filesArr)
 		if ll := len(tempFiles); ll > 0 {
 			tempMergeFiles = append(tempMergeFiles, tempFiles...)
+		}
+		if mergeErr != nil {
+			err = mergeErr
+			return
 		}
 
 		index++
 	}
 }
 
-func fileGroupMerge(file string, filesArr [][]string) (files, tempFiles []string) {
+func fileGroupMerge(file string, filesArr [][]string) (files, tempFiles []string, err error) {
 	files = []string{}
 	tempFiles = []string{}
 
 	var (
 		wg sync.WaitGroup
+		mu sync.Mutex
 		n  = runtime.NumCPU() / 2
 	)
 	if n < 1 {
@@ -70,7 +77,7 @@ func fileGroupMerge(file string, filesArr [][]string) (files, tempFiles []string
 	}
 	ch := make(chan struct{}, n)
 
-	for n, _files := range filesArr {
+	for idx, _files := range filesArr {
 		l := len(_files)
 		if l == 0 {
 			continue
@@ -83,7 +90,7 @@ func fileGroupMerge(file string, filesArr [][]string) (files, tempFiles []string
 		wg.Add(1)
 		ch <- struct{}{}
 
-		_file := fmt.Sprintf("%s.%d", file, n)
+		_file := fmt.Sprintf("%s.%d", file, idx)
 
 		files = append(files, _file)
 		tempFiles = append(tempFiles, _file)
@@ -95,7 +102,13 @@ func fileGroupMerge(file string, filesArr [][]string) (files, tempFiles []string
 				defer wg.Done()
 				defer func() { <-ch }()
 
-				fileMergeHandler(_file, _files)
+				if e := fileMergeHandler(_file, _files); e != nil {
+					mu.Lock()
+					if err == nil {
+						err = e
+					}
+					mu.Unlock()
+				}
 			})
 		}(_file, _files)
 	}
@@ -119,6 +132,13 @@ func fileMergeHandler(file string, files []string) (err error) {
 		handlers []*os.File
 		rs       []*bufio.Reader
 	)
+	defer func() {
+		for _, f := range handlers {
+			if f != nil {
+				_ = f.Close()
+			}
+		}
+	}()
 
 	for _, _file := range files {
 		var f *os.File
@@ -132,14 +152,6 @@ func fileMergeHandler(file string, files []string) (err error) {
 		rs = append(rs, bufio.NewReader(f))
 		handlers = append(handlers, f)
 	}
-
-	defer func() {
-		for _, f := range handlers {
-			if f != nil {
-				f.Close()
-			}
-		}
-	}()
 
 	var (
 		data = map[string]int{}
@@ -191,7 +203,10 @@ func fileMergeHandler(file string, files []string) (err error) {
 		{
 			strs = append(strs, str)
 			if l := len(strs); l >= 1000 {
-				fh.WriteString(strings.Join(strs, ""))
+				if _, err = fh.WriteString(strings.Join(strs, "")); err != nil {
+					goo_log.Error(err)
+					return
+				}
 				strs = []string{}
 			}
 		}
@@ -226,7 +241,10 @@ func fileMergeHandler(file string, files []string) (err error) {
 	}
 
 	if l := len(strs); l > 0 {
-		fh.WriteString(strings.Join(strs, ""))
+		if _, err = fh.WriteString(strings.Join(strs, "")); err != nil {
+			goo_log.Error(err)
+			return
+		}
 	}
 
 	return

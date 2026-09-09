@@ -60,6 +60,12 @@ func (c *CronTask) Run() {
 }
 
 func (c *CronTask) execTask(task *TaskData) {
+	defer func() {
+		if r := recover(); r != nil {
+			goo_log.WithTag("goo-cron").WithField("task", task).Error(r)
+		}
+	}()
+
 	handler, ok := c.code2Func[task.Code]
 	if !ok {
 		goo_log.WithTag("goo-cron").WithField("task", task).Warn("no task handler")
@@ -113,7 +119,14 @@ func (c *CronTask) Subscribe(ctx context.Context) {
 			goo_log.WithTag("goo-cron").Info("定时任务订阅服务退出")
 			return
 
-		case msg := <-sub.Channel():
+		case msg, ok := <-sub.Channel():
+			if !ok {
+				goo_log.WithTag("goo-cron").Info("定时任务订阅通道关闭")
+				return
+			}
+			if msg == nil {
+				continue
+			}
 			if msg.Channel != c.key {
 				continue
 			}

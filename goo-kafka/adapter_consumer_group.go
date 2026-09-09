@@ -36,7 +36,10 @@ func (g group) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.Co
 			if !ok {
 				return fmt.Errorf("消费通道关闭: groupId=%s topic=%s partition=%d", g.id, claim.Topic(), claim.Partition())
 			}
-			g.doHandler(msg, session)
+			func() {
+				defer goo_utils.Recovery()
+				g.doHandler(msg, session)
+			}()
 		}
 	}
 }
@@ -67,9 +70,11 @@ func (g group) doHandler(msg *sarama.ConsumerMessage, session sarama.ConsumerGro
 		}
 
 		// headers
-		for _, i := range msg.Headers {
-			var headers = map[string]string{}
-			headers[string(i.Key)] = string(i.Value)
+		if len(msg.Headers) > 0 {
+			headers := map[string]string{}
+			for _, i := range msg.Headers {
+				headers[string(i.Key)] = string(i.Value)
+			}
 			m["headers"] = headers
 		}
 	}
@@ -95,6 +100,8 @@ func (g group) doHandler(msg *sarama.ConsumerMessage, session sarama.ConsumerGro
 			}.String(), 300*time.Second).Val()
 			if !ok {
 				log.Warn("消息消费失败，并发消费")
+				// 去重命中视为已处理，提交 offset，避免卡在重投循环
+				session.MarkMessage(msg, "")
 				return
 			}
 			defer func() {

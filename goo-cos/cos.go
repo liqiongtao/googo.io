@@ -220,8 +220,8 @@ func (c *CosClient) IsExist(objectKey string) bool {
 func (c *CosClient) Delete(objectKey string) error {
 	objectKey = trimObjectKey(objectKey)
 
-	// 检查对象是否存在
-	_, err := c.Object.Delete(context.Background(), objectKey, nil)
+	rsp, err := c.Object.Delete(context.Background(), objectKey, nil)
+	defer closeCOSResponse(rsp)
 	if err != nil {
 		goo_log.ErrorF("delete %s error: %s", objectKey, err.Error())
 		return err

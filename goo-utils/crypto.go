@@ -91,11 +91,16 @@ func SHAWithRSA(key, data []byte) (string, error) {
 		return "", err
 	}
 
+	rsaKey, ok := pkey.(*rsa.PrivateKey)
+	if !ok {
+		return "", errors.New("not an RSA private key")
+	}
+
 	h := crypto.Hash.New(crypto.SHA1)
 	h.Write(data)
 	hashed := h.Sum(nil)
 
-	buf, err := rsa.SignPKCS1v15(rand.Reader, pkey.(*rsa.PrivateKey), crypto.SHA1, hashed)
+	buf, err := rsa.SignPKCS1v15(rand.Reader, rsaKey, crypto.SHA1, hashed)
 	if err != nil {
 		return "", err
 	}
@@ -108,10 +113,7 @@ func AESECBEncrypt(data, key []byte) ([]byte, error) {
 		return nil, err
 	}
 	blockSize := cb.BlockSize()
-	paddingSize := blockSize - len(data)%blockSize
-	if paddingSize != 0 {
-		data = append(data, bytes.Repeat([]byte{byte(0)}, paddingSize)...)
-	}
+	data = pkcs7padding(data, blockSize)
 	encrypted := make([]byte, len(data))
 	for bs, be := 0, blockSize; bs < len(data); bs, be = bs+blockSize, be+blockSize {
 		cb.Encrypt(encrypted[bs:be], data[bs:be])
@@ -125,12 +127,14 @@ func AESECBDecrypt(buf, key []byte) ([]byte, error) {
 		return nil, err
 	}
 	blockSize := cb.BlockSize()
+	if len(buf) == 0 || len(buf)%blockSize != 0 {
+		return nil, errors.New("ciphertext is not a multiple of the block size")
+	}
 	decrypted := make([]byte, len(buf))
 	for bs, be := 0, blockSize; bs < len(buf); bs, be = bs+blockSize, be+blockSize {
 		cb.Decrypt(decrypted[bs:be], buf[bs:be])
 	}
-	paddingSize := int(decrypted[len(decrypted)-1])
-	return decrypted[0 : len(decrypted)-paddingSize], nil
+	return pkcs7unpadding(decrypted)
 }
 
 func AESCBCEncrypt(rawData, key, iv []byte) ([]byte, error) {
@@ -162,6 +166,9 @@ func AESCBCEncrypt(rawData, key, iv []byte) ([]byte, error) {
 		mode := cipher.NewCBCEncrypter(block, iv)
 		mode.CryptBlocks(cipherData[blockSize:], rawData)
 	} else {
+		if len(iv) < blockSize {
+			return nil, errors.New("iv length must be at least block size")
+		}
 		// 初始化加密数据
 		cipherData = make([]byte, len(rawData))
 		// 定义向量
@@ -203,18 +210,23 @@ func AESCBCDecrypt(cipherData, key, iv []byte) ([]byte, error) {
 		// 初始化原始数据
 		origData = make([]byte, l-blockSize)
 	} else {
+		if len(iv) < blockSize {
+			return nil, errors.New("iv length must be at least block size")
+		}
 		// 定义向量
 		iv = iv[:blockSize]
 		// 初始化原始数据
 		origData = make([]byte, l)
 	}
 
+	if len(cipherData) == 0 || len(cipherData)%blockSize != 0 {
+		return nil, errors.New("ciphertext is not a multiple of the block size")
+	}
+
 	// 解密
 	mode := cipher.NewCBCDecrypter(block, iv)
 	mode.CryptBlocks(origData, cipherData)
-	origData = pkcs7unpadding(origData)
-
-	return origData, nil
+	return pkcs7unpadding(origData)
 }
 
 func pkcs7padding(cipherText []byte, blockSize int) []byte {
@@ -223,13 +235,21 @@ func pkcs7padding(cipherText []byte, blockSize int) []byte {
 	return append(cipherText, padText...)
 }
 
-func pkcs7unpadding(origData []byte) []byte {
+func pkcs7unpadding(origData []byte) ([]byte, error) {
 	l := len(origData)
-	unPadding := int(origData[l-1])
-	if l < unPadding {
-		return nil
+	if l == 0 {
+		return nil, errors.New("invalid pkcs7 padding")
 	}
-	return origData[:(l - unPadding)]
+	unPadding := int(origData[l-1])
+	if unPadding == 0 || unPadding > l || unPadding > aes.BlockSize {
+		return nil, errors.New("invalid pkcs7 padding")
+	}
+	for i := 0; i < unPadding; i++ {
+		if origData[l-1-i] != byte(unPadding) {
+			return nil, errors.New("invalid pkcs7 padding")
+		}
+	}
+	return origData[:(l - unPadding)], nil
 }
 
 func SessionId() string {

@@ -21,11 +21,18 @@ func (fl *FileLock) Lock() (err error) {
 	}
 
 	err = syscall.Flock(int(fl.fh.Fd()), syscall.LOCK_EX)
+	if err != nil {
+		_ = fl.fh.Close()
+		fl.fh = nil
+	}
 
 	return
 }
 
 func (fl *FileLock) UnLock() (err error) {
+	if fl.fh == nil {
+		return nil
+	}
 	defer fl.release()
 
 	if err = syscall.Flock(int(fl.fh.Fd()), syscall.LOCK_UN); err != nil {
@@ -37,7 +44,8 @@ func (fl *FileLock) UnLock() (err error) {
 
 func (fl *FileLock) release() {
 	if fl.fh != nil {
-		fl.fh.Close()
-		os.Remove(fl.Filename)
+		_ = fl.fh.Close()
+		_ = os.Remove(fl.Filename)
+		fl.fh = nil
 	}
 }

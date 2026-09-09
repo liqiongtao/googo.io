@@ -24,16 +24,19 @@ func New(conf Config) (cli *Client, err error) {
 	cli.EngineGroup, err = xorm.NewEngineGroup(conf.Driver, conns)
 	if err != nil {
 		goo_log.WithTag("goo-db").Error(err)
+		cli = nil
 		return
 	}
 
 	if err = cli.Ping(); err != nil {
 		goo_log.WithTag("goo-db").Error(err)
+		_ = cli.Close()
+		cli = nil
 		return
 	}
 
-	cli.EngineGroup.ShowSQL(conf.LogModel)
 	cli.EngineGroup.SetLogger(newLogger(conf.LogFilepath))
+	cli.EngineGroup.ShowSQL(conf.LogModel)
 	cli.EngineGroup.SetMaxIdleConns(conf.MaxIdle)
 	cli.EngineGroup.SetMaxOpenConns(conf.MaxOpen)
 	if conf.MaxLifetime > 0 {

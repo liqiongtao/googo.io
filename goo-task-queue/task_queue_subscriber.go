@@ -8,6 +8,7 @@ import (
 	"os"
 	"runtime"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/liqiongtao/googo.io/goo"
@@ -58,7 +59,7 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 
 		var (
 			wg  sync.WaitGroup
-			cnt int
+			cnt int64
 		)
 
 		for {
@@ -67,15 +68,15 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 				break
 			}
 
-			cnt++
+			atomic.AddInt64(&cnt, 1)
 			wg.Add(1)
 
 			goo_utils.AsyncFunc(func() {
 				defer func() {
 					<-limitCH
-					cnt--
+					left := atomic.AddInt64(&cnt, -1)
 					wg.Done()
-					s.log().InfoF("剩余 %d 任务正在执行", cnt)
+					s.log().InfoF("剩余 %d 任务正在执行", left)
 				}()
 
 				s.taskHandle(task, handler)

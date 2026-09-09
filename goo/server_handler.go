@@ -18,9 +18,10 @@ func Handler(controller iController) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		beginTime := time.Now()
 		resp := controller.DoHandle(c)
+		opts := optsFromContext(c)
 
-		if defaultOptions.responseHookFunc != nil {
-			defaultOptions.responseHookFunc(c, resp)
+		if opts.responseHookFunc != nil {
+			opts.responseHookFunc(c, resp)
 		}
 
 		if resp == nil {
@@ -34,7 +35,7 @@ func Handler(controller iController) gin.HandlerFunc {
 			c.Header("X-Response-Duration", fmt.Sprintf("%dms", time.Since(beginTime)/1e6))
 		}
 
-		if !defaultOptions.encryptionEnable {
+		if !opts.encryptionEnable {
 			c.JSON(200, resp)
 			return
 		}
@@ -46,13 +47,12 @@ func Handler(controller iController) gin.HandlerFunc {
 			return
 		}
 
-		switch strings.ToLower(c.Request.Header.Get("Content-Type")) {
-		case "multipart/form-data":
+		if strings.Contains(strings.ToLower(c.Request.Header.Get("Content-Type")), "multipart/form-data") {
 			c.JSON(200, resp)
 			return
 		}
 
-		for v := range defaultOptions.encryptionExcludeUris {
+		for v := range opts.encryptionExcludeUris {
 			if v == c.Request.RequestURI || strings.HasPrefix(c.Request.RequestURI, v) {
 				c.JSON(200, resp)
 				return
@@ -65,7 +65,7 @@ func Handler(controller iController) gin.HandlerFunc {
 			return
 		}
 
-		body, err := defaultOptions.encryptionFn(c).Encode(b)
+		body, err := opts.encryptionFn(c).Encode(b)
 		if err != nil {
 			c.JSON(500, Error(5004, "数据解析失败，原因："+err.Error()))
 			return

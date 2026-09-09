@@ -7,22 +7,21 @@ var (
 	__once  sync.Once
 )
 
-func Default() *Event {
+func ensureEvent() *Event {
+	__once.Do(func() {
+		__event = New()
+	})
 	return __event
 }
 
-func Publish(topic string, data interface{}) {
-	__once.Do(func() {
-		__event = New()
-	})
+func Default() *Event {
+	return ensureEvent()
+}
 
-	__event.Publish(topic, data)
+func Publish(topic string, data interface{}) {
+	ensureEvent().Publish(topic, data)
 }
 
 func Subscribe(topic string, fn SubscribeFunc) {
-	__once.Do(func() {
-		__event = New()
-	})
-
-	__event.Subscribe(topic, fn)
+	ensureEvent().Subscribe(topic, fn)
 }

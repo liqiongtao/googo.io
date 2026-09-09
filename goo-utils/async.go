@@ -26,16 +26,20 @@ func AsyncFunc(fn func()) {
 // 异步执行（安全）
 func AsyncFuncWithTimeout(fn func(), d time.Duration) {
 	ctx, cancel := context.WithCancel(context.TODO())
+	defer cancel()
 
 	go func() {
 		defer Recovery()
-		defer func() { cancel() }()
+		defer cancel()
 		fn()
 	}()
 
+	timer := time.NewTimer(d)
+	defer timer.Stop()
+
 	select {
 	case <-ctx.Done():
-	case <-time.Tick(d):
+	case <-timer.C:
 	}
 }
 

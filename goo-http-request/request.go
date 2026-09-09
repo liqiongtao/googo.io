@@ -50,6 +50,7 @@ func (r *Request) JsonContentType() *Request {
 
 func (r *Request) SetTimeout(d time.Duration) *Request {
 	r.timeout = d
+	r.client = nil
 	return r
 }
 
@@ -136,7 +137,11 @@ func (r *Request) Do(method, url string, reader io.Reader) (rst []byte, err erro
 	if err != nil {
 		return
 	}
-	defer func() { _ = req.Body.Close() }()
+	defer func() {
+		if req.Body != nil {
+			_ = req.Body.Close()
+		}
+	}()
 
 	for k, v := range r.Headers {
 		req.Header.Set(k, v)
@@ -246,16 +251,26 @@ func (r *Request) Upload(url, fileField, fileName string, fh io.Reader, data map
 	w := multipart.NewWriter(pw)
 
 	goo_utils.AsyncFunc(func() {
+		defer pw.Close()
+		defer w.Close()
+
 		for k, v := range data {
-			w.WriteField(k, v)
+			if err := w.WriteField(k, v); err != nil {
+				_ = pw.CloseWithError(err)
+				return
+			}
 		}
 
-		part, _ := w.CreateFormFile(fileField, fileName)
+		part, err := w.CreateFormFile(fileField, fileName)
+		if err != nil {
+			_ = pw.CloseWithError(err)
+			return
+		}
 
-		io.CopyBuffer(part, fh, nil)
-
-		w.Close()
-		pw.Close()
+		if _, err = io.Copy(part, fh); err != nil {
+			_ = pw.CloseWithError(err)
+			return
+		}
 	})
 
 	r.SetHeader("Content-Type", w.FormDataContentType())
@@ -290,12 +305,19 @@ func (r *Request) Download(url, filename string) (err error) {
 	}
 
 	var f *os.File
+	tmpName := filename + ".0"
+	ok := false
 	{
-		f, err = os.Create(filename + ".0")
+		f, err = os.Create(tmpName)
 		if err != nil {
 			return
 		}
-		defer f.Close()
+		defer func() {
+			_ = f.Close()
+			if !ok {
+				_ = os.Remove(tmpName)
+			}
+		}()
 	}
 
 	var req *http.Request
@@ -308,6 +330,7 @@ func (r *Request) Download(url, filename string) (err error) {
 
 	if r.timeout == 0 {
 		r.timeout = 5 * time.Minute
+		r.client = nil
 	}
 
 	var resp *http.Response
@@ -317,6 +340,11 @@ func (r *Request) Download(url, filename string) (err error) {
 			return
 		}
 		defer resp.Body.Close()
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		err = fmt.Errorf("download failed, status code: %d", resp.StatusCode)
+		return
 	}
 
 	for {
@@ -339,5 +367,9 @@ func (r *Request) Download(url, filename string) (err error) {
 		}
 	}
 
-	return os.Rename(filename+".0", filename)
+	if err = os.Rename(tmpName, filename); err != nil {
+		return
+	}
+	ok = true
+	return nil
 }

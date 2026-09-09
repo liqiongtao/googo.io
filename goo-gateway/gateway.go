@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
+
 	"github.com/gin-gonic/gin"
 	"github.com/liqiongtao/googo.io/goo"
 	pb_goo_v1 "github.com/liqiongtao/googo.io/goo-proto/v1"
 	"google.golang.org/grpc/status"
-	"io"
 )
 
 type gateway struct {
@@ -20,17 +21,20 @@ func (g gateway) DoHandle(c *gin.Context) *goo.Response {
 	method := c.Param("method")
 
 	var buf bytes.Buffer
-	io.Copy(&buf, c.Request.Body)
+	if _, err := io.Copy(&buf, c.Request.Body); err != nil {
+		return goo.Error(5000, "读取请求失败", err)
+	}
 
 	req := pb_goo_v1.Request{Data: buf.Bytes()}
 	resp := pb_goo_v1.Response{}
 
-	var (
-		err         error
-		serviceName = fmt.Sprintf("/%s/%s/%s", g.conf.ServerName, service, g.conf.Env.Tag())
-	)
+	serviceName := fmt.Sprintf("/%s/%s/%s", g.conf.ServerName, service, g.conf.Env.Tag())
+	cc := Client(serviceName)
+	if cc == nil {
+		return goo.Error(503, "服务不可用")
+	}
 
-	err = Client(serviceName).Invoke(c, fmt.Sprintf("/%s/%s", service, method), &req, &resp)
+	err := cc.Invoke(c, fmt.Sprintf("/%s/%s", service, method), &req, &resp)
 	if s := status.Convert(err); s != nil {
 		return goo.Error(s.Proto().Code, s.Proto().Message)
 	}

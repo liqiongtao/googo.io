@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/facebookgo/grace/gracenet"
-	"github.com/liqiongtao/googo.io/goo"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	goo_pprof "github.com/liqiongtao/googo.io/goo-pprof"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
@@ -22,40 +21,40 @@ import (
 
 type Server struct {
 	conf Config
+	opts serverOptions
 
 	*gracenet.Net
 	*grpc.Server
 
 	lis net.Listener
 
-	stopOnce sync.Once
+	stopOnce  sync.Once
+	hooksOnce sync.Once
 }
-
-var defaultServerOptions serverOptions
 
 // restarting 防止连发 SIGHUP 重复 StartProcess
 var restarting int32
 
 func New(conf Config, opt ...ServerOption) *Server {
-	defaultServerOptions := newDefaultServerOptions(conf)
+	opts := newDefaultServerOptions(conf)
 	for _, o := range opt {
-		o.apply(&defaultServerOptions)
+		o.apply(&opts)
 	}
 
-	serverOptions := append(defaultServerOptions.ServerOptions, []grpc.ServerOption{
+	serverOptions := append(opts.ServerOptions, []grpc.ServerOption{
 		grpc.MaxRecvMsgSize(MaxRecvMsgSize),
 		grpc.MaxSendMsgSize(MaxSendMsgSize),
 		// 单向拦截 - 链式
 		grpc.ChainUnaryInterceptor(
-			serverUnaryInterceptorLog(defaultServerOptions.NoLogMethods),
+			serverUnaryInterceptorLog(opts.NoLogMethods),
 			serverUnaryInterceptorRecovery(),
-			serverUnaryInterceptorAuth(defaultServerOptions.AuthFunc),
+			serverUnaryInterceptorAuth(opts.AuthFunc),
 		),
 		// 流式拦截 - 链式
 		grpc.ChainStreamInterceptor(
-			serverStreamInterceptorLog(defaultServerOptions.NoLogMethods),
+			serverStreamInterceptorLog(opts.NoLogMethods),
 			serverStreamInterceptorRecovery(),
-			serverStreamInterceptorAuth(defaultServerOptions.AuthFunc),
+			serverStreamInterceptorAuth(opts.AuthFunc),
 		),
 		// todo:: 服务未找到
 		//grpc.UnknownServiceHandler(func(srv interface{}, stream grpc.ServerStream) error {
@@ -65,6 +64,7 @@ func New(conf Config, opt ...ServerOption) *Server {
 
 	return &Server{
 		conf:   conf,
+		opts:   opts,
 		Net:    &gracenet.Net{},
 		Server: grpc.NewServer(serverOptions...),
 	}
@@ -80,7 +80,7 @@ func (s *Server) Serve() (err error) {
 	// 本机内网IP
 	if s.conf.ServiceEndpoint == "" || s.conf.Addr == "" {
 		var localIp string
-		localIp, err = goo.LocalIP()
+		localIp, err = goo_utils.LocalIP()
 		if err != nil {
 			goo_log.WithTag("goo-grpc").Error(err)
 			return
@@ -107,11 +107,11 @@ func (s *Server) Serve() (err error) {
 
 	// 服务注册
 	goo_utils.AsyncFunc(func() {
-		if !defaultServerOptions.Register2Etcd {
+		if !s.opts.Register2Etcd {
 			return
 		}
 
-		cli := defaultServerOptions.EtcdClient
+		cli := s.opts.EtcdClient
 		if cli == nil {
 			goo_log.WithTag("goo-grpc").Error("no etcd client")
 			return
@@ -161,28 +161,30 @@ func (s *Server) Serve() (err error) {
 }
 
 func (s *Server) registerSignalHooks() {
-	goo_pprof.RegisterSignal()
+	s.hooksOnce.Do(func() {
+		goo_pprof.RegisterSignal()
 
-	goocontext.OnRestart(func() {
-		// 防止连发 SIGHUP 重复 fork；失败则允许重试
-		if !atomic.CompareAndSwapInt32(&restarting, 0, 1) {
-			return
-		}
-		if _, err := s.Net.StartProcess(); err != nil {
-			atomic.StoreInt32(&restarting, 0)
-			goo_log.WithTag("goo-grpc").Error(err)
-			return
-		}
-		goo_log.WithTag("goo-grpc").Warn("服务重启")
-		// handoff 失败时父进程仍存活，超时后允许再次热重启
-		time.AfterFunc(10*time.Second, func() {
-			atomic.StoreInt32(&restarting, 0)
+		goocontext.OnRestart(func() {
+			// 防止连发 SIGHUP 重复 fork；失败则允许重试
+			if !atomic.CompareAndSwapInt32(&restarting, 0, 1) {
+				return
+			}
+			if _, err := s.Net.StartProcess(); err != nil {
+				atomic.StoreInt32(&restarting, 0)
+				goo_log.WithTag("goo-grpc").Error(err)
+				return
+			}
+			goo_log.WithTag("goo-grpc").Warn("服务重启")
+			// handoff 失败时父进程仍存活，超时后允许再次热重启
+			time.AfterFunc(10*time.Second, func() {
+				atomic.StoreInt32(&restarting, 0)
+			})
 		})
-	})
-	goocontext.OnExit(func() {
-		goo_pprof.StopDefault()
-		s.gracefulStop()
-		goo_log.WithTag("goo-grpc").Warn("服务退出")
+		goocontext.OnExit(func() {
+			goo_pprof.StopDefault()
+			s.gracefulStop()
+			goo_log.WithTag("goo-grpc").Warn("服务退出")
+		})
 	})
 }
 

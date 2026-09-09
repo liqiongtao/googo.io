@@ -33,6 +33,8 @@ var (
 	pinyinMap map[rune]string
 
 	initialized bool
+
+	pinyinOnce sync.Once
 )
 
 type Mode int
@@ -50,7 +52,7 @@ type pinyin struct {
 }
 
 func PinYin(origin string) (string, error) {
-	new(sync.Once).Do(func() {
+	pinyinOnce.Do(func() {
 		tonesMap = make(map[rune]rune)
 		numericTonesMap = make(map[rune]int)
 		pinyinMap = make(map[rune]string)

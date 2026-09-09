@@ -16,34 +16,51 @@ type SnowFlakeId struct {
 	mu sync.Mutex
 }
 
+func (sf *SnowFlakeId) waitNextMillis(last int64) int64 {
+	ts := time.Now().UnixNano() / 1e6
+	for ts <= last {
+		time.Sleep(time.Millisecond)
+		ts = time.Now().UnixNano() / 1e6
+	}
+	return ts
+}
+
 func (sf *SnowFlakeId) GenId() int64 {
 	sf.mu.Lock()
 	defer sf.mu.Unlock()
 
-	ts := time.Now().UnixNano() / 1e6
+	for {
+		ts := time.Now().UnixNano() / 1e6
 
-	if sf.lastTime == ts {
-		// 2的12次方 -1 = 4095，每毫秒可产生4095个ID
-		if sf.sn > 4095 {
-			time.Sleep(time.Millisecond)
-			ts = time.Now().UnixNano() / 1e6
+		// 时钟回拨：解锁等待，避免堵住所有发号
+		if ts < sf.lastTime {
+			last := sf.lastTime
+			sf.mu.Unlock()
+			_ = sf.waitNextMillis(last)
+			sf.mu.Lock()
+			continue
+		}
+
+		if sf.lastTime == ts {
+			// 2^12 - 1 = 4095，每毫秒最多 4096 个 ID（0~4095）
+			if sf.sn >= 4095 {
+				last := sf.lastTime
+				sf.mu.Unlock()
+				_ = sf.waitNextMillis(last)
+				sf.mu.Lock()
+				continue
+			}
+			sf.sn++
+		} else {
 			sf.sn = 0
 		}
-	} else {
-		sf.sn = 0
+
+		sf.lastTime = ts
+
+		// 机房ID / 机器ID 做掩码，避免越界污染序号位
+		dataCenterId := (sf.dataCenterId & 0x1f) << 17
+		machineId := (sf.machineId & 0x1f) << 12
+
+		return (ts << 22) | int64(dataCenterId) | int64(machineId) | int64(sf.sn)
 	}
-
-	sf.sn += 1
-	sf.lastTime = ts
-
-	// 时间戳，向左移动22位
-	ts = ts << 22
-
-	// 机房ID，向左移动17位
-	dataCenterId := sf.dataCenterId << 17
-
-	// 机器ID，向左移动12位
-	machineId := sf.machineId << 12
-
-	return ts | int64(dataCenterId) | int64(machineId) | int64(sf.sn)
 }

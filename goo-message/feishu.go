@@ -47,8 +47,11 @@ func FeiShu(hookUrl string, text string) error {
 		fmt.Println("[goo-msg][1002]", text, err)
 		return err
 	}
-	if len(buf) == 0 || bytes.Contains(buf, []byte("服务异常，请联系")) {
-		return nil
+	if len(buf) == 0 {
+		return errors.New("empty feishu response")
+	}
+	if bytes.Contains(buf, []byte("服务异常，请联系")) {
+		return errors.New("feishu service error")
 	}
 
 	rst, err := goo_utils.Byte(buf).Params()
@@ -62,7 +65,7 @@ func FeiShu(hookUrl string, text string) error {
 	case "success":
 		return nil
 	case "too many request":
-		return nil
+		return errors.New("feishu rate limited")
 	default:
 		fmt.Println("[goo-msg][1004]", text, string(buf))
 		return errors.New(msg)

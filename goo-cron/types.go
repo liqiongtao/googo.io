@@ -45,6 +45,9 @@ func ConvertTaskData(str string) (*TaskData, error) {
 	if err := json.Unmarshal([]byte(str), &task); err != nil {
 		return nil, err
 	}
+	if task == nil {
+		return nil, errors.New("task data is null")
+	}
 	return task, nil
 }
 

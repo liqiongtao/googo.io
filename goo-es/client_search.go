@@ -68,10 +68,24 @@ func (c *ESClient) Search(index []string, body []byte) (*esapi.Response, error) 
 // 分页查询，用于大数量查询，普通查询，默认最多返回10000条
 func (c *ESClient) PageSearch(index []string, body []byte, fn func(p goo_utils.Params) error) error {
 	var (
-		scrollDuration = 2 * time.Second
+		scrollDuration = time.Minute
 		size           = 500
 		scrollId       string
 	)
+	defer func() {
+		if scrollId == "" {
+			return
+		}
+		res, clearErr := esapi.ClearScrollRequest{
+			ScrollID: []string{scrollId},
+		}.Do(context.Background(), c.cli)
+		if res != nil && res.Body != nil {
+			_ = res.Body.Close()
+		}
+		if clearErr != nil {
+			c.log().Error(clearErr)
+		}
+	}()
 
 	for n := 0; ; n++ {
 		var (
@@ -99,53 +113,42 @@ func (c *ESClient) PageSearch(index []string, body []byte, fn func(p goo_utils.P
 		}
 
 		if res.IsError() {
-			err = fmt.Errorf("error getting initial response: %s", res.String())
+			err = fmt.Errorf("error getting response: %s", res.String())
+			_ = res.Body.Close()
 			c.log().Error(err)
 			return err
 		}
 
-		// 获取数据
 		b, err := io.ReadAll(res.Body)
+		_ = res.Body.Close()
 		if err != nil {
 			c.log().Error(err)
 			return err
 		}
 
-		// 关闭数据流
-		res.Body.Close()
-
-		// 转换
 		p, err := goo_utils.Byte(b).Params()
 		if err != nil {
 			c.log().Error(err)
 			return err
 		}
 
-		if len(p.Get("hits.hits").Array()) == 0 {
+		if sid := p.Get("_scroll_id").String(); sid != "" {
+			scrollId = sid
+		}
+
+		hits := p.Get("hits.hits").Array()
+		if len(hits) == 0 {
 			break
 		}
 
-		// 滚动ID
-		scrollId = p.Get("_scroll_id").String()
-
-		// 打印翻页
 		c.log().DebugF("第 %d 页，每页 %d 条", n+1, size)
 
-		// 处理文档
-		for _, hit := range p.Get("hits.hits").Array() {
+		for _, hit := range hits {
 			if err = fn(hit.Get("_source")); err != nil {
 				c.log().Error(err)
 				return err
 			}
 		}
-	}
-
-	// 清理Scroll上下文
-	_, err := esapi.ClearScrollRequest{
-		ScrollID: []string{scrollId},
-	}.Do(context.Background(), c.cli)
-	if err != nil {
-		c.log().Error(err)
 	}
 
 	return nil

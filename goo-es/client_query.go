@@ -49,6 +49,11 @@ func (c *ESClient) Query(index []string, filter []goo_utils.M, offset, size int)
 	}
 	defer res.Body.Close()
 
+	if res.IsError() {
+		goo_log.Error("[ES]", res.String())
+		return 0, []goo_utils.Params{}
+	}
+
 	var b bytes.Buffer
 	if _, er := io.Copy(&b, res.Body); er != nil {
 		goo_log.Error("[ES]", er.Error())
@@ -96,6 +101,11 @@ func (c *ESClient) QueryV2(index []string, m goo_utils.M) (int64, []goo_utils.Pa
 		return 0, []goo_utils.Params{}
 	}
 	defer res.Body.Close()
+
+	if res.IsError() {
+		goo_log.Error("[ES]", res.String())
+		return 0, []goo_utils.Params{}
+	}
 
 	var b bytes.Buffer
 	if _, er := io.Copy(&b, res.Body); er != nil {

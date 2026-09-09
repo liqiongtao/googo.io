@@ -43,13 +43,21 @@ func New(conf Config) (*Uploader, error) {
 }
 
 func (o *Uploader) ContentType(value string) *Uploader {
-	o.options = append(o.options, oss.ContentType(value))
-	return o
+	return &Uploader{
+		conf:    o.conf,
+		Client:  o.Client,
+		Bucket:  o.Bucket,
+		options: append(append([]oss.Option{}, o.options...), oss.ContentType(value)),
+	}
 }
 
 func (o *Uploader) Options(opts ...oss.Option) *Uploader {
-	o.options = append(o.options, opts...)
-	return o
+	return &Uploader{
+		conf:    o.conf,
+		Client:  o.Client,
+		Bucket:  o.Bucket,
+		options: append(append([]oss.Option{}, o.options...), opts...),
+	}
 }
 
 func (o *Uploader) Upload(filename string, r io.Reader) (string, error) {
@@ -81,7 +89,9 @@ func (o *Uploader) Upload(filename string, r io.Reader) (string, error) {
 		return domain + "/" + filename, nil
 	}
 
-	url := "https://" + o.conf.Bucket + "." + o.conf.Endpoint + path.Join("/", filename)
+	endpoint := strings.TrimPrefix(o.conf.Endpoint, "https://")
+	endpoint = strings.TrimPrefix(endpoint, "http://")
+	url := "https://" + o.conf.Bucket + "." + endpoint + path.Join("/", filename)
 	return url, nil
 }
 

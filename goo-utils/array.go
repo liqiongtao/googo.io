@@ -10,7 +10,7 @@ func SplitStringArray(arr []string, size int) (list [][]string) {
 		return
 	}
 
-	if l < size {
+	if size <= 0 || l <= size {
 		list = [][]string{arr}
 		return
 	}
@@ -41,7 +41,7 @@ func SplitIntArray(arr []int, size int) (list [][]int) {
 		return
 	}
 
-	if l < size {
+	if size <= 0 || l <= size {
 		list = [][]int{arr}
 		return
 	}
@@ -72,7 +72,7 @@ func SplitInt64Array(arr []int64, size int) (list [][]int64) {
 		return
 	}
 
-	if l < size {
+	if size <= 0 || l <= size {
 		list = [][]int64{arr}
 		return
 	}
@@ -103,7 +103,7 @@ func SplitArray(arr []interface{}, size int) (list [][]interface{}) {
 		return
 	}
 
-	if l < size {
+	if size <= 0 || l <= size {
 		list = [][]interface{}{arr}
 		return
 	}
@@ -134,7 +134,7 @@ func SplitSplice[T any](arr []T, size int) (list [][]T) {
 		return
 	}
 
-	if l < size {
+	if size <= 0 || l <= size {
 		list = [][]T{arr}
 		return
 	}

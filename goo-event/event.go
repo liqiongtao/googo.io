@@ -1,8 +1,10 @@
 package goo_event
 
 import (
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	"sync"
+
+	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
+	"github.com/liqiongtao/googo.io/goocontext"
 )
 
 type Event struct {
@@ -21,9 +23,14 @@ func (ev *Event) Publish(topic string, data interface{}) {
 
 	if chs, ok := ev.subscribes[topic]; ok {
 		channels := append([]MessageChan{}, chs...)
+		msg := Message{Topic: topic, Data: data}
 		goo_utils.AsyncFunc(func() {
 			for _, ch := range channels {
-				ch <- Message{Topic: topic, Data: data}
+				select {
+				case ch <- msg:
+				default:
+					// 订阅方处理过慢时丢弃，避免永久阻塞发布 goroutine
+				}
 			}
 		})
 	}
@@ -38,12 +45,14 @@ func (ev *Event) Subscribe(topic string, fn SubscribeFunc) {
 		ev.subscribes[topic] = []MessageChan{}
 	}
 
-	ch := make(chan Message)
+	ch := make(chan Message, 64)
 	ev.subscribes[topic] = append(ev.subscribes[topic], ch)
 
 	goo_utils.AsyncFunc(func() {
 		for {
 			select {
+			case <-goocontext.Root().Done():
+				return
 			case msg := <-ch:
 				goo_utils.AsyncFunc(func() {
 					fn(msg)

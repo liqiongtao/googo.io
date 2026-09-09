@@ -170,15 +170,26 @@ func (l *TaskQueueLeader) workers(ctx context.Context) error {
 }
 
 func (l *TaskQueueLeader) lock() bool {
-	return l.r.SetNX(l.TaskLeadLockKey, time.Now().Unix(), time.Second*10).Val()
+	return l.r.SetNX(l.TaskLeadLockKey, l.pid, time.Second*10).Val()
 }
 
 func (l *TaskQueueLeader) unlock() error {
-	return l.r.Del(l.TaskLeadLockKey).Err()
+	const script = `
+if redis.call("get", KEYS[1]) == ARGV[1] then
+  return redis.call("del", KEYS[1])
+end
+return 0`
+	return l.r.Eval(script, []string{l.TaskLeadLockKey}, l.pid).Err()
 }
 
 func (l *TaskQueueLeader) expire() bool {
-	return l.r.Expire(l.TaskLeadLockKey, time.Second*10).Val()
+	const script = `
+if redis.call("get", KEYS[1]) == ARGV[1] then
+  return redis.call("expire", KEYS[1], ARGV[2])
+end
+return 0`
+	n, err := l.r.Eval(script, []string{l.TaskLeadLockKey}, l.pid, 10).Int64()
+	return err == nil && n == 1
 }
 
 func (l *TaskQueueLeader) log() *goo_log.Entry {

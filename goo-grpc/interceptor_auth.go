@@ -3,6 +3,7 @@ package goo_grpc
 import (
 	"context"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
@@ -19,7 +20,7 @@ func serverUnaryInterceptorAuth(authFunc AuthFunc) grpc.UnaryServerInterceptor {
 		md, _ := metadata.FromIncomingContext(ctx)
 		ctxx, err := authFunc(md, ctx, info.FullMethod)
 		if err != nil {
-			return nil, status.Errorf(401, "认证失败，原因：%s", err)
+			return nil, status.Errorf(codes.Unauthenticated, "认证失败，原因：%s", err)
 		}
 
 		return handler(ctxx, req)
@@ -36,7 +37,7 @@ func serverStreamInterceptorAuth(authFunc AuthFunc) grpc.StreamServerInterceptor
 		md, _ := metadata.FromIncomingContext(ss.Context())
 		ctxx, err := authFunc(md, ss.Context(), info.FullMethod)
 		if err != nil {
-			return status.Errorf(401, "认证失败，原因：%s", err)
+			return status.Errorf(codes.Unauthenticated, "认证失败，原因：%s", err)
 		}
 
 		ssa := newServerStreamAuth(ss)

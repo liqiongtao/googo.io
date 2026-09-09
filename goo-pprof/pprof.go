@@ -76,6 +76,11 @@ func (pp *PProf) Stop() {
 	pp.flag = false
 
 	pprof.StopCPUProfile()
+	runtime.SetMutexProfileFraction(0)
+	runtime.SetBlockProfileRate(0)
+
+	// 给异步 memory/goroutine/mutex/block 写盘一点时间，再关文件
+	time.Sleep(200 * time.Millisecond)
 
 	if pp.cpuFH != nil {
 		_ = pp.cpuFH.Close()

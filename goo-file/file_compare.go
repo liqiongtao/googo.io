@@ -147,6 +147,19 @@ func Compare(srcFile, targetFile, appendFile, reduceFile string) (err error) {
 	}
 
 	if end1 && end2 {
+		if s1 != "" && s2 != "" && s1 != s2 {
+			if s1 < s2 {
+				_, _ = f3.WriteString(s1)
+				_, _ = f4.WriteString(s2)
+			} else {
+				_, _ = f4.WriteString(s2)
+				_, _ = f3.WriteString(s1)
+			}
+		} else if s1 != "" && s2 == "" {
+			_, _ = f3.WriteString(s1)
+		} else if s2 != "" && s1 == "" {
+			_, _ = f4.WriteString(s2)
+		}
 		return
 	}
 

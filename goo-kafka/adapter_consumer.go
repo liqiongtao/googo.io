@@ -3,6 +3,7 @@ package goo_kafka
 import (
 	"context"
 	"errors"
+	"sync"
 	"time"
 
 	"github.com/IBM/sarama"
@@ -68,17 +69,37 @@ func (c *consumer) Consume(topic string, handler ConsumerHandler) {
 		c.offset = sarama.OffsetNewest
 	}
 
-	pc, err := consumer.ConsumePartition(topic, c.partition, c.offset)
-	if err != nil {
-		log.Error(err)
-		return
-	}
-	defer func() {
-		if err := pc.Close(); err != nil {
-			log.Error(err)
+	partitions := []int32{c.partition}
+	if !c.hasSetPartition {
+		partitions = c.cli.Partitions(topic)
+		if len(partitions) == 0 {
+			log.Error("no partitions")
+			return
 		}
-	}()
+	}
 
+	var wg sync.WaitGroup
+	for _, partition := range partitions {
+		pc, err := consumer.ConsumePartition(topic, partition, c.offset)
+		if err != nil {
+			log.WithField("partition", partition).Error(err)
+			continue
+		}
+		wg.Add(1)
+		go func(pc sarama.PartitionConsumer, partition int32) {
+			defer wg.Done()
+			defer func() {
+				if err := pc.Close(); err != nil {
+					log.WithField("partition", partition).Error(err)
+				}
+			}()
+			c.consumePartition(topic, pc, handler, log.WithField("partition", partition))
+		}(pc, partition)
+	}
+	wg.Wait()
+}
+
+func (c *consumer) consumePartition(topic string, pc sarama.PartitionConsumer, handler ConsumerHandler, log *goo_log.Entry) {
 	for {
 		select {
 		case <-goocontext.Root().Done():
@@ -96,14 +117,14 @@ func (c *consumer) Consume(topic string, handler ConsumerHandler) {
 				return
 			}
 
-			// 在途消费不挂 Root：进程退出只停拉取，handler 自行决定是否响应取消
 			ctx := goocontext.WithGenerateTraceId(context.Background())
+			func() {
+				defer goo_utils.Recovery()
+				if err := handler(ctx, &ConsumerMessage{ConsumerMessage: msg}, nil); err != nil {
+					log.Error(err)
+				}
+			}()
 
-			if err = handler(ctx, &ConsumerMessage{ConsumerMessage: msg}, nil); err != nil {
-				log.Error(err)
-			}
-
-			// 删除缓存
 			key := string(msg.Key)
 			if c.cli.redis != nil {
 				c.cli.redis.Del(key)
@@ -123,12 +144,6 @@ func (c *consumer) ConsumeGroup(groupId string, topics []string, handler Consume
 		l.Error(err)
 		return
 	}
-	defer func() {
-		if c.cli != nil {
-			c.cli.Close()
-			l.Debug("client 退出")
-		}
-	}()
 	defer func() {
 		cg.Close()
 		l.Debug("consumer-group 退出")

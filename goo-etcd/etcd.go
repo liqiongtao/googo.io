@@ -1,6 +1,8 @@
 package goo_etcd
 
 import (
+	"errors"
+
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
@@ -8,17 +10,16 @@ import (
 var __client *Client
 
 func Init(conf Config) (err error) {
-	__client, err = New(conf)
+	cli, err := New(conf)
+	if err != nil {
+		return err
+	}
+	__client = cli
 
+	// 绑定本次实例，避免重复 Init 后误关新 client / 泄漏旧 client 清理
 	goo_utils.AsyncFunc(func() {
-		if __client == nil {
-			return
-		}
-
-		select {
-		case <-__client.ctx.Done():
-			__client.Close()
-		}
+		<-cli.ctx.Done()
+		cli.Close()
 	})
 
 	return
@@ -28,50 +29,107 @@ func Default() *Client {
 	return __client
 }
 
+func requireClient() (*Client, error) {
+	if __client == nil {
+		return nil, errors.New("etcd not initialized, call goo_etcd.Init first")
+	}
+	return __client, nil
+}
+
 func Set(key, val string) (resp *clientv3.PutResponse, err error) {
-	return __client.Set(key, val)
+	cli, err := requireClient()
+	if err != nil {
+		return nil, err
+	}
+	return cli.Set(key, val)
 }
 
 func SetWithPrevKV(key, val string) (resp *clientv3.PutResponse, err error) {
-	return __client.SetWithPrevKV(key, val)
+	cli, err := requireClient()
+	if err != nil {
+		return nil, err
+	}
+	return cli.SetWithPrevKV(key, val)
 }
 
 func SetTTL(key, val string, ttl int64) (resp *clientv3.PutResponse, err error) {
-	return __client.SetTTL(key, val, ttl)
+	cli, err := requireClient()
+	if err != nil {
+		return nil, err
+	}
+	return cli.SetTTL(key, val, ttl)
 }
 
 func SetTTLWithPrevKV(key, val string, ttl int64) (resp *clientv3.PutResponse, err error) {
-	return __client.SetTTLWithPrevKV(key, val, ttl)
+	cli, err := requireClient()
+	if err != nil {
+		return nil, err
+	}
+	return cli.SetTTLWithPrevKV(key, val, ttl)
 }
 
 func Get(key string, opts ...clientv3.OpOption) (rsp *clientv3.GetResponse, err error) {
-	return __client.Get(key, opts...)
+	cli, err := requireClient()
+	if err != nil {
+		return nil, err
+	}
+	return cli.Get(key, opts...)
 }
 
 func GetString(key string) string {
-	return __client.GetString(key)
+	cli, err := requireClient()
+	if err != nil {
+		return ""
+	}
+	return cli.GetString(key)
 }
 
 func GetArray(key string) (data []string) {
-	return __client.GetArray(key)
+	cli, err := requireClient()
+	if err != nil {
+		return nil
+	}
+	return cli.GetArray(key)
 }
 
 func GetMap(key string) (data map[string]string) {
-	return __client.GetMap(key)
+	cli, err := requireClient()
+	if err != nil {
+		return nil
+	}
+	return cli.GetMap(key)
 }
 
 func Del(key string) (resp *clientv3.DeleteResponse, err error) {
-	return __client.Del(key)
+	cli, err := requireClient()
+	if err != nil {
+		return nil, err
+	}
+	return cli.Del(key)
 }
 
 func DelWithPrefix(key string) (resp *clientv3.DeleteResponse, err error) {
-	return __client.DelWithPrefix(key)
+	cli, err := requireClient()
+	if err != nil {
+		return nil, err
+	}
+	return cli.DelWithPrefix(key)
 }
 
 func RegisterService(key, val string) (err error) {
-	return __client.RegisterService(key, val)
+	cli, err := requireClient()
+	if err != nil {
+		return err
+	}
+	return cli.RegisterService(key, val)
 }
 
 func Watch(key string) <-chan []string {
-	return __client.Watch(key)
+	cli, err := requireClient()
+	if err != nil {
+		ch := make(chan []string)
+		close(ch)
+		return ch
+	}
+	return cli.Watch(key)
 }

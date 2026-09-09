@@ -56,15 +56,17 @@ func (p *producer) SendMessage(msg IMessage) (partition int32, offset int64, err
 	}()
 
 	// 添加缓存
+	dedupKey := ""
 	if p.cli.redis != nil && len(msg.Key()) > 0 {
+		dedupKey = msg.Key()
 		if p.focus {
-			p.cli.redis.Del(msg.Key())
+			p.cli.redis.Del(dedupKey)
 		}
-		if p.cli.redis.Exists(msg.Key()).Val() > 0 {
+		if p.cli.redis.Exists(dedupKey).Val() > 0 {
 			err = errors.New("KEY已存在")
 			return
 		}
-		p.cli.redis.Set(msg.Key(), goo_utils.M{
+		p.cli.redis.Set(dedupKey, goo_utils.M{
 			"topic":     msg.Topic(),
 			"body":      msg,
 			"headers":   msg.Headers(),
@@ -76,11 +78,17 @@ func (p *producer) SendMessage(msg IMessage) (partition int32, offset int64, err
 
 	producer, err = sarama.NewSyncProducerFromClient(p.Client())
 	if err != nil {
+		if dedupKey != "" {
+			p.cli.redis.Del(dedupKey)
+		}
 		return
 	}
 	defer producer.Close()
 
 	partition, offset, err = producer.SendMessage(m)
+	if err != nil && dedupKey != "" {
+		p.cli.redis.Del(dedupKey)
+	}
 
 	return
 }
@@ -123,15 +131,17 @@ func (p *producer) SendAsyncMessage(msg IMessage, cb MessageHandler) (err error)
 	}()
 
 	// 添加缓存
+	dedupKey := ""
 	if p.cli.redis != nil && len(msg.Key()) > 0 {
+		dedupKey = msg.Key()
 		if p.focus {
-			p.cli.redis.Del(msg.Key())
+			p.cli.redis.Del(dedupKey)
 		}
-		if p.cli.redis.Exists(msg.Key()).Val() > 0 {
+		if p.cli.redis.Exists(dedupKey).Val() > 0 {
 			err = errors.New("KEY已存在")
 			return
 		}
-		p.cli.redis.Set(msg.Key(), goo_utils.M{
+		p.cli.redis.Set(dedupKey, goo_utils.M{
 			"topic":     msg.Topic(),
 			"body":      msg,
 			"headers":   msg.Headers(),
@@ -143,6 +153,9 @@ func (p *producer) SendAsyncMessage(msg IMessage, cb MessageHandler) (err error)
 
 	producer, err = sarama.NewAsyncProducerFromClient(p.Client())
 	if err != nil {
+		if dedupKey != "" {
+			p.cli.redis.Del(dedupKey)
+		}
 		return
 	}
 	defer producer.Close()
@@ -154,6 +167,9 @@ func (p *producer) SendAsyncMessage(msg IMessage, cb MessageHandler) (err error)
 		cb(&ProducerMessage{msg}, nil)
 	case e := <-producer.Errors():
 		err = e.Err
+		if dedupKey != "" {
+			p.cli.redis.Del(dedupKey)
+		}
 		cb(&ProducerMessage{e.Msg}, e.Err)
 	}
 

@@ -68,10 +68,19 @@ func STSCredentialWithCache(cfg StsConfig, redis *goo_redis.Client) (*sts.Creden
 			return nil, err
 		}
 
-		// 设置缓存
+		// 设置缓存（提前过期，避免临近失效仍被取用）
 		if redis != nil && res.Credentials != nil {
-			b, _ := json.Marshal(&res.Credentials)
-			redis.Set(key, string(b), time.Duration(cfg.GetExpire())*time.Second)
+			b, merr := json.Marshal(&res.Credentials)
+			if merr != nil {
+				return res.Credentials, nil
+			}
+			ttl := time.Duration(cfg.GetExpire()) * time.Second
+			if ttl > 10*time.Minute {
+				ttl -= 5 * time.Minute
+			} else if ttl > time.Minute {
+				ttl -= time.Minute
+			}
+			redis.Set(key, string(b), ttl)
 		}
 
 		return res.Credentials, nil
