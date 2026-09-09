@@ -3,16 +3,11 @@ package goo_http
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"io"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
-
-// ErrBodyTooLarge 请求体超过 maxBodyBytes
-var ErrBodyTooLarge = errors.New("request body too large")
 
 // 唯一ID
 func RequestId(c *gin.Context) string {
@@ -79,35 +74,12 @@ func RequestBody(c *gin.Context) interface{} {
 	return string(b)
 }
 
-func maxBodyBytesFromContext(c *gin.Context) int64 {
-	opts := optsFromContext(c)
-	if opts != nil && opts.maxBodyBytes > 0 {
-		return opts.maxBodyBytes
-	}
-	return 32 << 20
-}
-
-// readBodyLimited 读取 body，超过 limit 返回错误
-func readBodyLimited(r io.Reader, limit int64) ([]byte, error) {
-	if limit <= 0 {
-		limit = 32 << 20
-	}
-	b, err := io.ReadAll(io.LimitReader(r, limit+1))
-	if err != nil {
-		return nil, err
-	}
-	if int64(len(b)) > limit {
-		return nil, fmt.Errorf("%w, max %d bytes", ErrBodyTooLarge, limit)
-	}
-	return b, nil
-}
-
 // readAndRestoreBody 读取请求体并回填为可再次读取的 Reader。
 func readAndRestoreBody(c *gin.Context) ([]byte, error) {
 	if c.Request.Body == nil {
 		return nil, nil
 	}
-	b, err := readBodyLimited(c.Request.Body, maxBodyBytesFromContext(c))
+	b, err := io.ReadAll(c.Request.Body)
 	_ = c.Request.Body.Close()
 	if err != nil {
 		c.Request.Body = io.NopCloser(bytes.NewReader(nil))

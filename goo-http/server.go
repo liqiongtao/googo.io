@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -40,7 +39,6 @@ func NewServer(opt ...Option) *Server {
 		opts:   opts,
 	}
 
-	s.Engine.MaxMultipartMemory = opts.maxBodyBytes
 	s.Engine.NoRoute(s.noRoute)
 	s.Engine.NoMethod(s.noMethod)
 
@@ -191,13 +189,9 @@ func (s *Server) encrypt(c *gin.Context) {
 		}
 	}
 
-	raw, err := readBodyLimited(c.Request.Body, s.opts.maxBodyBytes)
+	raw, err := io.ReadAll(c.Request.Body)
 	_ = c.Request.Body.Close()
 	if err != nil {
-		if errors.Is(err, ErrBodyTooLarge) {
-			s.abortWithStatus40X(c, 413, err.Error())
-			return
-		}
 		s.abortWithStatus50X(c, 5002, "读取请求失败，原因："+err.Error())
 		return
 	}
@@ -249,11 +243,7 @@ func (s *Server) log(c *gin.Context) {
 	case "application/x-www-form-urlencoded", "text/xml", "application/json":
 		b, err := readAndRestoreBody(c)
 		if err != nil {
-			if errors.Is(err, ErrBodyTooLarge) {
-				s.abortWithStatus40X(c, 413, err.Error())
-			} else {
-				s.abortWithStatus50X(c, 5002, "读取请求失败，原因："+err.Error())
-			}
+			s.abortWithStatus50X(c, 5002, "读取请求失败，原因："+err.Error())
 			return
 		}
 		if len(b) > 0 {

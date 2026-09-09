@@ -22,7 +22,6 @@ func newDefaultOptions() *options {
 		},
 		encryptionExcludeUris: map[string]struct{}{},
 		responseHookFunc:      func(c *gin.Context, res *Response) {},
-		maxBodyBytes:          32 << 20, // 默认 32MB
 	}
 }
 
@@ -41,8 +40,6 @@ type options struct {
 	encryptionFn          func(c *gin.Context) *Encryption
 	encryptionEnable      bool
 	encryptionExcludeUris map[string]struct{}
-
-	maxBodyBytes int64
 }
 
 type Option interface {
@@ -138,14 +135,5 @@ func EnableEncryptionOptionWith(fn func(c *gin.Context) *Encryption, excludeUris
 func ResponseHookFuncOption(hookFunc func(c *gin.Context, res *Response)) Option {
 	return newFuncOption(func(opts *options) {
 		opts.responseHookFunc = hookFunc
-	})
-}
-
-// MaxBodyBytesOption 限制请求体大小（字节），默认 32MB；<=0 使用默认值
-func MaxBodyBytesOption(n int64) Option {
-	return newFuncOption(func(opts *options) {
-		if n > 0 {
-			opts.maxBodyBytes = n
-		}
 	})
 }
