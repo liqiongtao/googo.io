@@ -30,7 +30,7 @@ return member
 `
 
 	keys := []string{t.TaskPendingKey, t.TaskProcessingKey}
-	args := []interface{}{float64(time.Now().Unix())}
+	args := []any{float64(time.Now().Unix())}
 
 	member, err := t.r.Eval(luaScript, keys, args...).Result()
 	if err != nil {

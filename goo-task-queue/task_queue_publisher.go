@@ -37,7 +37,9 @@ func (p *TaskQueuePublisher) Publish(tasks ...*Task) error {
 			task.Timeout = defaultTaskTimeout
 		}
 
-		task.Ts = time.Now().Unix()
+		if task.Ts == 0 {
+			task.Ts = time.Now().Unix()
+		}
 
 		score := task.Ts
 		if task.HighPriority == 1 {
