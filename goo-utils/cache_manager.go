@@ -72,7 +72,7 @@ func (cm *CacheManager) Get(key string, queryFunc func() (interface{}, error)) (
 		// 5. 缓存数据
 		cm.cache.Store(key, cacheItem{
 			value:  data,
-			expire: time.Now().Unix() + int64(cm.duration.Seconds()),
+			expire: time.Now().Add(cm.duration).Unix(),
 		})
 
 		return data, nil
@@ -88,7 +88,7 @@ func (cm *CacheManager) Get(key string, queryFunc func() (interface{}, error)) (
 func (cm *CacheManager) Set(key string, value interface{}) {
 	cm.cache.Store(key, cacheItem{
 		value:  value,
-		expire: time.Now().Unix() + int64(cm.duration.Seconds()),
+		expire: time.Now().Add(cm.duration).Unix(),
 	})
 }
 

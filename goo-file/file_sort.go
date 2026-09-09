@@ -48,7 +48,10 @@ func FileSort(filename, sortedFile string) (err error) {
 		}
 
 		if l == 1 {
-			os.Rename(partFiles[0], sortedFile)
+			if e := os.Rename(partFiles[0], sortedFile); e != nil {
+				err = e
+				goo_log.Error(e)
+			}
 			return
 		}
 
@@ -58,6 +61,9 @@ func FileSort(filename, sortedFile string) (err error) {
 	err = ReadByLine(filename, func(b []byte, end bool) (err error) {
 		defer func() {
 			if l := len(data); l < maxLine && !end {
+				return
+			}
+			if len(data) == 0 {
 				return
 			}
 

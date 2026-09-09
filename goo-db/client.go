@@ -37,8 +37,17 @@ func New(conf Config) (cli *Client, err error) {
 
 	cli.EngineGroup.SetLogger(newLogger(conf.LogFilepath))
 	cli.EngineGroup.ShowSQL(conf.LogModel)
-	cli.EngineGroup.SetMaxIdleConns(conf.MaxIdle)
-	cli.EngineGroup.SetMaxOpenConns(conf.MaxOpen)
+
+	maxIdle := conf.MaxIdle
+	if maxIdle <= 0 {
+		maxIdle = 10
+	}
+	maxOpen := conf.MaxOpen
+	if maxOpen <= 0 {
+		maxOpen = 100
+	}
+	cli.EngineGroup.SetMaxIdleConns(maxIdle)
+	cli.EngineGroup.SetMaxOpenConns(maxOpen)
 	if conf.MaxLifetime > 0 {
 		cli.EngineGroup.SetConnMaxLifetime(time.Duration(conf.MaxLifetime) * time.Second)
 	} else {

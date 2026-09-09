@@ -2,7 +2,6 @@ package goo_utils
 
 import (
 	"fmt"
-	"github.com/liqiongtao/googo.io/goocontext"
 	"testing"
 	"time"
 )
@@ -16,6 +15,4 @@ func TestAsyncFuncWithTimeout(t *testing.T) {
 	}, 3*time.Second)
 
 	fmt.Println("done")
-
-	<-goocontext.Root().Done()
 }

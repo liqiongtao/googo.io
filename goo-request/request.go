@@ -330,6 +330,9 @@ func (r *Request) Download(url, filename string) (err error) {
 		if err != nil {
 			return
 		}
+		for k, v := range r.Headers {
+			req.Header.Set(k, v)
+		}
 	}
 
 	if r.timeout == 0 {

@@ -8,6 +8,10 @@ import (
 )
 
 func Publish(r *goo_redis.Client, key string, task *TaskData) error {
+	if r == nil {
+		goo_log.WithTag("goo-cron").Error("publish cron redis client is nil")
+		return errors.New("cron redis client is nil")
+	}
 	if task == nil {
 		goo_log.WithTag("goo-cron").Error("publish cron task is nil")
 		return errors.New("cron task is nil")

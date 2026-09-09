@@ -18,7 +18,10 @@ type Client struct {
 }
 
 func (c *Client) init() (err error) {
-	id := uuid.New().String()
+	clientID := c.conf.ClientID
+	if clientID == "" {
+		clientID = uuid.New().String()
+	}
 	config := sarama.NewConfig()
 
 	if c.conf.User != "" {
@@ -27,7 +30,7 @@ func (c *Client) init() (err error) {
 		config.Net.SASL.Password = c.conf.Password
 	}
 
-	config.ClientID = id
+	config.ClientID = clientID
 	config.ChannelBufferSize = 1024
 	config.Version = sarama.V3_0_0_0
 
@@ -68,7 +71,10 @@ func (c *Client) init() (err error) {
 	if c.conf.RebalanceTimeout > 0 {
 		config.Consumer.Group.Rebalance.Timeout = time.Duration(c.conf.RebalanceTimeout) * time.Second
 	}
-	config.Consumer.Group.InstanceId = id
+	// 仅在配置了稳定 InstanceId 时启用静态成员，避免每次随机 ID 加重 rebalance
+	if c.conf.InstanceId != "" {
+		config.Consumer.Group.InstanceId = c.conf.InstanceId
+	}
 
 	c.Client, err = sarama.NewClient(c.conf.Addrs, config)
 	if err != nil {

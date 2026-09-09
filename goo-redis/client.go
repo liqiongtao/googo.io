@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/redis/go-redis/v9"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	"github.com/redis/go-redis/v9"
 )
 
 type Client struct {
@@ -36,10 +36,48 @@ func New(conf Config) (cli *Client, err error) {
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
-	if conf.Options != nil {
-		opts = conf.Options
-		if opts.Addr == "" {
-			opts.Addr = conf.Addr
+	if o := conf.Options; o != nil {
+		if o.Addr != "" {
+			opts.Addr = o.Addr
+		}
+		if o.Password != "" {
+			opts.Password = o.Password
+		}
+		if o.DB != 0 {
+			opts.DB = o.DB
+		}
+		if o.PoolSize > 0 {
+			opts.PoolSize = o.PoolSize
+		}
+		if o.MinIdleConns > 0 {
+			opts.MinIdleConns = o.MinIdleConns
+		}
+		if o.PoolTimeout > 0 {
+			opts.PoolTimeout = o.PoolTimeout
+		}
+		if o.ConnMaxIdleTime > 0 {
+			opts.ConnMaxIdleTime = o.ConnMaxIdleTime
+		}
+		if o.DialTimeout > 0 {
+			opts.DialTimeout = o.DialTimeout
+		}
+		if o.ReadTimeout > 0 {
+			opts.ReadTimeout = o.ReadTimeout
+		}
+		if o.WriteTimeout > 0 {
+			opts.WriteTimeout = o.WriteTimeout
+		}
+		if o.Username != "" {
+			opts.Username = o.Username
+		}
+		if o.TLSConfig != nil {
+			opts.TLSConfig = o.TLSConfig
+		}
+		if o.Dialer != nil {
+			opts.Dialer = o.Dialer
+		}
+		if o.OnConnect != nil {
+			opts.OnConnect = o.OnConnect
 		}
 	}
 

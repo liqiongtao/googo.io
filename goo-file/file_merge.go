@@ -166,6 +166,13 @@ func fileMergeHandler(file string, files []string) (err error) {
 			if err != nil {
 				if err == io.EOF {
 					err = nil
+					if strings.TrimSpace(s) == "" {
+						break
+					}
+					if _, ok := data[s]; ok {
+						break
+					}
+					data[s] = n
 					break
 				}
 				goo_log.Error(err)
@@ -224,6 +231,13 @@ func fileMergeHandler(file string, files []string) (err error) {
 			if err != nil {
 				if err == io.EOF {
 					err = nil
+					if strings.TrimSpace(s) == "" {
+						break
+					}
+					if _, ok := data[s]; ok {
+						break
+					}
+					data[s] = n
 					break
 				}
 				goo_log.Error(err)
