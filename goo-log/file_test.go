@@ -4,7 +4,6 @@ import (
 	"log"
 	"sync"
 	"testing"
-	"time"
 )
 
 func TestNewFileLog(t *testing.T) {
@@ -37,5 +36,10 @@ func TestNewFileLog(t *testing.T) {
 
 	wg.Wait()
 
-	time.Sleep(3 * time.Second)
+	if err := l.Sync(); err != nil {
+		t.Fatal(err)
+	}
+	if err := l.Close(); err != nil {
+		t.Fatal(err)
+	}
 }

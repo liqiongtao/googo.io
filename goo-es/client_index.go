@@ -28,10 +28,11 @@ func (c *ESClient) Delete(index, docId string) (*esapi.Response, error) {
 
 // 删除文档
 func (c *ESClient) DeleteByQuery(index []string, b []byte) (*esapi.Response, error) {
+	refresh := true
 	req := esapi.DeleteByQueryRequest{
-		Index: index,
-		Body:  bytes.NewReader(b),
+		Index:   index,
+		Body:    bytes.NewReader(b),
+		Refresh: &refresh,
 	}
-	*req.Refresh = true
 	return c.exec(req)
 }

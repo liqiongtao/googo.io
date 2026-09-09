@@ -64,8 +64,20 @@ func NewCosClient(cfg CosConfig) *CosClient {
 	}
 }
 
+func trimObjectKey(objectKey string) string {
+	return strings.TrimPrefix(objectKey, "/")
+}
+
+func closeCOSResponse(rsp *cos.Response) {
+	if rsp != nil && rsp.Body != nil {
+		_ = rsp.Body.Close()
+	}
+}
+
 // 上传文件
 func (c *CosClient) Upload(localFileName, objectKey string) error {
+	objectKey = trimObjectKey(objectKey)
+
 	f, err := os.Open(localFileName)
 	if err != nil {
 		goo_log.ErrorF("open file %s error: %s", localFileName, err.Error())
@@ -86,7 +98,7 @@ func (c *CosClient) Upload(localFileName, objectKey string) error {
 			ContentLength: stat.Size(),
 		},
 	})
-	defer func() { _ = rsp.Body.Close() }()
+	defer closeCOSResponse(rsp)
 
 	if err != nil {
 		goo_log.ErrorF("put %s error: %s", objectKey, err.Error())
@@ -102,17 +114,19 @@ func (c *CosClient) Upload(localFileName, objectKey string) error {
 
 // 下载文件
 func (c *CosClient) Download(localFileName, objectKey string) error {
+	objectKey = trimObjectKey(objectKey)
+
 	if err := os.MkdirAll(path.Dir(localFileName), 0755); err != nil {
 		goo_log.ErrorF("create dir %s error: %s", path.Dir(localFileName), err.Error())
 		return err
 	}
 
 	rsp, err := c.Object.GetToFile(context.TODO(), objectKey, localFileName, nil)
+	defer closeCOSResponse(rsp)
 	if err != nil {
 		goo_log.ErrorF("download %s error: %s", objectKey, err.Error())
 		return err
 	}
-	defer func() { _ = rsp.Body.Close() }()
 
 	if !goo_file.Exist(localFileName) {
 		goo_log.ErrorF("download %s error", objectKey)
@@ -124,9 +138,7 @@ func (c *CosClient) Download(localFileName, objectKey string) error {
 
 // 获取文件内容
 func (c *CosClient) Get(objectKey string) ([]byte, error) {
-	if objectKey[0:1] == "/" {
-		objectKey = objectKey[1:]
-	}
+	objectKey = trimObjectKey(objectKey)
 
 	// 使用cos客户端获取文件内容
 	resp, err := c.Object.Get(context.Background(), objectKey, nil)
@@ -134,7 +146,7 @@ func (c *CosClient) Get(objectKey string) ([]byte, error) {
 		goo_log.ErrorF("get %s error: %s", objectKey, err.Error())
 		return nil, err
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer closeCOSResponse(resp)
 
 	// 读取响应体内容
 	b, err := io.ReadAll(resp.Body)
@@ -156,10 +168,12 @@ func (c *CosClient) List(fn func(objectKey cos.Object) error) error {
 	for {
 		opt.Marker = marker
 
-		res, _, err := c.Bucket.Get(context.TODO(), opt)
+		res, rsp, err := c.Bucket.Get(context.TODO(), opt)
 		if err != nil {
+			closeCOSResponse(rsp)
 			return err
 		}
+		closeCOSResponse(rsp)
 
 		for _, v := range res.Contents {
 			if err = fn(v); err != nil {
@@ -178,38 +192,33 @@ func (c *CosClient) List(fn func(objectKey cos.Object) error) error {
 }
 
 func (c *CosClient) Head(objectKey string) (*cos.Response, error) {
-	if objectKey[0:1] == "/" {
-		objectKey = objectKey[1:]
-	}
+	objectKey = trimObjectKey(objectKey)
 
 	rsp, err := c.Object.Head(context.Background(), objectKey, nil)
 	if err != nil {
 		goo_log.ErrorF("head %s error: %s", objectKey, err.Error())
 		return nil, err
 	}
-	defer func() { _ = rsp.Body.Close() }()
+	// Head 一般无 body，仍安全关闭，避免连接泄漏
+	closeCOSResponse(rsp)
 
 	return rsp, nil
 }
 
 func (c *CosClient) IsExist(objectKey string) bool {
-	if objectKey[0:1] == "/" {
-		objectKey = objectKey[1:]
-	}
+	objectKey = trimObjectKey(objectKey)
 
-	_, err := c.Object.IsExist(context.Background(), objectKey)
+	ok, err := c.Object.IsExist(context.Background(), objectKey)
 	if err != nil {
 		goo_log.ErrorF("exist %s error: %s", objectKey, err.Error())
 		return false
 	}
 
-	return true
+	return ok
 }
 
 func (c *CosClient) Delete(objectKey string) error {
-	if objectKey[0:1] == "/" {
-		objectKey = objectKey[1:]
-	}
+	objectKey = trimObjectKey(objectKey)
 
 	// 检查对象是否存在
 	_, err := c.Object.Delete(context.Background(), objectKey, nil)
@@ -222,23 +231,19 @@ func (c *CosClient) Delete(objectKey string) error {
 }
 
 func (c *CosClient) Copy(sourceObjectKey, targetObjectKey string, targetCosClient *cos.Client) error {
-	if sourceObjectKey[0:1] == "/" {
-		sourceObjectKey = sourceObjectKey[1:]
-	}
+	sourceObjectKey = trimObjectKey(sourceObjectKey)
+	targetObjectKey = trimObjectKey(targetObjectKey)
+
 	if !strings.HasPrefix(sourceObjectKey, c.BaseURL.BucketURL.Host+c.BaseURL.BucketURL.Path) {
 		sourceObjectKey = c.BaseURL.BucketURL.Host + c.BaseURL.BucketURL.Path + "/" + sourceObjectKey
 	}
 
-	if targetObjectKey[0:1] == "/" {
-		targetObjectKey = targetObjectKey[1:]
-	}
-
 	_, rsp, err := targetCosClient.Object.Copy(context.Background(), targetObjectKey, sourceObjectKey, nil)
+	defer closeCOSResponse(rsp)
 	if err != nil {
 		goo_log.ErrorF("copy %s error: %s", sourceObjectKey, err.Error())
 		return err
 	}
-	defer func() { _ = rsp.Body.Close() }()
 
 	return nil
 }

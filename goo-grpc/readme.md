@@ -4,13 +4,11 @@
     - `ServiceName` 服务名称
     - `ServiceEndpoint` 服务开放地址
     - `Addr` 服务监听地址，必须明确 `ip:port`
-- 信号监控
-    - `kill -USR1` 开启 `pprof` 监控
-    - `kill -USR2` 停止 `pprof` 监控，可以获取监控文件
-    - `kill -1` 平滑重启
-    - `kill -9` 退出应用程序，目前监控不到
-    - `kill -QUIT` 退出应用程序
-    - `ctrl + C` 退出应用程序
+- 信号监控（与 `goocontext` 统一）
+    - `kill -1`（SIGHUP）平滑重启
+    - `kill` / `kill -3` / `Ctrl+C` 平滑退出
+    - `kill -USR1` 切换进程级 pprof 开/关
+    - `kill -9` 强制退出（无法拦截）
 - 拦截器
     - `grpc.ChainUnaryInterceptor` 服务端单向拦截器（也叫"一元拦截器"）
         - `serverUnaryInterceptorLog()` 记录日志信息

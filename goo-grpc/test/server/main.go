@@ -4,11 +4,11 @@ import (
 	"context"
 	"time"
 
-	goo_context "github.com/liqiongtao/googo.io/goo-context"
 	goo_etcd "github.com/liqiongtao/googo.io/goo-etcd"
 	goo_grpc "github.com/liqiongtao/googo.io/goo-grpc"
 	pb_grpc_v1 "github.com/liqiongtao/googo.io/goo-grpc/test/proto"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
+	"github.com/liqiongtao/googo.io/goocontext"
 )
 
 func main() {
@@ -32,7 +32,7 @@ func main() {
 		s.Serve()
 	})
 
-	<-goo_context.WithCancel().Done()
+	<-goocontext.Root().Done()
 }
 
 type Server struct {

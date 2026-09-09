@@ -2,10 +2,7 @@ package goocontext
 
 import (
 	"context"
-	"os"
-	"os/signal"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/google/uuid"
@@ -150,42 +147,14 @@ func WithDeadline(ctx context.Context, d time.Time) (context.Context, context.Ca
 	return context.WithDeadline(Default(ctx), d)
 }
 
-func WithSignalNotify(ctx context.Context, signals ...os.Signal) context.Context {
-	if len(signals) == 0 {
-		signals = []os.Signal{
-			syscall.SIGUSR1, syscall.SIGUSR2, syscall.SIGHUP,
-			syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT,
-		}
-	}
-
-	signalCh := make(chan os.Signal, 1)
-	signal.Notify(signalCh, signals...)
-
-	ctx, cancel := WithCancel(ctx)
-
-	go func() {
-		select {
-		case <-signalCh:
-			cancel()
-
-		case <-ctx.Done():
-		}
-
-		signal.Stop(signalCh)
-		close(signalCh)
-	}()
-
-	return ctx
-}
-
 func Log(ctx context.Context) *goo_log.Entry {
 	log := goo_log.WithField("trace-id", TraceId(ctx))
 
 	if v := ServiceName(ctx); v != "" {
-		log.WithField("service-name", v)
+		log = log.WithField("service-name", v)
 	}
 	if v := ValueString(ctx, "request-uri"); v != "" {
-		log.WithField("request-uri", v)
+		log = log.WithField("request-uri", v)
 	}
 
 	return log

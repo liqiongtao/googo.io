@@ -34,6 +34,8 @@ func New(conf Config) (cli *Client, err error) {
 
 	if err = cli.Ping().Err(); err != nil {
 		goo_log.WithTag("goo-redis").Error(err)
+		_ = cli.Close()
+		cli = nil
 		return
 	}
 

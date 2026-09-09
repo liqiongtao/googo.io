@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"strings"
-	"time"
 )
 
 type ConsoleAdapter struct {
@@ -18,15 +18,26 @@ func NewConsoleLog() *Logger {
 }
 
 func (ca *ConsoleAdapter) Write(msg *Message) {
+	if msg == nil || msg.Entry == nil {
+		return
+	}
+
 	var (
 		buf   bytes.Buffer
-		nw    = time.Now()
 		level = LevelText[msg.Level]
 		color = colors[msg.Level]
 	)
 
-	buf.WriteString(nw.Format("2006-01-02 15:04:05"))
+	if color == nil {
+		color = func(s string) string { return s }
+	}
+
+	buf.WriteString(msg.Time.Format("2006-01-02 15:04:05"))
 	buf.WriteString(" ")
+
+	if level == "" {
+		level = fmt.Sprintf("L(%d)", msg.Level)
+	}
 
 	buf.WriteString(color(fmt.Sprintf("%-5s", level)))
 	buf.WriteString(" ")
@@ -61,7 +72,9 @@ func (ca *ConsoleAdapter) Write(msg *Message) {
 		buf.WriteString(" ")
 	}
 
-	ca.writer().Write(append(buf.Bytes(), '\n'))
+	if _, err := ca.writer().Write(append(buf.Bytes(), '\n')); err != nil {
+		log.Println("[goo-log][console]", err.Error())
+	}
 }
 
 func (ca ConsoleAdapter) writer() io.Writer {

@@ -2,27 +2,30 @@ package goo
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
+	"net/http"
 	"os"
-	"os/signal"
 	"strings"
-	"syscall"
+	"sync/atomic"
 	"time"
 
-	"github.com/fvbock/endless"
+	"github.com/facebookgo/grace/gracenet"
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	goo_pprof "github.com/liqiongtao/googo.io/goo-pprof"
+	"github.com/liqiongtao/googo.io/goocontext"
 )
 
 // 定义web服务
 type Server struct {
 	*gin.Engine
-	pprof *goo_pprof.PProf
 }
+
+// restarting 防止连发 SIGHUP 重复 StartProcess
+var restarting int32
 
 func NewServer(opt ...Option) *Server {
 	for _, o := range opt {
@@ -44,53 +47,67 @@ func NewServer(opt ...Option) *Server {
 // 启动服务
 func (s *Server) Run(addr string) {
 	pid := fmt.Sprintf("%d", os.Getpid())
-	if err := ioutil.WriteFile(".pid", []byte(pid), 0644); err != nil {
+	if err := os.WriteFile(".pid", []byte(pid), 0644); err != nil {
 		goo_log.Panic(err.Error())
 	}
 
-	// 性能分析
+	gnet := &gracenet.Net{}
+	httpServer := &http.Server{
+		Handler:           s.Engine,
+		ReadHeaderTimeout: 10 * time.Second,
+	}
+
+	// 先注册钩子再 Listen/Root，避免信号窗口内空钩子直接 cancel
+	goocontext.OnRestart(func() {
+		// 防止连发 SIGHUP 重复 fork；失败则允许重试
+		if !atomic.CompareAndSwapInt32(&restarting, 0, 1) {
+			return
+		}
+		if _, err := gnet.StartProcess(); err != nil {
+			atomic.StoreInt32(&restarting, 0)
+			goo_log.Error(err.Error())
+			return
+		}
+		goo_log.Warn("服务重启")
+		// handoff 失败时父进程仍存活，超时后允许再次热重启
+		time.AfterFunc(10*time.Second, func() {
+			atomic.StoreInt32(&restarting, 0)
+		})
+	})
+	goocontext.OnExit(func() {
+		goo_pprof.StopDefault()
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		if err := httpServer.Shutdown(ctx); err != nil {
+			goo_log.Error(err.Error())
+		}
+		goo_log.Warn("服务退出")
+	})
+
+	// 性能分析：HTTP endpoint + 进程级 pprof（USR1 统一由 goo_pprof 注册）
+	goo_pprof.RegisterSignal()
 	if defaultOptions.pprofEnable {
 		pprof.Register(s.Engine, "/goo/pprof")
-		s.pprofStart()
+		goo_pprof.StartDefault()
 	}
 
-	// 监听退出
-	s.setupSignalHandler()
-
-	goo_log.InfoF("server running, addr=%s pid=%s", addr, pid)
-
-	endless.NewServer(addr, s.Engine).ListenAndServe()
-}
-
-func (s *Server) setupSignalHandler() {
-	sigChan := make(chan os.Signal, 1)
-
-	signal.Notify(sigChan,
-		syscall.SIGINT,  // Ctrl+C 关闭
-		syscall.SIGTERM, // 停止服务
-		syscall.SIGHUP,  // 热重启
-	)
+	lis, err := gnet.Listen("tcp", addr)
+	if err != nil {
+		goo_log.Panic(err.Error())
+	}
 
 	go func() {
-		<-sigChan
-		s.pprofStop()
+		if err := httpServer.Serve(lis); err != nil && err != http.ErrServerClosed {
+			goo_log.Error(err.Error())
+		}
 	}()
-}
 
-// 开启分析监控
-func (s *Server) pprofStart() {
-	if s.pprof == nil {
-		s.pprof = goo_pprof.New("logs")
-	}
-	s.pprof.Start()
-}
+	goo_log.InfoF("server running, addr=%s pid=%s", lis.Addr().String(), pid)
 
-// 停止分析监控
-func (s *Server) pprofStop() {
-	if s.pprof != nil {
-		s.pprof.Stop()
-	}
-	s.pprof = nil
+	// 继承 listener 的子进程就绪后，延迟通知父进程优雅退出
+	goocontext.NotifyParentExitAfter(300 * time.Millisecond)
+
+	<-goocontext.Root().Done()
 }
 
 // 跨域
@@ -161,7 +178,7 @@ func (s *Server) encrypt(c *gin.Context) {
 		return
 	}
 
-	c.Request.Body = ioutil.NopCloser(bytes.NewBuffer(b))
+	c.Request.Body = io.NopCloser(bytes.NewBuffer(b))
 
 	c.Next()
 }
@@ -200,7 +217,7 @@ func (s *Server) log(c *gin.Context) {
 	c.Next()
 
 	if !beginTime.IsZero() {
-		l.WithField("duration", fmt.Sprintf("%dms", time.Since(beginTime)/1e6))
+		l = l.WithField("duration", fmt.Sprintf("%dms", time.Since(beginTime)/1e6))
 	}
 
 	ctx := c.Copy()
@@ -208,12 +225,12 @@ func (s *Server) log(c *gin.Context) {
 		if strings.HasPrefix(k, "__") {
 			continue
 		}
-		l.WithField(k, v)
+		l = l.WithField(k, v)
 	}
 
 	if resp, has := ctx.Get("__response"); has {
 		if r, ok := resp.(*Response); resp != nil && ok {
-			l.WithField("response", resp)
+			l = l.WithField("response", resp)
 			if r == nil {
 				l.Error(resp)
 				return

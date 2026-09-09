@@ -2,7 +2,7 @@ package goo_message
 
 import (
 	"fmt"
-	goo_context "github.com/liqiongtao/googo.io/goo-context"
+	"github.com/liqiongtao/googo.io/goocontext"
 	"testing"
 )
 
@@ -17,5 +17,5 @@ func TestFeiShu(t *testing.T) {
 		//go FeiShu(hookUrl, fmt.Sprintf("测试%d", i))
 	}
 
-	<-goo_context.WithCancel().Done()
+	<-goocontext.Root().Done()
 }

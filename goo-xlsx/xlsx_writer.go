@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -213,14 +214,22 @@ func (x *xlsxWrite) Save2File(filename string) (err error) {
 }
 
 func (x *xlsxWrite) Output(ctx *gin.Context, filename string) (err error) {
-	tmpFile := fmt.Sprintf("/tmp/%s", filename)
+	filename = filepath.Base(filename)
+	if filename == "" || filename == "." || filename == string(filepath.Separator) {
+		return fmt.Errorf("invalid filename")
+	}
+
+	tmpFile := filepath.Join(os.TempDir(), filename)
 	defer func() { _ = os.Remove(tmpFile) }()
 
 	if err = x.Save2File(tmpFile); err != nil {
 		return err
 	}
 
-	fileInfo, _ := os.Stat(tmpFile)
+	fileInfo, err := os.Stat(tmpFile)
+	if err != nil {
+		return err
+	}
 	fileSize := fileInfo.Size()
 
 	ctx.Header("Content-Transfer-Encoding", "binary")

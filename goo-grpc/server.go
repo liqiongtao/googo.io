@@ -3,21 +3,20 @@ package goo_grpc
 import (
 	"errors"
 	"fmt"
-
-	"github.com/liqiongtao/googo.io/goo"
-	goo_pprof "github.com/liqiongtao/googo.io/goo-pprof"
-
-	"io/ioutil"
 	"net"
 	"os"
-	"os/signal"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
 	"github.com/facebookgo/grace/gracenet"
+	"github.com/liqiongtao/googo.io/goo"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goo_pprof "github.com/liqiongtao/googo.io/goo-pprof"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
+	"github.com/liqiongtao/googo.io/goocontext"
 	"google.golang.org/grpc"
 )
 
@@ -29,10 +28,13 @@ type Server struct {
 
 	lis net.Listener
 
-	pprof *goo_pprof.PProf
+	stopOnce sync.Once
 }
 
 var defaultServerOptions serverOptions
+
+// restarting 防止连发 SIGHUP 重复 StartProcess
+var restarting int32
 
 func New(conf Config, opt ...ServerOption) *Server {
 	defaultServerOptions := newDefaultServerOptions(conf)
@@ -124,6 +126,10 @@ func (s *Server) Serve() (err error) {
 		}
 	})
 
+	// 先注册钩子，再 Serve，缩小空钩子 cancel 窗口
+	s.registerSignalHooks()
+
+	serveErrCh := make(chan error, 1)
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
@@ -131,80 +137,70 @@ func (s *Server) Serve() (err error) {
 			}
 		}()
 
-		if err = s.Server.Serve(s.lis); err != nil {
-			goo_log.WithTag("goo-grpc").Error(err)
+		if serveErr := s.Server.Serve(s.lis); serveErr != nil {
+			goo_log.WithTag("goo-grpc").Error(serveErr)
+			serveErrCh <- serveErr
 		}
 	}()
 
 	s.storePID()
-	s.handleSignal()
 
-	time.Sleep(time.Second)
+	// 继承 listener 的子进程就绪后，延迟通知父进程优雅退出
+	goocontext.NotifyParentExitAfter(300 * time.Millisecond)
+
+	select {
+	case <-goocontext.Root().Done():
+	case serveErr := <-serveErrCh:
+		// Serve 立刻失败时触发退出钩子，避免 AsyncFunc(Serve)+<-Root().Done() 假活
+		err = serveErr
+		_ = syscall.Kill(os.Getpid(), syscall.SIGTERM)
+		<-goocontext.Root().Done()
+	}
 
 	return
 }
 
-func (s *Server) handleSignal() {
-	ch := make(chan os.Signal)
+func (s *Server) registerSignalHooks() {
+	goo_pprof.RegisterSignal()
 
-	signal.Notify(ch, syscall.SIGHUP, syscall.SIGUSR1, syscall.SIGUSR2,
-		syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT, syscall.SIGKILL)
-
-	for sig := range ch {
-		switch sig {
-		case syscall.SIGUSR1: // kill -USR1
-			s.pprofStart()
-
-		case syscall.SIGUSR2: // kill -USR2
-			s.pprofStop()
-
-		case syscall.SIGHUP: // kill -1
-			s.gracefulReStart()
-			goo_log.WithTag("goo-grpc").Warn("服务重启")
-			return
-
-		case syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT, syscall.SIGKILL: // kill -9 or ctrl+c
-			s.gracefulStop()
-			goo_log.WithTag("goo-grpc").Warn("服务退出")
+	goocontext.OnRestart(func() {
+		// 防止连发 SIGHUP 重复 fork；失败则允许重试
+		if !atomic.CompareAndSwapInt32(&restarting, 0, 1) {
 			return
 		}
-	}
-}
-
-// 开启分析监控
-func (s *Server) pprofStart() {
-	if s.pprof == nil {
-		s.pprof = goo_pprof.New("logs")
-	}
-	s.pprof.Start()
-}
-
-// 停止分析监控
-func (s *Server) pprofStop() {
-	if s.pprof != nil {
-		s.pprof.Stop()
-	}
-	s.pprof = nil
-}
-
-// 平滑重启
-func (s *Server) gracefulReStart() {
-	if _, err := s.Net.StartProcess(); err != nil {
-		goo_log.WithTag("goo-grpc").Error(err)
-	}
+		if _, err := s.Net.StartProcess(); err != nil {
+			atomic.StoreInt32(&restarting, 0)
+			goo_log.WithTag("goo-grpc").Error(err)
+			return
+		}
+		goo_log.WithTag("goo-grpc").Warn("服务重启")
+		// handoff 失败时父进程仍存活，超时后允许再次热重启
+		time.AfterFunc(10*time.Second, func() {
+			atomic.StoreInt32(&restarting, 0)
+		})
+	})
+	goocontext.OnExit(func() {
+		goo_pprof.StopDefault()
+		s.gracefulStop()
+		goo_log.WithTag("goo-grpc").Warn("服务退出")
+	})
 }
 
 // 平滑退出
 func (s *Server) gracefulStop() {
-	s.Server.GracefulStop()
-	if err := s.lis.Close(); err != nil && !errors.Is(err, net.ErrClosed) {
-		goo_log.WithTag("goo-grpc").Error(err)
-	}
+	s.stopOnce.Do(func() {
+		s.Server.GracefulStop()
+		if s.lis != nil {
+			if err := s.lis.Close(); err != nil && !errors.Is(err, net.ErrClosed) {
+				goo_log.WithTag("goo-grpc").Error(err)
+			}
+		}
+	})
 }
 
 func (s *Server) storePID() {
 	pid := fmt.Sprintf("%d", os.Getpid())
-	if err := ioutil.WriteFile(".pid", []byte(pid), 0644); err != nil {
+	if err := os.WriteFile(".pid", []byte(pid), 0644); err != nil {
 		goo_log.WithTag("goo-grpc").Error(fmt.Sprintf("server store pid err: %s", err.Error()))
 		return
 	}

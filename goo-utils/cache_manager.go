@@ -1,7 +1,7 @@
 package goo_utils
 
 import (
-	goo_context "github.com/liqiongtao/googo.io/goo-context"
+	"github.com/liqiongtao/googo.io/goocontext"
 	"golang.org/x/sync/singleflight"
 	"sync"
 	"time"
@@ -111,7 +111,7 @@ func (cm *CacheManager) cleanupExpiredItems() {
 				}
 				return true
 			})
-		case <-goo_context.WithCancel().Done():
+		case <-goocontext.Root().Done():
 			return
 		}
 	}

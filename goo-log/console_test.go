@@ -18,5 +18,5 @@ func TestNewConsoleLog(t *testing.T) {
 	l.WithTag("u1", "u-1").Warn("hi hnatao")
 	l.WithTag("u1").WithField("name", "hnatao").Error("hi hnatao")
 	l.WithTag("u1").WithField("id", 101).Panic("hi hnatao")
-	l.WithTag("u1").WithField("id", 101).Fatal("hi hnatao")
+	// l.WithTag("u1").WithField("id", 101).Fatal("hi hnatao")
 }

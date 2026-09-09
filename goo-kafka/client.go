@@ -76,9 +76,14 @@ func (c *Client) init() (err error) {
 	}
 
 	if cfg := c.conf.RedisConfig; cfg.Addr != "" {
-		c.redis, err = goo_redis.New(cfg)
-		if err != nil {
-			goo_log.WithTag("goo-kafka").Error("Redis 初始化失败", err)
+		var redisErr error
+		c.redis, redisErr = goo_redis.New(cfg)
+		if redisErr != nil {
+			goo_log.WithTag("goo-kafka").Error("Redis 初始化失败", redisErr)
+			c.redis = nil
+			if err == nil {
+				err = redisErr
+			}
 		}
 	}
 

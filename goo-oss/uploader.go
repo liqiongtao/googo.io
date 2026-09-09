@@ -53,13 +53,15 @@ func (o *Uploader) Options(opts ...oss.Option) *Uploader {
 }
 
 func (o *Uploader) Upload(filename string, r io.Reader) (string, error) {
-	var options []oss.Option
+	options := append([]oss.Option{}, o.options...)
 
-	if strings.Contains(filename, ".js") {
+	ext := strings.ToLower(path.Ext(filename))
+	switch ext {
+	case ".js":
 		options = append(options, oss.ContentType("application/javascript"))
-	} else if strings.Contains(filename, ".css") {
+	case ".css":
 		options = append(options, oss.ContentType("text/css"))
-	} else if strings.Contains(filename, ".html") {
+	case ".html", ".htm":
 		options = append(options, oss.CacheControl("no-store"))
 		options = append(options, oss.SetHeader("Pragma", "no-cache"))
 	}

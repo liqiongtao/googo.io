@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/IBM/sarama"
-	goo_context "github.com/liqiongtao/googo.io/goo-context"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
+	"github.com/liqiongtao/googo.io/goocontext"
 )
 
 type consumer struct {
@@ -81,7 +81,7 @@ func (c *consumer) Consume(topic string, handler ConsumerHandler) {
 
 	for {
 		select {
-		case <-goo_context.WithCancel().Done():
+		case <-goocontext.Root().Done():
 			log.Debug("Context被取消,停止消费")
 			return
 
@@ -96,8 +96,8 @@ func (c *consumer) Consume(topic string, handler ConsumerHandler) {
 				return
 			}
 
-			ctx := goo_context.WithLog()
-			ctx.Log.WithTag("goo-kafka-consumer").WithField("msg", msg)
+			// 在途消费不挂 Root：进程退出只停拉取，handler 自行决定是否响应取消
+			ctx := goocontext.WithGenerateTraceId(context.Background())
 
 			if err = handler(ctx, &ConsumerMessage{ConsumerMessage: msg}, nil); err != nil {
 				log.Error(err)
@@ -136,38 +136,43 @@ func (c *consumer) ConsumeGroup(groupId string, topics []string, handler Consume
 
 	var (
 		done = make(chan struct{})
-		flag bool
 	)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(goocontext.Root())
+	defer cancel()
 
 	goo_utils.AsyncFunc(func() {
-		for {
-			select {
-			case err := <-cg.Errors():
-				if err != nil {
-					l.Error(err)
-				}
+		for err := range cg.Errors() {
+			if err != nil {
+				l.Error(err)
+			}
+		}
+	})
 
-			default:
-				err := cg.Consume(ctx, topics, group{id: groupId, handler: handler, cli: c.cli})
-				if err != nil && !errors.Is(err, sarama.ErrClosedConsumerGroup) {
-					l.Error(err)
-				}
-				if flag {
-					done <- struct{}{}
+	goo_utils.AsyncFunc(func() {
+		defer close(done)
+		for {
+			if ctx.Err() != nil {
+				return
+			}
+			err := cg.Consume(ctx, topics, group{id: groupId, handler: handler, cli: c.cli})
+			if ctx.Err() != nil {
+				return
+			}
+			if err != nil && !errors.Is(err, sarama.ErrClosedConsumerGroup) {
+				l.Error(err)
+				// 避免 broker 异常时空转打满 CPU
+				select {
+				case <-ctx.Done():
 					return
+				case <-time.After(time.Second):
 				}
 			}
 		}
 	})
 
-	select {
-	case <-goo_context.WithCancel().Done():
-		flag = true
-		cancel()
-	}
-
+	<-ctx.Done()
+	cancel()
 	<-done
 
 	time.Sleep(time.Second)

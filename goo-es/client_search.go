@@ -99,7 +99,8 @@ func (c *ESClient) PageSearch(index []string, body []byte, fn func(p goo_utils.P
 		}
 
 		if res.IsError() {
-			c.log().Error(fmt.Errorf("error getting initial response: %s", res.String()))
+			err = fmt.Errorf("error getting initial response: %s", res.String())
+			c.log().Error(err)
 			return err
 		}
 
@@ -134,7 +135,7 @@ func (c *ESClient) PageSearch(index []string, body []byte, fn func(p goo_utils.P
 		for _, hit := range p.Get("hits.hits").Array() {
 			if err = fn(hit.Get("_source")); err != nil {
 				c.log().Error(err)
-				return nil
+				return err
 			}
 		}
 	}

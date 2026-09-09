@@ -33,6 +33,7 @@ type Task struct {
     RetryTimes   int    // 当前重试次数
     Timeout      int64  // 超时毫秒数（默认 2 小时）
     Ts           int64  // 调度时间（毫秒时间戳）；0 表示立即；未来时间表示延迟
+    Generation   int64  // 执行代数（框架内部，业务勿写）
 }
 ```
 
@@ -54,7 +55,7 @@ score = Ts + 0.5     // 普通任务
 |-----|------|------|
 | `tq:task:info:{id}` | Hash | 任务详情，TTL 48 小时 |
 | `tq:task:pending` | ZSet | 待执行队列，score 见上 |
-| `tq:task:processing` | ZSet | 执行中队列，score=开始时间（毫秒），用于判断超时 |
+| `tq:task:processing` | ZSet | 执行中队列，score=最近续租时间（毫秒），超时未续租则回收 |
 | `tq:task:fail` | ZSet | 失败队列 |
 | `tq:task:workers` | Hash | Worker 心跳，field=`IP:PID` |
 | `tq:task:leader:lock` | String | Leader 选举锁，TTL 10 秒 |
@@ -66,22 +67,25 @@ score = Ts + 0.5     // 普通任务
 ```
 Publish
   → 写入 task:info
+  → generation+1（使旧执行收尾失效）
   → ZADD pending（priorityScore(HighPriority, Ts)）
-  → ZREM fail（若曾失败可重新投递）
+  → ZREM processing / fail（执行中重投会摘掉 processing）
 
 Subscribe
   → 竞选 Leader / 上报心跳
-  → Lua 原子：pending → processing
+  → Lua 原子：pending → processing，并 generation+1（本次执行代数）
+  → 执行中按 Timeout/3 续租（刷新 processing score）
   → 执行 handler
-      ├─ 成功 → 删除任务
-      ├─ 失败/超时且未超 MaxRetry → retry_times+1，按 next_run_at 回 pending
+      ├─ 成功 → 校验 generation 后删除任务
+      ├─ 失败/超时且未超 MaxRetry → 校验 generation 后重试入队
       │     · 返回 RetryAfter(d, err) → next_run_at = now + d
       │     · 普通 error → next_run_at = now（立即）
-      └─ 达到 MaxRetry → 转入 fail
+      └─ 达到 MaxRetry → 校验 generation 后转入 fail
+      （generation 不匹配则跳过收尾，避免旧执行踩踏新状态）
 
 Leader
   → 续期选举锁
-  → 扫描 processing：超时则 requeueOrFail（计次，默认 now 再入队）
+  → 扫描 processing：超过 Timeout 未续租则 Lua 原子 generation+1 并 requeueOrFail
   → 清理超过 20 秒无心跳的 Worker
 ```
 
@@ -140,10 +144,13 @@ q.FailTasks()        // 失败任务列表
 ## 设计要点
 
 1. **投递语义**：at-least-once；消费逻辑须可重入、幂等（超时回收 / 重投递可能造成重复执行）。
-2. **业务隔离**：重试延迟通过公开 API `RetryAfter` 表达；业务不直接操作 score / Redis。
-3. **去重 / 覆盖**：相同 `Id` 再次 Publish 会覆盖任务详情，并确保进入 pending。
-4. **原子抢占**：通过 Lua 脚本完成 `pending → processing`，避免多 Worker 抢到同一任务。
-5. **失败与超时**：业务失败与执行超时均校验 `MaxRetry`；未超限则重试，达到上限进入 fail。
-6. **超时兜底**：即便进程崩溃，Leader 也会把超时任务重新入队并计入重试。
-7. **Worker 身份**：`LocalIP:PID`，心跳约每 200–800ms 刷新一次；超过 20 秒视为失效并清理。
-8. **时间单位**：任务相关字段与调度 score 均为毫秒。
+2. **generation 收尾校验**：每次抢占/回收/重投抬高代数；Worker 成功/失败/重试写 Redis 前校验，过期执行不能改队列状态。
+3. **业务隔离**：重试延迟通过公开 API `RetryAfter` 表达；业务不直接操作 score / Redis。
+4. **去重 / 覆盖**：相同 `Id` 再次 Publish 会覆盖任务详情、摘掉 processing，并抬高 generation。
+5. **原子抢占**：通过 Lua 脚本完成 `pending → processing` 并分配 generation。
+6. **失败与超时**：业务失败与执行超时均校验 `MaxRetry`；未超限则重试，达到上限进入 fail。
+7. **超时兜底**：Worker 崩溃无法续租时，Leader 在超过 Timeout 未续租后用单段 Lua 原子 bump generation 并重新入队/转 fail，避免 bump 成功但入队失败的中间态。
+8. **执行续租**：执行中每 `Timeout/3`（且必须 `< Timeout`）刷新 processing 租约；续租随任务 ctx 结束（含 Timeout），避免卡死任务被无限续租。
+9. **Worker 身份**：`LocalIP:PID`，心跳约每 200–800ms 刷新一次；超过 20 秒视为失效并清理。
+10. **时间单位**：任务相关字段与调度 score 均为毫秒。
+11. **内存保护**：`MaxMemoryPercent` 限制并发拉新，避免内存型任务把机器打爆。

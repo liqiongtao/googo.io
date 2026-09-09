@@ -2,17 +2,16 @@
 
 ```
 func main() {
-	goo_db.Init(goo_context.WithCancel(), goo_db.Config{
-		Name:   "",
-		Driver: "mysql",
+	goo_db.Init(goo_db.Config{
+		Name:        "",
+		Driver:      "mysql",
 		Master:      "root:123456@tcp(192.168.1.100:3306)/ttxian",
 		Slaves:      []string{"root:123456@tcp(192.168.1.100:3307)/ttxian"},
 		LogModel:    true,
 		MaxIdle:     10,
 		MaxOpen:     100,
 		AutoPing:    true,
-		LogFilePath: "",
-		LogFileName: "",
+		LogFilepath: "",
 	})
 
 	m := map[string]string{}
@@ -25,13 +24,7 @@ func main() {
 	}
 	goo_log.Debug(m["account"])
 
-	var wg sync.WaitGroup
-	wg.Add(1)
-	goo_utils.AsyncFunc(func() {
-		defer wg.Done()
-		<-goo_context.WithCancel().Done()
-	})
-	wg.Wait()
+	<-goocontext.Root().Done()
 }
 ```
 
@@ -39,7 +32,7 @@ func main() {
 
 ```
 func main() {
-	goo_redis.Init(goo_context.WithCancel(), goo_redis.Config{
+	goo_redis.Init(goo_redis.Config{
 		Name:     "",
 		Addr:     "192.168.1.100:6379",
 		Password: "123456",
@@ -56,13 +49,7 @@ func main() {
 	name := goo.Redis().Get("name").String()
 	goo_log.Debug(name)
 
-	var wg sync.WaitGroup
-	wg.Add(1)
-	goo_utils.AsyncFunc(func() {
-		defer wg.Done()
-		<-goo_context.WithCancel().Done()
-	})
-	wg.Wait()
+	<-goocontext.Root().Done()
 }
 ```
 

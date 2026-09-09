@@ -15,7 +15,15 @@ func Default() *Logger {
 }
 
 func SetAdapter(adapter Adapter) {
-	Default().adapter = adapter
+	Default().SetAdapter(adapter)
+}
+
+func Sync() error {
+	return Default().Sync()
+}
+
+func Close() error {
+	return Default().Close()
 }
 
 func WithHook(fns ...func(msg *Message)) {

@@ -47,44 +47,49 @@ func clientStreamInterceptorLog() grpc.StreamClientInterceptor {
 func serverUnaryInterceptorLog(noLogMethods map[string]struct{}) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
 		log := goo_log.WithTag("goo-grpc").WithField("method", info.FullMethod)
-		ctx = context.WithValue(ctx, "log", log)
 
 		if v, ok := req.(*pb_goo_v1.Request); ok {
 			var vv interface{}
-			if err = json.Unmarshal(v.Data, &vv); err == nil {
-				log.WithField("request", vv)
+			// 使用局部错误，避免污染命名返回值 err
+			if uerr := json.Unmarshal(v.Data, &vv); uerr == nil {
+				log = log.WithField("request", vv)
 			} else {
-				log.WithField("request", req)
+				log = log.WithField("request", req)
 			}
 		} else {
-			log.WithField("request", req)
+			log = log.WithField("request", req)
 		}
 
 		if md, ok := metadata.FromIncomingContext(ctx); ok {
-			log.WithField("metadata", md)
+			log = log.WithField("metadata", md)
 		}
+
+		ctx = context.WithValue(ctx, "log", log)
 
 		var startTime = time.Now()
 
 		defer func() {
-			log.WithField("duration", fmt.Sprintf("%dms", time.Since(startTime)/1e6))
+			log = log.WithField("duration", fmt.Sprintf("%dms", time.Since(startTime)/1e6))
 
 			if rst, ok := resp.(*pb_goo_v1.Response); ok && rst != nil {
 				var v interface{}
-				if err = json.Unmarshal(rst.Data, &v); err != nil {
-					log.WithField("response", map[string]interface{}{
-						"code":    rst.Code,
-						"message": rst.Message,
-						"data":    v,
-					})
+				respData := map[string]interface{}{
+					"code":    rst.Code,
+					"message": rst.Message,
 				}
-			} else {
-				log.WithField("response", resp)
+				if uerr := json.Unmarshal(rst.Data, &v); uerr == nil {
+					respData["data"] = v
+				} else {
+					respData["data"] = string(rst.Data)
+				}
+				log = log.WithField("response", respData)
+			} else if resp != nil {
+				log = log.WithField("response", resp)
 			}
 
 			if err != nil {
 				if s, _ := status.FromError(err); s != nil {
-					log.WithField("response", s.Proto())
+					log = log.WithField("response", s.Proto())
 				}
 				log.Error("请求失败")
 				return
@@ -109,13 +114,13 @@ func serverStreamInterceptorLog(noLogMethods map[string]struct{}) grpc.StreamSer
 		log := goo_log.WithTag("goo-grpc").WithField("method", info.FullMethod)
 
 		if md, ok := metadata.FromIncomingContext(ss.Context()); ok {
-			log.WithField("metadata", md)
+			log = log.WithField("metadata", md)
 		}
 
 		var startTime = time.Now()
 
 		defer func() {
-			log.WithField("duration", fmt.Sprintf("%dms", time.Since(startTime)/1e6))
+			log = log.WithField("duration", fmt.Sprintf("%dms", time.Since(startTime)/1e6))
 
 			if err != nil {
 				log.Error(err)

@@ -13,10 +13,11 @@ func Init(configs ...Config) (err error) {
 			name = "default"
 		}
 
-		__clients[name], err = New(conf)
-		if err != nil {
-			return
+		cli, e := New(conf)
+		if e != nil {
+			return e
 		}
+		__clients[name] = cli
 	}
 
 	return

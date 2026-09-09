@@ -26,21 +26,43 @@ func NewEntry(l *Logger) *Entry {
 	return &Entry{l: l}
 }
 
-func (entry *Entry) WithTag(tags ...string) *Entry {
-	if len(tags) > 0 {
-		entry.Tags = append(entry.Tags, tags...)
+// clone 拷贝 Tags/Data/Trace，保证 With* 不会污染原 Entry。
+func (entry *Entry) clone() *Entry {
+	e := &Entry{l: entry.l}
+	if n := len(entry.Tags); n > 0 {
+		e.Tags = make([]string, n)
+		copy(e.Tags, entry.Tags)
 	}
-	return entry
+	if n := len(entry.Data); n > 0 {
+		e.Data = make([]DataField, n)
+		copy(e.Data, entry.Data)
+	}
+	if n := len(entry.Trace); n > 0 {
+		e.Trace = make([]string, n)
+		copy(e.Trace, entry.Trace)
+	}
+	return e
+}
+
+func (entry *Entry) WithTag(tags ...string) *Entry {
+	if len(tags) == 0 {
+		return entry
+	}
+	e := entry.clone()
+	e.Tags = append(e.Tags, tags...)
+	return e
 }
 
 func (entry *Entry) WithField(field string, value interface{}) *Entry {
-	entry.Data = append(entry.Data, DataField{Field: field, Value: value})
-	return entry
+	e := entry.clone()
+	e.Data = append(e.Data, DataField{Field: field, Value: value})
+	return e
 }
 
 func (entry *Entry) WithTrace() *Entry {
-	entry.Trace = entry.trace()
-	return entry
+	e := entry.clone()
+	e.Trace = e.trace()
+	return e
 }
 
 func (entry *Entry) Debug(v ...interface{}) {
@@ -85,11 +107,13 @@ func (entry *Entry) PanicF(format string, v ...interface{}) {
 
 func (entry *Entry) Fatal(v ...interface{}) {
 	entry.output(FATAL, v...)
+	_ = entry.l.Sync()
 	os.Exit(1)
 }
 
 func (entry *Entry) FatalF(format string, v ...interface{}) {
 	entry.output(FATAL, fmt.Sprintf(format, v...))
+	_ = entry.l.Sync()
 	os.Exit(1)
 }
 
@@ -102,17 +126,23 @@ func (entry *Entry) output(level Level, v ...interface{}) {
 	}
 
 	if level >= WARN {
-		entry.WithTrace()
+		// 仅为本条日志填充 Trace，不经 WithTrace，避免 copy-on-write 丢掉栈信息
+		entry.Trace = entry.trace()
 	}
 
-	for _, fn := range entry.l.hooks {
-		go entry.hookHandler(fn)
+	_, hooks := entry.l.snapshot()
+	for _, fn := range hooks {
+		entry.hookHandler(fn)
 	}
 
-	if entry.l.adapter != nil {
-		entry.l.adapter.Write(entry.msg)
-		entry.Trace = []string{}
+	// hook 内可能 SetAdapter；写之前重新取，避免写到已 Close 的旧适配器
+	adapter, _ := entry.l.snapshot()
+	if adapter != nil {
+		adapter.Write(entry.msg)
 	}
+
+	// Adapter/Hook 已同步读完 Trace；清空以免 Entry 复用时污染后续日志
+	entry.Trace = nil
 }
 
 func (entry *Entry) hookHandler(fn func(msg *Message)) {

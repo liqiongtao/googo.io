@@ -5,12 +5,15 @@ import (
 	"bytes"
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
 	"io"
 	"mime/multipart"
 	"net"
 	"net/http"
 	"os"
 	"path"
+	"path/filepath"
+	"strings"
 	"time"
 
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
@@ -261,6 +264,11 @@ func (r *Request) Upload(url, fileField, fileName string, fh io.Reader, data map
 }
 
 func (r *Request) Download(url, filename string) (err error) {
+	filename = filepath.Clean(filename)
+	if filename == "" || filename == "." || strings.HasPrefix(filename, ".."+string(filepath.Separator)) || filename == ".." {
+		return fmt.Errorf("invalid download filename")
+	}
+
 	defer func() {
 		if !r.debug {
 			return

@@ -1,10 +1,10 @@
 package goo_task_queue
 
 import (
+	"context"
 	"math/rand"
 	"time"
 
-	goo_context "github.com/liqiongtao/googo.io/goo-context"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 )
@@ -13,32 +13,42 @@ type TaskQueueLeader struct {
 	*TaskQueue
 }
 
-func (l *TaskQueueLeader) Generate() {
+func (l *TaskQueueLeader) Generate(ctx context.Context) {
 	for {
-		if l.handler() {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+
+		if l.handler(ctx) {
 			return
 		}
-		time.Sleep(time.Duration(rand.Intn(600)+200) * time.Millisecond)
+
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(time.Duration(rand.Intn(600)+200) * time.Millisecond):
+		}
 	}
 }
 
-func (l *TaskQueueLeader) handler() bool {
+func (l *TaskQueueLeader) handler(ctx context.Context) bool {
 	if !l.lock() {
 		return false
 	}
 	defer l.unlock()
-
-	ctx := goo_context.WithCancel()
 
 	goo_utils.AsyncFuncGroup(func() {
 		for {
 			select {
 			case <-ctx.Done():
 				return
-
 			default:
 				l.expire()
-				time.Sleep(time.Second)
+				if !sleepOrDone(ctx, time.Second) {
+					return
+				}
 			}
 		}
 	}, func() {
@@ -46,10 +56,11 @@ func (l *TaskQueueLeader) handler() bool {
 			select {
 			case <-ctx.Done():
 				return
-
 			default:
-				l.recover()
-				time.Sleep(time.Second)
+				l.recover(ctx)
+				if !sleepOrDone(ctx, time.Second) {
+					return
+				}
 			}
 		}
 	}, func() {
@@ -57,10 +68,11 @@ func (l *TaskQueueLeader) handler() bool {
 			select {
 			case <-ctx.Done():
 				return
-
 			default:
-				l.workers()
-				time.Sleep(time.Second)
+				l.workers(ctx)
+				if !sleepOrDone(ctx, time.Second) {
+					return
+				}
 			}
 		}
 	})
@@ -68,44 +80,75 @@ func (l *TaskQueueLeader) handler() bool {
 	return true
 }
 
-// 恢复
-func (l *TaskQueueLeader) recover() error {
-	zs := l.r.ZRangeWithScores(l.TaskProcessingKey, 0, -1).Val()
-	if len(zs) == 0 {
-		time.Sleep(time.Second * 10) // 没有任务时休眠
-		return nil
-	}
+// recover 按名次从最老开始分批扫描 processing，避免同 score exclusive 游标跳过成员
+func (l *TaskQueueLeader) recover(ctx context.Context) error {
+	const batch int64 = 100
+	var start int64
+	scanned := 0
+	nowMs := time.Now().UnixMilli()
 
-	for _, z := range zs {
-		taskId := z.Member.(string)
-
-		if taskId == "" || !l.taskExists(taskId) {
-			l.r.ZRem(l.TaskProcessingKey, z.Member)
-			continue
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
 		}
 
-		task := getTaskByCache(l.r, l.taskInfoKey(taskId))
-		if task.Id == "" {
-			l.TaskQueueTasks.taskDel(taskId)
-			continue
+		nowMs = time.Now().UnixMilli()
+		zs := l.r.ZRangeWithScores(l.TaskProcessingKey, start, start+batch-1).Val()
+		if len(zs) == 0 {
+			break
 		}
+		scanned += len(zs)
 
-		if time.Now().UnixMilli()-int64(z.Score) > task.Timeout {
-			// Leader 无业务上下文，默认立即再入队（now）；与 Worker 共用计数 / MaxRetry
-			if err := l.TaskQueueTasks.requeueOrFail(task, time.Now().UnixMilli()); err != nil {
-				l.log().WithTag("recover").Error(err)
+		requeued := 0
+		for _, z := range zs {
+			taskId, _ := z.Member.(string)
+			startMs := int64(z.Score)
+
+			if taskId == "" || !l.taskExists(taskId) {
+				l.r.ZRem(l.TaskProcessingKey, z.Member)
+				requeued++
+				continue
+			}
+
+			task := getTaskByCache(l.r, l.taskInfoKey(taskId))
+			if task.Id == "" {
+				_ = l.TaskQueueTasks.taskDelForce(taskId)
+				requeued++
+				continue
+			}
+
+			if nowMs-startMs > task.Timeout {
+				if err := l.TaskQueueTasks.requeueOrFail(task, time.Now().UnixMilli()); err != nil {
+					l.log().WithTag("recover").Error(err)
+					continue
+				}
+				requeued++
 			}
 		}
+
+		if requeued > 0 {
+			// 有删除，名次前移，从当前 start 重扫
+			continue
+		}
+		if int64(len(zs)) < batch {
+			break
+		}
+		// 本批均未超时：名次后移（同 score 成员连续排列，不会被跳过）
+		start += batch
 	}
 
+	if scanned == 0 {
+		sleepOrDone(ctx, time.Second*10)
+	}
 	return nil
 }
 
-// 处理超时的workers
-func (l *TaskQueueLeader) workers() error {
+func (l *TaskQueueLeader) workers(ctx context.Context) error {
 	workerIds := l.r.HKeys(l.TaskWorkersKey).Val()
 	if len(workerIds) == 0 {
-		time.Sleep(time.Second * 10) // 没有任务时休眠
+		sleepOrDone(ctx, time.Second*10)
 		return nil
 	}
 

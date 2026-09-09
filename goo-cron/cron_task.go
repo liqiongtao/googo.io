@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/go-redis/redis"
-	goo_context "github.com/liqiongtao/googo.io/goo-context"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
+	"github.com/liqiongtao/googo.io/goocontext"
 	"github.com/robfig/cron/v3"
 )
 
@@ -38,10 +38,10 @@ func (c *CronTask) Cron() *cron.Cron {
 }
 
 func (c *CronTask) Run() {
-	ctx := goo_context.WithCancel()
+	ctx := goocontext.Root()
 
 	goo_utils.AsyncFunc(func() {
-		c.Subscribe(ctx.Context)
+		c.Subscribe(ctx)
 	})
 
 	c.c.Start()

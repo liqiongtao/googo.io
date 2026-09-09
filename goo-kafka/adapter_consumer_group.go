@@ -1,13 +1,14 @@
 package goo_kafka
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/IBM/sarama"
-	goo_context "github.com/liqiongtao/googo.io/goo-context"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
+	"github.com/liqiongtao/googo.io/goocontext"
 )
 
 // 分组
@@ -73,9 +74,9 @@ func (g group) doHandler(msg *sarama.ConsumerMessage, session sarama.ConsumerGro
 		}
 	}
 
-	// 定义上下文
-	ctx := goo_context.WithLog()
-	ctx.Log.WithTag("goo-kafka-consumer-group", g.id).WithField("msg", m)
+	// 在途消费不挂 Root：进程退出只停拉取，handler 自行决定是否响应取消
+	ctx := goocontext.WithGenerateTraceId(context.Background())
+	log := goocontext.Log(ctx).WithTag("goo-kafka-consumer-group", g.id).WithField("msg", m)
 
 	// uniq key
 	{
@@ -93,7 +94,7 @@ func (g group) doHandler(msg *sarama.ConsumerMessage, session sarama.ConsumerGro
 				"timestamp": m["timestamp"],
 			}.String(), 300*time.Second).Val()
 			if !ok {
-				ctx.Log.Warn("消息消费失败，并发消费")
+				log.Warn("消息消费失败，并发消费")
 				return
 			}
 			defer func() {
@@ -120,13 +121,13 @@ func (g group) doHandler(msg *sarama.ConsumerMessage, session sarama.ConsumerGro
 			g.cli.redis.Expire(key, 5*time.Second)
 		}
 
-		ctx.Log.WithField("执行时间", fmt.Sprintf("%f", float64(time.Now().Sub(t1).Milliseconds())/1e3))
+		log = log.WithField("执行时间", fmt.Sprintf("%f", float64(time.Now().Sub(t1).Milliseconds())/1e3))
 		if err != nil {
-			ctx.Log.Error("消息消费失败", err)
+			log.Error("消息消费失败", err)
 			return
 		}
 
-		ctx.Log.Debug("消息消费成功")
+		log.Debug("消息消费成功")
 	}()
 
 	// 执行业务方法

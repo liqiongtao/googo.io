@@ -63,8 +63,12 @@ func fileGroupMerge(file string, filesArr [][]string) (files, tempFiles []string
 
 	var (
 		wg sync.WaitGroup
-		ch = make(chan struct{}, runtime.NumCPU()/2)
+		n  = runtime.NumCPU() / 2
 	)
+	if n < 1 {
+		n = 1
+	}
+	ch := make(chan struct{}, n)
 
 	for n, _files := range filesArr {
 		l := len(_files)
@@ -104,11 +108,12 @@ func fileGroupMerge(file string, filesArr [][]string) (files, tempFiles []string
 func fileMergeHandler(file string, files []string) (err error) {
 	var fh *os.File
 
-	fh, err = os.OpenFile(file, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0755)
+	fh, err = os.OpenFile(file, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0644)
 	if err != nil {
 		goo_log.Error(err)
 		return
 	}
+	defer fh.Close()
 
 	var (
 		handlers []*os.File
@@ -118,7 +123,7 @@ func fileMergeHandler(file string, files []string) (err error) {
 	for _, _file := range files {
 		var f *os.File
 
-		f, err = os.OpenFile(_file, os.O_RDWR, 0755)
+		f, err = os.OpenFile(_file, os.O_RDONLY, 0644)
 		if err != nil {
 			goo_log.Error(err)
 			return

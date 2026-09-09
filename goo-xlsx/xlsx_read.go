@@ -48,5 +48,6 @@ func ReadFile(file string, fn func(n int, row []string) error) error {
 		goo_log.Error(err)
 		return err
 	}
+	defer h.Close()
 	return Read(h, fn)
 }

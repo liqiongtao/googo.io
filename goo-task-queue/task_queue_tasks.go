@@ -3,6 +3,7 @@ package goo_task_queue
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/go-redis/redis"
@@ -25,16 +26,16 @@ local member = tasks[1]
 redis.call('ZREM', KEYS[1], member)
 redis.call('ZADD', KEYS[2], ARGV[2], member)
 
-return member
-
+local gen = redis.call('HINCRBY', ARGV[3] .. member, 'generation', 1)
+return {member, tostring(gen)}
 `
 
 	nowMs := float64(time.Now().UnixMilli())
 	keys := []string{t.TaskPendingKey, t.TaskProcessingKey}
-	// ARGV[1]=可调度上限（含普通优先级 +0.5）；ARGV[2]=进入 processing 的开始时间
-	args := []any{nowMs + 0.5, nowMs}
+	// ARGV[1]=可调度上限；ARGV[2]=processing 开始时间；ARGV[3]=info key 前缀
+	args := []any{nowMs + 0.5, nowMs, t.TaskInfoKey + ":"}
 
-	member, err := t.r.Eval(luaScript, keys, args...).Result()
+	result, err := t.r.Eval(luaScript, keys, args...).Result()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
 			return nil, nil
@@ -43,44 +44,35 @@ return member
 		return nil, err
 	}
 
-	// 任务ID
-	taskId := member.(string)
+	arr, ok := result.([]any)
+	if !ok || len(arr) < 2 {
+		t.log().WithTag("getOneTask").ErrorF("unexpected lua result: %v", result)
+		return nil, fmt.Errorf("unexpected getOneTask result")
+	}
+
+	taskId, _ := arr[0].(string)
+	genStr, _ := arr[1].(string)
 
 	if taskId == "" || !t.taskExists(taskId) {
-		t.r.ZRem(t.TaskPendingKey, member)
+		t.r.ZRem(t.TaskPendingKey, taskId)
+		t.r.ZRem(t.TaskProcessingKey, taskId)
 		return nil, nil
 	}
 
 	task := getTaskByCache(t.r, t.taskInfoKey(taskId))
 	if task.Id == "" {
 		t.log().WithTag("getOneTask").Warn(fmt.Sprintf("%s not exists", taskId))
-		t.taskDel(taskId)
+		_ = t.taskDelForce(taskId)
 		return nil, nil
 	}
 
+	gen, err := strconv.ParseInt(genStr, 10, 64)
+	if err != nil {
+		t.log().WithTag("getOneTask").Error(err)
+		return nil, err
+	}
+	task.Generation = gen
 	return task, nil
-}
-
-func (t *TaskQueueTasks) taskDel(taskIds ...string) error {
-	pi := t.r.TxPipeline()
-
-	for _, taskId := range taskIds {
-		// 删除任务
-		pi.Del(t.taskInfoKey(taskId))
-		// 删除待执行队列
-		pi.ZRem(t.TaskPendingKey, taskId)
-		// 删除执行队列
-		pi.ZRem(t.TaskProcessingKey, taskId)
-		// 删除失败队列
-		pi.ZRem(t.TaskFailKey, taskId)
-	}
-
-	if _, err := pi.Exec(); err != nil {
-		t.log().WithTag("delTask").Error(err)
-		return err
-	}
-
-	return nil
 }
 
 func (t *TaskQueueTasks) taskExists(taskId string) bool {

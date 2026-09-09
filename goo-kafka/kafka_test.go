@@ -1,13 +1,14 @@
 package goo_kafka
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
-	goo_context "github.com/liqiongtao/googo.io/goo-context"
-	goo_redis "github.com/liqiongtao/googo.io/goo-redis"
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	"testing"
 	"time"
+
+	goo_redis "github.com/liqiongtao/googo.io/goo-redis"
+	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 )
 
 var (
@@ -77,7 +78,7 @@ func TestConsumer(t *testing.T) {
 		},
 	})
 
-	Consumer().ConsumeGroup(groupId, []string{topic}, func(ctx *goo_context.Context, msg *ConsumerMessage, consumerErr *ConsumerError) error {
+	Consumer().ConsumeGroup(groupId, []string{topic}, func(ctx context.Context, msg *ConsumerMessage, consumerErr *ConsumerError) error {
 		time.Sleep(5 * time.Second)
 
 		return nil

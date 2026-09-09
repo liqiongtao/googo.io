@@ -57,14 +57,15 @@ func (pp *PProf) Start() {
 
 	pp.flag = true
 
-	// 限制 CPU 使用数，避免过载
-	runtime.GOMAXPROCS(1)
 	// 开启对锁调用的跟踪
 	runtime.SetMutexProfileFraction(1)
 	// 开启对阻塞操作的跟踪
 	runtime.SetBlockProfileRate(1)
 
-	go pp.cpu()
+	// CPU profile 必须同步启动，避免 StopCPUProfile 与异步 StartCPUProfile 竞态
+	if err := pp.startCPU(); err != nil {
+		goo_log.WithTag("goo-pprof").Error(err)
+	}
 	go pp.memory()
 	go pp.goroutine()
 	go pp.mutex()
@@ -77,23 +78,28 @@ func (pp *PProf) Stop() {
 	pprof.StopCPUProfile()
 
 	if pp.cpuFH != nil {
-		pp.cpuFH.Close()
+		_ = pp.cpuFH.Close()
+		pp.cpuFH = nil
 	}
 
 	if pp.memoryFH != nil {
-		pp.memoryFH.Close()
+		_ = pp.memoryFH.Close()
+		pp.memoryFH = nil
 	}
 
 	if pp.goroutineFH != nil {
-		pp.goroutineFH.Close()
+		_ = pp.goroutineFH.Close()
+		pp.goroutineFH = nil
 	}
 
 	if pp.mutexFH != nil {
-		pp.mutexFH.Close()
+		_ = pp.mutexFH.Close()
+		pp.mutexFH = nil
 	}
 
 	if pp.blockFH != nil {
-		pp.blockFH.Close()
+		_ = pp.blockFH.Close()
+		pp.blockFH = nil
 	}
 
 	time.Sleep(time.Second)
@@ -104,15 +110,17 @@ func (pp *PProf) Stop() {
 	)
 }
 
-func (pp *PProf) cpu() {
+func (pp *PProf) startCPU() error {
 	var err error
-
 	if pp.cpuFH, err = os.Create(pp.cpuFile); err != nil {
-		goo_log.WithTag("goo-pprof").Error(err)
-		return
+		return err
 	}
-
-	pprof.StartCPUProfile(pp.cpuFH)
+	if err = pprof.StartCPUProfile(pp.cpuFH); err != nil {
+		_ = pp.cpuFH.Close()
+		pp.cpuFH = nil
+		return err
+	}
+	return nil
 }
 
 func (pp *PProf) memory() {

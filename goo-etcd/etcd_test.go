@@ -2,7 +2,7 @@ package goo_etcd
 
 import (
 	"fmt"
-	goo_context "github.com/liqiongtao/googo.io/goo-context"
+	"github.com/liqiongtao/googo.io/goocontext"
 	"log"
 	"testing"
 	"time"
@@ -45,7 +45,7 @@ func TestRegisterService(t *testing.T) {
 	err := RegisterService("/goo/http-api/node-1", "192.168.1.101:15002")
 	fmt.Println(err)
 
-	<-goo_context.WithCancel().Done()
+	<-goocontext.Root().Done()
 }
 
 func TestWatch(t *testing.T) {

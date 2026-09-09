@@ -1,6 +1,9 @@
 package goo_log
 
+import "sync"
+
 type Logger struct {
+	mu      sync.RWMutex
 	hooks   []func(msg *Message)
 	adapter Adapter
 }
@@ -12,11 +15,48 @@ func New(adapter Adapter) *Logger {
 }
 
 func (l *Logger) SetAdapter(adapter Adapter) {
+	l.mu.Lock()
+	old := l.adapter
 	l.adapter = adapter
+	l.mu.Unlock()
+
+	// 替换带后台 worker 的适配器时，避免泄漏
+	if old != nil && old != adapter {
+		if c, ok := old.(interface{ Close() error }); ok {
+			_ = c.Close()
+		}
+	}
 }
 
 func (l *Logger) WithHook(fns ...func(msg *Message)) {
+	l.mu.Lock()
 	l.hooks = append(l.hooks, fns...)
+	l.mu.Unlock()
+}
+
+func (l *Logger) snapshot() (Adapter, []func(msg *Message)) {
+	l.mu.RLock()
+	defer l.mu.RUnlock()
+
+	hooks := make([]func(msg *Message), len(l.hooks))
+	copy(hooks, l.hooks)
+	return l.adapter, hooks
+}
+
+func (l *Logger) Sync() error {
+	adapter, _ := l.snapshot()
+	if s, ok := adapter.(interface{ Sync() error }); ok {
+		return s.Sync()
+	}
+	return nil
+}
+
+func (l *Logger) Close() error {
+	adapter, _ := l.snapshot()
+	if c, ok := adapter.(interface{ Close() error }); ok {
+		return c.Close()
+	}
+	return nil
 }
 
 func (l *Logger) WithTag(tags ...string) *Entry {

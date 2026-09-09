@@ -65,14 +65,20 @@ func (m *mail) Send(msg Message) (err error) {
 		goo_log.Error(err.Error())
 		return
 	}
-	defer w.Close()
 
 	if _, err = w.Write(msg.Html()); err != nil {
+		_ = w.Close()
+		goo_log.Error(err.Error())
+		return
+	}
+	if err = w.Close(); err != nil {
 		goo_log.Error(err.Error())
 		return
 	}
 
-	cli.Quit()
+	if qerr := cli.Quit(); qerr != nil {
+		goo_log.Error(qerr.Error())
+	}
 
 	return
 }
@@ -94,6 +100,8 @@ func (m *mail) client() (conn net.Conn, cli *smtp.Client, err error) {
 	cli, err = smtp.NewClient(conn, m.conf.Host)
 	if err != nil {
 		goo_log.Error(err.Error())
+		_ = conn.Close()
+		conn = nil
 		return
 	}
 

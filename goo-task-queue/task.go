@@ -21,6 +21,7 @@ type Task struct {
 	RetryTimes   int    `json:"retry_times,omitempty"`   // 重试次数 非必填 默认0次
 	Timeout      int64  `json:"timeout,omitempty"`       // 任务超时时间（毫秒）非必填 默认2小时
 	Ts           int64  `json:"ts,omitempty"`            // 调度时间（毫秒时间戳），可设为未来表示延迟执行
+	Generation   int64  `json:"generation,omitempty"`    // 执行代数（抢占时分配，收尾校验用，业务勿写）
 }
 
 func getTaskByCache(r *goo_redis.Client, key string) *Task {
@@ -35,6 +36,7 @@ func getTaskByCache(r *goo_redis.Client, key string) *Task {
 	task.RetryTimes, _ = r.HGet(key, "retry_times").Int()
 	task.Timeout, _ = r.HGet(key, "timeout").Int64()
 	task.Ts, _ = r.HGet(key, "ts").Int64()
+	task.Generation, _ = r.HGet(key, "generation").Int64()
 
 	if task.Ts == 0 {
 		task.Ts = time.Now().UnixMilli()

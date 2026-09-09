@@ -2,35 +2,65 @@ package goo_pprof
 
 import (
 	"os"
-	"os/signal"
+	"sync"
 	"syscall"
 
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	"github.com/liqiongtao/googo.io/goocontext"
 )
 
+var (
+	ppMu       sync.Mutex
+	currentPP  *PProf
+	signalOnce sync.Once
+)
+
+// StartDefault 启动进程级默认 pprof（若已在跑则忽略）。
+func StartDefault() {
+	ppMu.Lock()
+	defer ppMu.Unlock()
+	if currentPP != nil {
+		return
+	}
+	currentPP = New("logs")
+	currentPP.Start()
+}
+
+// StopDefault 停止进程级默认 pprof。
+func StopDefault() {
+	ppMu.Lock()
+	defer ppMu.Unlock()
+	if currentPP == nil {
+		return
+	}
+	currentPP.Stop()
+	currentPP = nil
+}
+
+// Toggle 切换进程级默认 pprof 开/关（持锁串行，避免连发 USR1 交叉 Start/Stop）。
+func Toggle() {
+	ppMu.Lock()
+	defer ppMu.Unlock()
+	if currentPP != nil {
+		currentPP.Stop()
+		currentPP = nil
+		goo_log.WithTag("goo-pprof").Info("pprof 已停止")
+		return
+	}
+	currentPP = New("logs")
+	currentPP.Start()
+	goo_log.WithTag("goo-pprof").Info("pprof 已开始")
+}
+
+// RegisterSignal 全进程只注册一次：SIGUSR1 → Toggle。
+func RegisterSignal() {
+	signalOnce.Do(func() {
+		goocontext.OnSignal(syscall.SIGUSR1, Toggle)
+		goo_log.InfoF("pprof 已注册，切换分析: kill -USR1 %d", os.Getpid())
+	})
+}
+
+// Run 等价于 RegisterSignal（保留旧名）。
 func Run() {
-	pp := New("logs")
-
-	sig := make(chan os.Signal)
-	signal.Notify(sig, syscall.SIGUSR1, syscall.SIGUSR2)
-
-	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-				goo_log.Error(r)
-			}
-		}()
-
-		for ch := range sig {
-			switch ch {
-			case syscall.SIGUSR1: // kill -USR1
-				pp.Start()
-
-			case syscall.SIGUSR2: // kill -USR2
-				pp.Stop()
-			}
-		}
-	}()
-
-	goo_log.InfoF("pprof 已启动\n开始执行分析: kill -USR1 %d\n结束执行分析: kill -USR2 %d\n", os.Getpid(), os.Getpid())
+	RegisterSignal()
 }

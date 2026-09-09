@@ -9,7 +9,6 @@ require (
 	github.com/dchest/captcha v1.0.0
 	github.com/elastic/go-elasticsearch/v7 v7.17.10
 	github.com/facebookgo/grace v0.0.0-20180706040059-75cf19382434
-	github.com/fvbock/endless v0.0.0-20170109170031-447134032cb6
 	github.com/gin-contrib/pprof v1.5.0
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-playground/validator/v10 v10.20.0

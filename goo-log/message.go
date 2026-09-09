@@ -15,6 +15,10 @@ type Message struct {
 }
 
 func (msg *Message) JSON() []byte {
+	if msg == nil || msg.Entry == nil {
+		return nil
+	}
+
 	data := map[string]interface{}{}
 
 	if l := len(msg.Entry.Data); l > 0 {
@@ -47,7 +51,7 @@ func (msg *Message) JSON() []byte {
 	buf, err := json.Marshal(&data)
 	if err != nil {
 		log.Println("[goo-log][message2json]", data, err)
-		return []byte{}
+		return nil
 	}
 
 	return buf

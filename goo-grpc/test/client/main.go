@@ -4,12 +4,12 @@ import (
 	"context"
 	"time"
 
-	goo_context "github.com/liqiongtao/googo.io/goo-context"
 	goo_etcd "github.com/liqiongtao/googo.io/goo-etcd"
 	goo_grpc "github.com/liqiongtao/googo.io/goo-grpc"
 	pb_grpc_v1 "github.com/liqiongtao/googo.io/goo-grpc/test/proto"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
+	"github.com/liqiongtao/googo.io/goocontext"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -47,5 +47,5 @@ func main() {
 		}
 	})
 
-	<-goo_context.WithCancel().Done()
+	<-goocontext.Root().Done()
 }

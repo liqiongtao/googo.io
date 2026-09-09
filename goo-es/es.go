@@ -11,8 +11,13 @@ import (
 
 var __client *ESClient
 
-func Init(conf Config) {
-	__client, _ = New(conf)
+func Init(conf Config) error {
+	cli, err := New(conf)
+	if err != nil {
+		return err
+	}
+	__client = cli
+	return nil
 }
 
 func Client() *ESClient {
@@ -34,7 +39,10 @@ func New(conf Config) (*ESClient, error) {
 
 	cli, err := elasticsearch.NewClient(cfg)
 	if err != nil {
-		goo_log.WithTag("goo-es").WithField("config", cfg).Error(err)
+		goo_log.WithTag("goo-es").
+			WithField("addresses", conf.Addresses).
+			WithField("user", conf.User).
+			Error(err)
 		return nil, err
 	}
 

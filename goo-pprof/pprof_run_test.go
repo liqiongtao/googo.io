@@ -2,12 +2,11 @@ package goo_pprof
 
 import (
 	"testing"
-
-	goo_context "github.com/liqiongtao/googo.io/goo-context"
 )
 
-func TestRun(t *testing.T) {
+func TestRegisterSignal(t *testing.T) {
+	// 只验证可重复调用且不阻塞；真正的信号处理依赖进程信号，不在单测里等 Root().Done()
+	RegisterSignal()
+	RegisterSignal()
 	Run()
-
-	<-goo_context.WithCancel().Done()
 }
