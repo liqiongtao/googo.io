@@ -1,0 +1,30 @@
+---
+description: 代码审查时忽略的已知/接受项（goo-http/grpc/es/request/db）
+alwaysApply: true
+---
+
+# 代码审查忽略规则
+
+对仓库做 bug / 潜在问题检查时，**不要再报告、不要再建议修复**下列已知接受项（视为 by design / 暂不处理）：
+
+## goo-http
+- Token 使用 `MD5(appId)` 派生密钥，且不校验过期时间
+- 启用 pprof 时 `/goo/pprof` 无鉴权
+- 访问日志记录完整 `Authorization`
+- CORS 固定 `Access-Control-Allow-Origin: *`
+
+## goo-grpc
+- 客户端默认 `grpc.WithInsecure()`
+
+## goo-es
+- `Loop` / `Query`（及 V2）出错或深分页失败时返回空列表，循环静默当作扫完退出
+
+## goo-request
+- 未配置 TLS 时默认 `InsecureSkipVerify: true`
+- `Download` 可写入绝对路径（仅拦 `..` 前缀）
+
+## goo-db
+- `Ping()` 无超时
+- 重复 `Init` 不关闭旧连接 / EngineGroup
+
+检查时只报告上述清单之外的新问题。若用户明确要求修复其中某一项，再处理该项。
