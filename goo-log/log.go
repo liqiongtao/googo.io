@@ -34,7 +34,7 @@ func WithTag(tags ...string) *Entry {
 	return Default().WithTag(tags...)
 }
 
-func WithField(field string, value interface{}) *Entry {
+func WithField(field string, value any) *Entry {
 	return Default().WithField(field, value)
 }
 
@@ -42,50 +42,50 @@ func WithTrace() *Entry {
 	return Default().WithTrace()
 }
 
-func Debug(v ...interface{}) {
+func Debug(v ...any) {
 	Default().Debug(v...)
 }
 
-func DebugF(format string, v ...interface{}) {
+func DebugF(format string, v ...any) {
 	Default().DebugF(format, v...)
 }
 
-func Info(v ...interface{}) {
+func Info(v ...any) {
 	Default().Info(v...)
 }
 
-func InfoF(format string, v ...interface{}) {
+func InfoF(format string, v ...any) {
 	Default().InfoF(format, v...)
 }
 
-func Warn(v ...interface{}) {
+func Warn(v ...any) {
 	Default().Warn(v...)
 }
 
-func WarnF(format string, v ...interface{}) {
+func WarnF(format string, v ...any) {
 	Default().WarnF(format, v...)
 }
 
-func Error(v ...interface{}) {
+func Error(v ...any) {
 	Default().Error(v...)
 }
 
-func ErrorF(format string, v ...interface{}) {
+func ErrorF(format string, v ...any) {
 	Default().ErrorF(format, v...)
 }
 
-func Panic(v ...interface{}) {
+func Panic(v ...any) {
 	Default().Panic(v...)
 }
 
-func PanicF(format string, v ...interface{}) {
+func PanicF(format string, v ...any) {
 	Default().PanicF(format, v...)
 }
 
-func Fatal(v ...interface{}) {
+func Fatal(v ...any) {
 	Default().Fatal(v...)
 }
 
-func FatalF(format string, v ...interface{}) {
+func FatalF(format string, v ...any) {
 	Default().FatalF(format, v...)
 }

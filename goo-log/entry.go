@@ -19,7 +19,7 @@ type Entry struct {
 
 type DataField struct {
 	Field string
-	Value interface{}
+	Value any
 }
 
 func NewEntry(l *Logger) *Entry {
@@ -53,7 +53,7 @@ func (entry *Entry) WithTag(tags ...string) *Entry {
 	return e
 }
 
-func (entry *Entry) WithField(field string, value interface{}) *Entry {
+func (entry *Entry) WithField(field string, value any) *Entry {
 	e := entry.clone()
 	e.Data = append(e.Data, DataField{Field: field, Value: value})
 	return e
@@ -65,59 +65,61 @@ func (entry *Entry) WithTrace() *Entry {
 	return e
 }
 
-func (entry *Entry) Debug(v ...interface{}) {
+func (entry *Entry) Debug(v ...any) {
 	entry.output(DEBUG, v...)
 }
 
-func (entry *Entry) DebugF(format string, v ...interface{}) {
+func (entry *Entry) DebugF(format string, v ...any) {
 	entry.output(DEBUG, fmt.Sprintf(format, v...))
 }
 
-func (entry *Entry) Info(v ...interface{}) {
+func (entry *Entry) Info(v ...any) {
 	entry.output(INFO, v...)
 }
 
-func (entry *Entry) InfoF(format string, v ...interface{}) {
+func (entry *Entry) InfoF(format string, v ...any) {
 	entry.output(INFO, fmt.Sprintf(format, v...))
 }
 
-func (entry *Entry) Warn(v ...interface{}) {
+func (entry *Entry) Warn(v ...any) {
 	entry.output(WARN, v...)
 }
 
-func (entry *Entry) WarnF(format string, v ...interface{}) {
+func (entry *Entry) WarnF(format string, v ...any) {
 	entry.output(WARN, fmt.Sprintf(format, v...))
 }
 
-func (entry *Entry) Error(v ...interface{}) {
+func (entry *Entry) Error(v ...any) {
 	entry.output(ERROR, v...)
 }
 
-func (entry *Entry) ErrorF(format string, v ...interface{}) {
+func (entry *Entry) ErrorF(format string, v ...any) {
 	entry.output(ERROR, fmt.Sprintf(format, v...))
 }
 
-func (entry *Entry) Panic(v ...interface{}) {
+func (entry *Entry) Panic(v ...any) {
 	entry.output(PANIC, v...)
+	panic(fmt.Sprintf("%v", v))
 }
 
-func (entry *Entry) PanicF(format string, v ...interface{}) {
+func (entry *Entry) PanicF(format string, v ...any) {
 	entry.output(PANIC, fmt.Sprintf(format, v...))
+	panic(fmt.Sprintf(format, v...))
 }
 
-func (entry *Entry) Fatal(v ...interface{}) {
+func (entry *Entry) Fatal(v ...any) {
 	entry.output(FATAL, v...)
 	_ = entry.l.Sync()
 	os.Exit(1)
 }
 
-func (entry *Entry) FatalF(format string, v ...interface{}) {
+func (entry *Entry) FatalF(format string, v ...any) {
 	entry.output(FATAL, fmt.Sprintf(format, v...))
 	_ = entry.l.Sync()
 	os.Exit(1)
 }
 
-func (entry *Entry) output(level Level, v ...interface{}) {
+func (entry *Entry) output(level Level, v ...any) {
 	// 拷贝后再写，避免同一 Entry 并发打日志时互相覆盖 msg/Trace
 	e := entry.clone()
 	e.msg = &Message{

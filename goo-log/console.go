@@ -55,7 +55,7 @@ func (ca *ConsoleAdapter) Write(msg *Message) {
 	}
 
 	if l := len(msg.Entry.Data); l > 0 {
-		data := map[string]interface{}{}
+		data := map[string]any{}
 		for _, i := range msg.Entry.Data {
 			data[i.Field] = i.Value
 		}
