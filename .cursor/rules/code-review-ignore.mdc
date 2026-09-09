@@ -12,6 +12,7 @@ alwaysApply: true
 - 启用 pprof 时 `/goo/pprof` 无鉴权
 - 访问日志记录完整 `Authorization`
 - CORS 固定 `Access-Control-Allow-Origin: *`
+- 不对请求体做大小限制（无 MaxBytesReader / readBodyLimited 等）
 
 ## goo-grpc
 - 客户端默认 `grpc.WithInsecure()`
