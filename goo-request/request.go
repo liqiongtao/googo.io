@@ -229,29 +229,25 @@ func (r *Request) GPTStream(url string, data []byte, cb func(b []byte)) error {
 
 	for {
 		b, err := reader.ReadBytes('\n')
+		if len(b) > 0 {
+			b2 := bytes.TrimSpace(b)
+			if bytes.HasPrefix(b2, headData) {
+				if cb != nil {
+					cb(append(b, '\n'))
+				}
+				b3 := bytes.TrimPrefix(b2, headData)
+				if string(b3) == done {
+					return nil
+				}
+			}
+		}
 		if err != nil {
 			if err == io.EOF {
 				return nil
 			}
 			return err
 		}
-
-		b2 := bytes.TrimSpace(b)
-		if !bytes.HasPrefix(b2, headData) {
-			continue
-		}
-
-		if cb != nil {
-			cb(append(b, '\n'))
-		}
-
-		b3 := bytes.TrimPrefix(b2, headData)
-		if string(b3) == done {
-			break
-		}
 	}
-
-	return nil
 }
 
 func (r *Request) Upload(url, fileField, fileName string, fh io.Reader, data map[string]string) ([]byte, error) {
