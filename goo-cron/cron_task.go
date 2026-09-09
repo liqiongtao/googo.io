@@ -5,15 +5,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-redis/redis"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goo_redis "github.com/liqiongtao/googo.io/goo-redis"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	"github.com/liqiongtao/googo.io/goocontext"
 	"github.com/robfig/cron/v3"
 )
 
 type CronTask struct {
-	r            *redis.Client
+	r            *goo_redis.Client
 	c            *cron.Cron
 	key          string
 	code2EntryId sync.Map

@@ -3,24 +3,32 @@ package goo_es
 import (
 	"net"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/elastic/go-elasticsearch/v7"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 )
 
-var __client *ESClient
+var (
+	__client *ESClient
+	__mu     sync.RWMutex
+)
 
 func Init(conf Config) error {
 	cli, err := New(conf)
 	if err != nil {
 		return err
 	}
+	__mu.Lock()
 	__client = cli
+	__mu.Unlock()
 	return nil
 }
 
 func Client() *ESClient {
+	__mu.RLock()
+	defer __mu.RUnlock()
 	return __client
 }
 

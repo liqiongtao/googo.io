@@ -2,19 +2,25 @@ package goo_etcd
 
 import (
 	"errors"
+	"sync"
 
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
-var __client *Client
+var (
+	__client *Client
+	__mu     sync.RWMutex
+)
 
 func Init(conf Config) (err error) {
 	cli, err := New(conf)
 	if err != nil {
 		return err
 	}
+	__mu.Lock()
 	__client = cli
+	__mu.Unlock()
 
 	// 绑定本次实例，避免重复 Init 后误关新 client / 泄漏旧 client 清理
 	goo_utils.AsyncFunc(func() {
@@ -26,14 +32,19 @@ func Init(conf Config) (err error) {
 }
 
 func Default() *Client {
+	__mu.RLock()
+	defer __mu.RUnlock()
 	return __client
 }
 
 func requireClient() (*Client, error) {
-	if __client == nil {
+	__mu.RLock()
+	cli := __client
+	__mu.RUnlock()
+	if cli == nil {
 		return nil, errors.New("etcd not initialized, call goo_etcd.Init first")
 	}
-	return __client, nil
+	return cli, nil
 }
 
 func Set(key, val string) (resp *clientv3.PutResponse, err error) {

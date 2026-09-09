@@ -18,9 +18,9 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v5"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
-	"github.com/square/go-jose"
+	"github.com/go-jose/go-jose/v4"
 	"io"
 	"math/big"
 	"net/url"
@@ -374,12 +374,11 @@ func JWTTokenCreate(data map[string]interface{}, header map[string]interface{}, 
 	}
 
 	// 创建JWT
-	token := jwt.New(jwt.SigningMethodRS256)
 	claims := make(jwt.MapClaims)
 	for k, v := range data {
 		claims[k] = v
 	}
-	token.Claims = claims
+	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
 
 	if header != nil {
 		for k, v := range header {

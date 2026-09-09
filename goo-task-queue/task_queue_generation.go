@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/go-redis/redis"
+	"github.com/liqiongtao/googo.io/goo-redis"
 )
 
 var errStaleGeneration = errors.New("stale task generation")
@@ -27,7 +27,7 @@ return 1
 	allArgs := append([]any{strconv.FormatInt(expectGen, 10)}, args...)
 	res, err := t.r.Eval(script, keys, allArgs...).Result()
 	if err != nil {
-		if errors.Is(err, redis.Nil) {
+		if errors.Is(err, goo_redis.ErrNil) {
 			return false, nil
 		}
 		return false, err
@@ -99,12 +99,13 @@ func (t *TaskQueueTasks) taskDelForce(taskId string) error {
 	if taskId == "" {
 		return nil
 	}
+	ctx := t.r.Context()
 	pi := t.r.TxPipeline()
-	pi.Del(t.taskInfoKey(taskId))
-	pi.ZRem(t.TaskPendingKey, taskId)
-	pi.ZRem(t.TaskProcessingKey, taskId)
-	pi.ZRem(t.TaskFailKey, taskId)
-	if _, err := pi.Exec(); err != nil {
+	pi.Del(ctx, t.taskInfoKey(taskId))
+	pi.ZRem(ctx, t.TaskPendingKey, taskId)
+	pi.ZRem(ctx, t.TaskProcessingKey, taskId)
+	pi.ZRem(ctx, t.TaskFailKey, taskId)
+	if _, err := pi.Exec(ctx); err != nil {
 		t.log().WithTag("taskDelForce").Error(err)
 		return err
 	}
@@ -245,7 +246,7 @@ return 1
 		t.TaskFailKey,
 	}, task.Id, strconv.FormatInt(nextRunAtMs, 10), score, defaultMaxRetry).Result()
 	if err != nil {
-		if errors.Is(err, redis.Nil) {
+		if errors.Is(err, goo_redis.ErrNil) {
 			return nil
 		}
 		t.log().WithTag("requeueOrFail").WithField("task_id", task.Id).Error(err)

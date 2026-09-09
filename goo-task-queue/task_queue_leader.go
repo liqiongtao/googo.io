@@ -3,6 +3,7 @@ package goo_task_queue
 import (
 	"context"
 	"math/rand"
+	"sync"
 	"time"
 
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
@@ -39,13 +40,21 @@ func (l *TaskQueueLeader) handler(ctx context.Context) bool {
 	}
 	defer l.unlock()
 
+	lost := make(chan struct{})
+	var lostOnce sync.Once
+
 	goo_utils.AsyncFuncGroup(func() {
 		for {
 			select {
 			case <-ctx.Done():
 				return
+			case <-lost:
+				return
 			default:
-				l.expire()
+				if !l.expire() {
+					lostOnce.Do(func() { close(lost) })
+					return
+				}
 				if !sleepOrDone(ctx, time.Second) {
 					return
 				}
@@ -55,6 +64,8 @@ func (l *TaskQueueLeader) handler(ctx context.Context) bool {
 		for {
 			select {
 			case <-ctx.Done():
+				return
+			case <-lost:
 				return
 			default:
 				l.recover(ctx)
@@ -67,6 +78,8 @@ func (l *TaskQueueLeader) handler(ctx context.Context) bool {
 		for {
 			select {
 			case <-ctx.Done():
+				return
+			case <-lost:
 				return
 			default:
 				l.workers(ctx)
@@ -170,7 +183,7 @@ func (l *TaskQueueLeader) workers(ctx context.Context) error {
 }
 
 func (l *TaskQueueLeader) lock() bool {
-	return l.r.SetNX(l.TaskLeadLockKey, l.pid, time.Second*10).Val()
+	return l.r.SetNX(l.TaskLeadLockKey, l.instanceId, time.Second*10).Val()
 }
 
 func (l *TaskQueueLeader) unlock() error {
@@ -179,7 +192,7 @@ if redis.call("get", KEYS[1]) == ARGV[1] then
   return redis.call("del", KEYS[1])
 end
 return 0`
-	return l.r.Eval(script, []string{l.TaskLeadLockKey}, l.pid).Err()
+	return l.r.Eval(script, []string{l.TaskLeadLockKey}, l.instanceId).Err()
 }
 
 func (l *TaskQueueLeader) expire() bool {
@@ -188,7 +201,7 @@ if redis.call("get", KEYS[1]) == ARGV[1] then
   return redis.call("expire", KEYS[1], ARGV[2])
 end
 return 0`
-	n, err := l.r.Eval(script, []string{l.TaskLeadLockKey}, l.pid, 10).Int64()
+	n, err := l.r.Eval(script, []string{l.TaskLeadLockKey}, l.instanceId, 10).Int64()
 	return err == nil && n == 1
 }
 

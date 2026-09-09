@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/go-redis/redis"
+	"github.com/liqiongtao/googo.io/goo-redis"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 )
 
@@ -37,7 +37,7 @@ return {member, tostring(gen)}
 
 	result, err := t.r.Eval(luaScript, keys, args...).Result()
 	if err != nil {
-		if errors.Is(err, redis.Nil) {
+		if errors.Is(err, goo_redis.ErrNil) {
 			return nil, nil
 		}
 		t.log().WithTag("getOneTask").Error(err)

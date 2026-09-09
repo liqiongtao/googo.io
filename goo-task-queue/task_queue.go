@@ -1,6 +1,7 @@
 package goo_task_queue
 
 import (
+	"fmt"
 	"math/rand"
 	"os"
 	"strconv"
@@ -8,11 +9,13 @@ import (
 
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	goo_redis "github.com/liqiongtao/googo.io/goo-redis"
+	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 )
 
 type TaskQueue struct {
-	pid string
-	r   *goo_redis.Client
+	pid        string
+	instanceId string
+	r          *goo_redis.Client
 
 	*TaskQueueKeys
 	*TaskQueueCount
@@ -34,8 +37,11 @@ func New(r *goo_redis.Client) *TaskQueue {
 		keys.WithPrefix(r.Config.Prefix)
 	}
 
+	localIp, _ := goo_utils.LocalIP()
+	pid := os.Getpid()
 	q := &TaskQueue{
-		pid:              strconv.Itoa(os.Getpid()),
+		pid:              strconv.Itoa(pid),
+		instanceId:       fmt.Sprintf("%s:%d", localIp, pid),
 		r:                r,
 		TaskQueueKeys:    keys,
 		MaxMemoryPercent: 90,

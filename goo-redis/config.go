@@ -1,7 +1,7 @@
 package goo_redis
 
 import (
-	"github.com/go-redis/redis"
+	"github.com/redis/go-redis/v9"
 )
 
 type Config struct {
@@ -13,3 +13,11 @@ type Config struct {
 	AutoPing bool   `yaml:"auto_ping" json:"autoPing"`
 	Options  *redis.Options
 }
+
+// 再导出常用类型，便于调用方无需直接依赖 go-redis 路径细节
+type (
+	Z         = redis.Z
+	Pipeliner = redis.Pipeliner
+)
+
+var ErrNil = redis.Nil

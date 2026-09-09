@@ -3,15 +3,12 @@ package goo_task_queue
 import (
 	"context"
 	"errors"
-	"fmt"
 	"math/rand"
-	"os"
 	"runtime"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	"github.com/liqiongtao/googo.io/goo"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	"github.com/liqiongtao/googo.io/goocontext"
@@ -301,8 +298,7 @@ func (s *TaskQueueSubscriber) leaseRenewLoop(ctx context.Context, task *Task, lo
 }
 
 func (s *TaskQueueSubscriber) workId() string {
-	localIp, _ := goo.LocalIP()
-	return fmt.Sprintf("%s:%d", localIp, os.Getpid())
+	return s.instanceId
 }
 
 func (s *TaskQueueSubscriber) heartBeat(ctx context.Context) {

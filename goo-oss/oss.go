@@ -6,26 +6,41 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"sync"
 
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 )
 
-var __oss *Uploader
+var (
+	__oss *Uploader
+	__mu  sync.RWMutex
+)
 
 func Init(conf Config) (err error) {
-	__oss, err = New(conf)
+	o, err := New(conf)
+	if err != nil {
+		return err
+	}
+	__mu.Lock()
+	__oss = o
+	__mu.Unlock()
 	return
 }
 
 func requireOSS() (*Uploader, error) {
-	if __oss == nil {
+	__mu.RLock()
+	o := __oss
+	__mu.RUnlock()
+	if o == nil {
 		return nil, errors.New("oss not initialized, call goo_oss.Init first")
 	}
-	return __oss, nil
+	return o, nil
 }
 
 func Default() *Uploader {
+	__mu.RLock()
+	defer __mu.RUnlock()
 	return __oss
 }
 

@@ -3,10 +3,10 @@ package goo_clickhouse
 import (
 	"database/sql"
 	"errors"
-	"fmt"
-	"net/url"
+	"strings"
+	"time"
 
-	"github.com/ClickHouse/clickhouse-go"
+	"github.com/ClickHouse/clickhouse-go/v2"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 )
 
@@ -21,6 +21,9 @@ func New(conf Config) (cli *Client, err error) {
 	}
 	if conf.WriteTimeout == 0 {
 		conf.WriteTimeout = 20
+	}
+	if conf.Driver == "" {
+		conf.Driver = "clickhouse"
 	}
 
 	cli = &Client{Config: conf}
@@ -41,16 +44,36 @@ func New(conf Config) (cli *Client, err error) {
 }
 
 func (cli *Client) connect() (err error) {
-	dns := fmt.Sprintf("tcp://%s?username=%s&password=%s&database=%s&read_timeout=%d&write_timeout=%d&alt_hosts=%s&debug=%v",
-		cli.Config.Addr,
-		url.QueryEscape(cli.Config.User),
-		url.QueryEscape(cli.Config.Password),
-		url.QueryEscape(cli.Config.Database),
-		cli.Config.ReadTimeout, cli.Config.WriteTimeout, cli.Config.AltHosts, cli.Config.Debug)
-	cli.DB, err = sql.Open(cli.Config.Driver, dns)
-	if err != nil {
-		goo_log.WithTag("goo-clickhouse").Error(err)
+	addrs := []string{cli.Config.Addr}
+	if cli.Config.AltHosts != "" {
+		for _, h := range strings.Split(cli.Config.AltHosts, ",") {
+			h = strings.TrimSpace(h)
+			if h != "" {
+				addrs = append(addrs, h)
+			}
+		}
 	}
+
+	opts := &clickhouse.Options{
+		Addr: addrs,
+		Auth: clickhouse.Auth{
+			Database: cli.Config.Database,
+			Username: cli.Config.User,
+			Password: cli.Config.Password,
+		},
+		Settings: clickhouse.Settings{
+			"max_execution_time": 60,
+		},
+		DialTimeout:      10 * time.Second,
+		ReadTimeout:      time.Duration(cli.Config.ReadTimeout) * time.Second,
+		ConnMaxLifetime:     time.Hour,
+		MaxOpenConns:     20,
+		MaxIdleConns:     5,
+		ConnOpenStrategy: clickhouse.ConnOpenInOrder,
+		Debug:            cli.Config.Debug,
+	}
+
+	cli.DB = clickhouse.OpenDB(opts)
 	return
 }
 
@@ -66,7 +89,10 @@ func (cli *Client) ping() {
 
 	var exception *clickhouse.Exception
 	if errors.As(err, &exception) {
-		goo_log.WithTag("goo-clickhouse").WithField("err_code", exception.Code).WithField("stack_trace", exception.StackTrace).Error(exception.Message)
+		goo_log.WithTag("goo-clickhouse").
+			WithField("err_code", exception.Code).
+			WithField("stack_trace", exception.StackTrace).
+			Error(exception.Message)
 		return
 	}
 

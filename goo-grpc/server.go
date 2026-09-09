@@ -206,5 +206,5 @@ func (s *Server) storePID() {
 		goo_log.WithTag("goo-grpc").Error(fmt.Sprintf("server store pid err: %s", err.Error()))
 		return
 	}
-	goo_log.WithTag("goo-grpc").DebugF(fmt.Sprintf("server is running, address=%s, pid=%s", s.lis.Addr(), pid))
+	goo_log.WithTag("goo-grpc").DebugF("server is running, address=%s, pid=%s", s.lis.Addr(), pid)
 }

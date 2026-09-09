@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/go-redis/redis"
+	"github.com/liqiongtao/googo.io/goo-redis"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 )
 
@@ -20,6 +20,7 @@ func (p *TaskQueuePublisher) Publish(tasks ...*Task) error {
 		return err
 	}
 
+	ctx := p.r.Context()
 	pi := p.r.TxPipeline()
 
 	for _, task := range tasks {
@@ -44,15 +45,15 @@ func (p *TaskQueuePublisher) Publish(tasks ...*Task) error {
 		score := priorityScore(task.HighPriority, task.Ts)
 		infoKey := p.taskInfoKey(task.Id)
 
-		pi.HMSet(infoKey, task.MapData())
-		pi.HIncrBy(infoKey, "generation", 1) // 使旧执行收尾失效
-		pi.Expire(infoKey, 48*time.Hour)
-		pi.ZAdd(p.TaskPendingKey, redis.Z{Score: score, Member: task.Id})
-		pi.ZRem(p.TaskProcessingKey, task.Id) // 执行中重投：摘掉 processing
-		pi.ZRem(p.TaskFailKey, task.Id)
+		pi.HMSet(ctx, infoKey, task.MapData())
+		pi.HIncrBy(ctx, infoKey, "generation", 1) // 使旧执行收尾失效
+		pi.Expire(ctx, infoKey, 48*time.Hour)
+		pi.ZAdd(ctx, p.TaskPendingKey, goo_redis.Z{Score: score, Member: task.Id})
+		pi.ZRem(ctx, p.TaskProcessingKey, task.Id) // 执行中重投：摘掉 processing
+		pi.ZRem(ctx, p.TaskFailKey, task.Id)
 	}
 
-	if _, err := pi.Exec(); err != nil {
+	if _, err := pi.Exec(ctx); err != nil {
 		p.log().WithField("tasks", tasks).ErrorF("发布任务失败: %s", err.Error())
 		return err
 	}

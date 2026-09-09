@@ -1,12 +1,12 @@
 package goo_cron
 
 import (
-	"github.com/go-redis/redis"
+	goo_redis "github.com/liqiongtao/googo.io/goo-redis"
 )
 
 type Option func(*CronTask)
 
-func WithRedis(r *redis.Client) Option {
+func WithRedis(r *goo_redis.Client) Option {
 	return func(c *CronTask) {
 		c.r = r
 	}
