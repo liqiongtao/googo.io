@@ -61,18 +61,24 @@ func Handler(controller iController) gin.HandlerFunc {
 
 		b, err := json.Marshal(&resp.Data)
 		if err != nil {
-			c.JSON(500, Error(5003, "数据解析失败，原因："+err.Error()))
+			errResp := Error(5003, "数据解析失败，原因："+err.Error())
+			c.Set("__response", errResp)
+			c.JSON(500, errResp)
 			return
 		}
 
 		enc, err := resolveEncryption(opts, c)
 		if err != nil {
-			c.JSON(500, Error(5004, "数据解析失败，原因："+err.Error()))
+			errResp := Error(5004, "数据解析失败，原因："+err.Error())
+			c.Set("__response", errResp)
+			c.JSON(500, errResp)
 			return
 		}
 		body, err := enc.Encode(b)
 		if err != nil {
-			c.JSON(500, Error(5004, "数据解析失败，原因："+err.Error()))
+			errResp := Error(5004, "数据解析失败，原因："+err.Error())
+			c.Set("__response", errResp)
+			c.JSON(500, errResp)
 			return
 		}
 

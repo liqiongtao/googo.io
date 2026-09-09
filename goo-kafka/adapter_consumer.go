@@ -3,6 +3,7 @@ package goo_kafka
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -127,15 +128,24 @@ func (c *consumer) consumePartition(topic string, pc sarama.PartitionConsumer, h
 			}
 
 			ctx := goocontext.WithGenerateTraceId(context.Background())
+			var err error
 			func() {
-				defer goo_utils.Recovery()
-				if err := handler(ctx, &ConsumerMessage{ConsumerMessage: msg}, nil); err != nil {
-					log.Error(err)
-				}
+				defer func() {
+					if r := recover(); r != nil {
+						log.Error(r)
+						err = fmt.Errorf("panic: %v", r)
+					}
+				}()
+				err = handler(ctx, &ConsumerMessage{ConsumerMessage: msg}, nil)
 			}()
+			if err != nil {
+				log.Error(err)
+				// 消息已从 channel 取出无法再投；停止本分区，避免 panic 后继续静默丢消息
+				return
+			}
 
 			key := string(msg.Key)
-			if c.cli.redis != nil {
+			if c.cli.redis != nil && key != "" {
 				c.cli.redis.Del(key)
 			}
 		}
