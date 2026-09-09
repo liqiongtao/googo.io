@@ -22,6 +22,6 @@ func Publish(topic string, data interface{}) {
 	ensureEvent().Publish(topic, data)
 }
 
-func Subscribe(topic string, fn SubscribeFunc) {
-	ensureEvent().Subscribe(topic, fn)
+func Subscribe(topic string, fn SubscribeFunc) (unsubscribe func()) {
+	return ensureEvent().Subscribe(topic, fn)
 }

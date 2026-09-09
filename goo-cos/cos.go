@@ -54,7 +54,6 @@ func NewCosClient(cfg CosConfig) *CosClient {
 					ExpectContinueTimeout: 2 * time.Second, // 处理 Expect: 100-Continue 的超时，缩短等待
 				},
 			},
-			Timeout: 30 * time.Second,
 		},
 	)
 

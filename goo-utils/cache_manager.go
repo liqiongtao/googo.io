@@ -1,14 +1,16 @@
 package goo_utils
 
 import (
+	"sync"
+	"sync/atomic"
+	"time"
+
 	"github.com/liqiongtao/googo.io/goocontext"
 	"golang.org/x/sync/singleflight"
-	"sync"
-	"time"
 )
 
 type CacheManager struct {
-	duration time.Duration      // 缓存有效期
+	duration atomic.Int64       // 缓存有效期（纳秒）
 	cache    sync.Map           // 缓存数据
 	sfGroup  singleflight.Group // 用于控制并发重复调用
 }
@@ -20,18 +22,22 @@ type cacheItem struct {
 
 func NewCacheManager() *CacheManager {
 	cm := &CacheManager{
-		duration: time.Second * 300,
-		cache:    sync.Map{},
-		sfGroup:  singleflight.Group{},
+		cache:   sync.Map{},
+		sfGroup: singleflight.Group{},
 	}
+	cm.duration.Store(int64(300 * time.Second))
 	// 启动后台清理 goroutine
 	go cm.cleanupExpiredItems()
 	return cm
 }
 
 func (cm *CacheManager) WithDuration(duration time.Duration) *CacheManager {
-	cm.duration = duration
+	cm.duration.Store(int64(duration))
 	return cm
+}
+
+func (cm *CacheManager) getDuration() time.Duration {
+	return time.Duration(cm.duration.Load())
 }
 
 func (cm *CacheManager) Get(key string, queryFunc func() (interface{}, error)) (interface{}, error) {
@@ -72,7 +78,7 @@ func (cm *CacheManager) Get(key string, queryFunc func() (interface{}, error)) (
 		// 5. 缓存数据
 		cm.cache.Store(key, cacheItem{
 			value:  data,
-			expire: time.Now().Add(cm.duration).Unix(),
+			expire: time.Now().Add(cm.getDuration()).Unix(),
 		})
 
 		return data, nil
@@ -88,7 +94,7 @@ func (cm *CacheManager) Get(key string, queryFunc func() (interface{}, error)) (
 func (cm *CacheManager) Set(key string, value interface{}) {
 	cm.cache.Store(key, cacheItem{
 		value:  value,
-		expire: time.Now().Add(cm.duration).Unix(),
+		expire: time.Now().Add(cm.getDuration()).Unix(),
 	})
 }
 

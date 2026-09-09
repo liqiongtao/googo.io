@@ -65,14 +65,10 @@ func (pp *PProf) Start() {
 	// 开启对阻塞操作的跟踪
 	runtime.SetBlockProfileRate(1)
 
-	// 全部同步写盘，避免 Stop 关文件时与异步写竞态
+	// 仅启动 CPU 采样；memory/goroutine/mutex/block 在 Stop 时写入，此时才有有效样本
 	if err := pp.startCPU(); err != nil {
 		goo_log.WithTag("goo-pprof").Error(err)
 	}
-	pp.writeMemory()
-	pp.writeGoroutine()
-	pp.writeMutex()
-	pp.writeBlock()
 
 	pp.flag = true
 }
@@ -87,6 +83,13 @@ func (pp *PProf) Stop() {
 	pp.flag = false
 
 	pprof.StopCPUProfile()
+
+	// 在关闭 mutex/block 采样前落盘，保留 Start～Stop 期间的样本
+	pp.writeMemory()
+	pp.writeGoroutine()
+	pp.writeMutex()
+	pp.writeBlock()
+
 	runtime.SetMutexProfileFraction(0)
 	runtime.SetBlockProfileRate(0)
 

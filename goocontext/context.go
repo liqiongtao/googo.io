@@ -114,6 +114,7 @@ func WithGenerateTraceId(ctx context.Context) context.Context {
 }
 
 func TraceId(ctx context.Context) string {
+	ctx = Default(ctx)
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
 		if v, ok := md[string(TraceIdKey)]; ok {
 			return strings.Join(v, " ")
@@ -127,6 +128,7 @@ func WithServiceName(ctx context.Context, serviceName string) context.Context {
 }
 
 func ServiceName(ctx context.Context) string {
+	ctx = Default(ctx)
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
 		if v, ok := md[string(ServiceNameKey)]; ok {
 			return strings.Join(v, " ")
@@ -148,6 +150,7 @@ func WithDeadline(ctx context.Context, d time.Time) (context.Context, context.Ca
 }
 
 func Log(ctx context.Context) *goo_log.Entry {
+	ctx = Default(ctx)
 	log := goo_log.WithField("trace-id", TraceId(ctx))
 
 	if v := ServiceName(ctx); v != "" {

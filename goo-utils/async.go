@@ -2,10 +2,11 @@ package goo_utils
 
 import (
 	"context"
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	"runtime"
 	"sync"
 	"time"
+
+	goo_log "github.com/liqiongtao/googo.io/goo-log"
 )
 
 // 捕获panic
@@ -23,23 +24,22 @@ func AsyncFunc(fn func()) {
 	}()
 }
 
-// 异步执行（安全）
-func AsyncFuncWithTimeout(fn func(), d time.Duration) {
-	ctx, cancel := context.WithCancel(context.TODO())
+// AsyncFuncWithTimeout 在超时时间内等待 fn 完成。
+// 超时后取消 ctx，fn 应监听 ctx.Done() 以尽快退出；超时返回后 fn 可能仍在运行直至其响应取消。
+func AsyncFuncWithTimeout(fn func(ctx context.Context), d time.Duration) {
+	ctx, cancel := context.WithTimeout(context.Background(), d)
 	defer cancel()
 
+	done := make(chan struct{})
 	go func() {
 		defer Recovery()
-		defer cancel()
-		fn()
+		defer close(done)
+		fn(ctx)
 	}()
 
-	timer := time.NewTimer(d)
-	defer timer.Stop()
-
 	select {
+	case <-done:
 	case <-ctx.Done():
-	case <-timer.C:
 	}
 }
 

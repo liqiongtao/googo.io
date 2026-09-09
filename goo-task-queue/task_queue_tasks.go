@@ -50,8 +50,8 @@ return {member, tostring(gen)}
 		return nil, fmt.Errorf("unexpected getOneTask result")
 	}
 
-	taskId, _ := arr[0].(string)
-	genStr, _ := arr[1].(string)
+	taskId := luaResultString(arr[0])
+	genStr := luaResultString(arr[1])
 
 	if taskId == "" || !t.taskExists(taskId) {
 		t.r.ZRem(t.TaskPendingKey, taskId)
@@ -69,10 +69,27 @@ return {member, tostring(gen)}
 	gen, err := strconv.ParseInt(genStr, 10, 64)
 	if err != nil {
 		t.log().WithTag("getOneTask").Error(err)
+		// Lua 已将任务移入 processing，解析失败时放回 pending，避免卡住至超时回收
+		if pbErr := t.putBack(task); pbErr != nil {
+			t.log().WithTag("getOneTask").WithField("task_id", taskId).ErrorF("putBack after parse error: %v", pbErr)
+		}
 		return nil, err
 	}
 	task.Generation = gen
 	return task, nil
+}
+
+func luaResultString(v any) string {
+	switch x := v.(type) {
+	case string:
+		return x
+	case []byte:
+		return string(x)
+	case nil:
+		return ""
+	default:
+		return fmt.Sprint(x)
+	}
 }
 
 func (t *TaskQueueTasks) taskExists(taskId string) bool {
