@@ -92,13 +92,17 @@ func readAndRestoreBody(c *gin.Context) ([]byte, error) {
 	return b, nil
 }
 
-// matchURIPrefix 路径前缀匹配：/api 匹配 /api、/api/、/api?x、/api/foo，不匹配 /apiEvil；空前缀不匹配。
+// matchURIPrefix 路径前缀匹配：/api 匹配 /api、/api/、/api?x、/api/foo，不匹配 /apiEvil；
+// 空前缀不匹配；"/" 仅匹配根路径 / 与 /?query，不匹配 /api 等。
 func matchURIPrefix(uri, prefix string) bool {
 	if prefix == "" {
 		return false
 	}
 	if uri == prefix {
 		return true
+	}
+	if prefix == "/" {
+		return strings.HasPrefix(uri, "/?")
 	}
 	if !strings.HasPrefix(uri, prefix) {
 		return false

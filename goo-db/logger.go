@@ -101,3 +101,10 @@ func (l *logger) ShowSQL(show ...bool) {
 func (l logger) IsShowSQL() bool {
 	return l.showSQL
 }
+
+func (l *logger) Close() error {
+	if l == nil || l.l == nil {
+		return nil
+	}
+	return l.l.Close()
+}

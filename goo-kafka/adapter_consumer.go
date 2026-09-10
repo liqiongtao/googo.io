@@ -140,13 +140,18 @@ func (c *consumer) consumePartition(topic string, pc sarama.PartitionConsumer, h
 			}()
 			if err != nil {
 				log.Error(err)
-				// 消息已从 channel 取出无法再投；停止本分区，避免 panic 后继续静默丢消息
-				return
+				// 消息已取出无法重投；跳过本条继续消费，避免整分区永久停
+				select {
+				case <-goocontext.Root().Done():
+					return
+				case <-time.After(time.Second):
+				}
+				continue
 			}
 
 			key := string(msg.Key)
 			if c.cli.redis != nil && key != "" {
-				c.cli.redis.Del(key)
+				c.cli.redis.Del(consumeCacheKey(msg.Topic, key))
 			}
 		}
 	}

@@ -70,6 +70,18 @@ func trimObjectKey(objectKey string) string {
 	return strings.TrimPrefix(objectKey, "/")
 }
 
+func (c *CosClient) objectKey(objectKey string) string {
+	objectKey = trimObjectKey(objectKey)
+	base := strings.Trim(c.Config.BaseDir, "/")
+	if base == "" {
+		return objectKey
+	}
+	if objectKey == base || strings.HasPrefix(objectKey, base+"/") {
+		return objectKey
+	}
+	return path.Join(base, objectKey)
+}
+
 func closeCOSResponse(rsp *cos.Response) {
 	if rsp != nil && rsp.Body != nil {
 		_ = rsp.Body.Close()
@@ -78,7 +90,7 @@ func closeCOSResponse(rsp *cos.Response) {
 
 // 上传文件
 func (c *CosClient) Upload(localFileName, objectKey string) error {
-	objectKey = trimObjectKey(objectKey)
+	objectKey = c.objectKey(objectKey)
 
 	f, err := os.Open(localFileName)
 	if err != nil {
@@ -116,7 +128,7 @@ func (c *CosClient) Upload(localFileName, objectKey string) error {
 
 // 下载文件
 func (c *CosClient) Download(localFileName, objectKey string) error {
-	objectKey = trimObjectKey(objectKey)
+	objectKey = c.objectKey(objectKey)
 
 	if err := os.MkdirAll(path.Dir(localFileName), 0755); err != nil {
 		goo_log.ErrorF("create dir %s error: %s", path.Dir(localFileName), err.Error())
@@ -138,11 +150,10 @@ func (c *CosClient) Download(localFileName, objectKey string) error {
 	return nil
 }
 
-// 获取文件内容
+// Get 将整个对象读入内存，仅适合小文件（默认上限 64MB）。
 func (c *CosClient) Get(objectKey string) ([]byte, error) {
-	objectKey = trimObjectKey(objectKey)
+	objectKey = c.objectKey(objectKey)
 
-	// 使用cos客户端获取文件内容
 	resp, err := c.Object.Get(context.Background(), objectKey, nil)
 	if err != nil {
 		closeCOSResponse(resp)
@@ -151,11 +162,14 @@ func (c *CosClient) Get(objectKey string) ([]byte, error) {
 	}
 	defer closeCOSResponse(resp)
 
-	// 读取响应体内容
-	b, err := io.ReadAll(resp.Body)
+	const maxGetBytes int64 = 64 << 20 // 64MB
+	b, err := io.ReadAll(io.LimitReader(resp.Body, maxGetBytes+1))
 	if err != nil {
 		goo_log.ErrorF("read %s body error: %s", objectKey, err.Error())
 		return nil, err
+	}
+	if int64(len(b)) > maxGetBytes {
+		return nil, fmt.Errorf("object %s exceeds %d bytes Get limit", objectKey, maxGetBytes)
 	}
 
 	return b, nil
@@ -166,6 +180,9 @@ func (c *CosClient) List(fn func(objectKey cos.Object) error) error {
 
 	opt := &cos.BucketGetOptions{
 		MaxKeys: 1000, // 每次最多列出1000个对象
+	}
+	if base := strings.Trim(c.Config.BaseDir, "/"); base != "" {
+		opt.Prefix = base + "/"
 	}
 
 	for {
@@ -184,18 +201,17 @@ func (c *CosClient) List(fn func(objectKey cos.Object) error) error {
 			}
 		}
 
-		if res.IsTruncated {
-			marker = res.NextMarker
-		} else {
+		if !res.IsTruncated || res.NextMarker == "" || res.NextMarker == marker {
 			break
 		}
+		marker = res.NextMarker
 	}
 
 	return nil
 }
 
 func (c *CosClient) Head(objectKey string) (*cos.Response, error) {
-	objectKey = trimObjectKey(objectKey)
+	objectKey = c.objectKey(objectKey)
 
 	rsp, err := c.Object.Head(context.Background(), objectKey, nil)
 	if err != nil {
@@ -209,20 +225,20 @@ func (c *CosClient) Head(objectKey string) (*cos.Response, error) {
 	return rsp, nil
 }
 
-func (c *CosClient) IsExist(objectKey string) bool {
-	objectKey = trimObjectKey(objectKey)
+func (c *CosClient) IsExist(objectKey string) (bool, error) {
+	objectKey = c.objectKey(objectKey)
 
 	ok, err := c.Object.IsExist(context.Background(), objectKey)
 	if err != nil {
 		goo_log.ErrorF("exist %s error: %s", objectKey, err.Error())
-		return false
+		return false, err
 	}
 
-	return ok
+	return ok, nil
 }
 
 func (c *CosClient) Delete(objectKey string) error {
-	objectKey = trimObjectKey(objectKey)
+	objectKey = c.objectKey(objectKey)
 
 	rsp, err := c.Object.Delete(context.Background(), objectKey, nil)
 	defer closeCOSResponse(rsp)
@@ -235,8 +251,12 @@ func (c *CosClient) Delete(objectKey string) error {
 }
 
 func (c *CosClient) Copy(sourceObjectKey, targetObjectKey string, targetCosClient *cos.Client) error {
-	sourceObjectKey = trimObjectKey(sourceObjectKey)
-	targetObjectKey = trimObjectKey(targetObjectKey)
+	if targetCosClient == nil {
+		return fmt.Errorf("targetCosClient is nil")
+	}
+
+	sourceObjectKey = c.objectKey(sourceObjectKey)
+	targetObjectKey = c.objectKey(targetObjectKey)
 
 	if !strings.HasPrefix(sourceObjectKey, c.BaseURL.BucketURL.Host+c.BaseURL.BucketURL.Path) {
 		sourceObjectKey = c.BaseURL.BucketURL.Host + c.BaseURL.BucketURL.Path + "/" + sourceObjectKey

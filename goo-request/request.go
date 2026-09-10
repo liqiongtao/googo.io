@@ -11,7 +11,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -54,28 +53,29 @@ func (r *Request) SetTimeout(d time.Duration) *Request {
 	return r
 }
 
-func (r *Request) getClient() *http.Client {
-	if r.timeout.Seconds() == 0 {
-		r.timeout = 120 * time.Second
+func (r *Request) getClient() (*http.Client, error) {
+	if r.client != nil {
+		return r.client, nil
 	}
 
-	if r.client != nil {
-		return r.client
+	timeout := r.timeout
+	if timeout == 0 {
+		timeout = 120 * time.Second
 	}
 
 	// 基于总超时时间动态计算 Transport 内部的各个超时阶段，确保逻辑一致性
 	// 分配策略：握手和建连占用较少比例，响应等待占用较多比例
-	dialTimeout := r.timeout / 5 // 20% 用于建立连接（DNS + TCP）
+	dialTimeout := timeout / 5 // 20% 用于建立连接（DNS + TCP）
 	if dialTimeout < 5*time.Second {
 		dialTimeout = 5 * time.Second
 	}
 
-	tlsHandshakeTimeout := r.timeout / 5 // 20% 用于 TLS 握手
+	tlsHandshakeTimeout := timeout / 5 // 20% 用于 TLS 握手
 	if tlsHandshakeTimeout < 5*time.Second {
 		tlsHandshakeTimeout = 5 * time.Second
 	}
 
-	responseHeaderTimeout := r.timeout - dialTimeout - tlsHandshakeTimeout
+	responseHeaderTimeout := timeout - dialTimeout - tlsHandshakeTimeout
 	if responseHeaderTimeout < 10*time.Second {
 		responseHeaderTimeout = 10 * time.Second
 	}
@@ -103,12 +103,23 @@ func (r *Request) getClient() *http.Client {
 	}
 
 	if r.Tls != nil {
-		pool := x509.NewCertPool()
-		pool.AppendCertsFromPEM(r.Tls.CaCrt())
-		transport.TLSClientConfig = &tls.Config{
-			RootCAs:      pool,
-			Certificates: []tls.Certificate{r.Tls.ClientCrt()},
+		ca, err := r.Tls.CaCrt()
+		if err != nil {
+			return nil, err
 		}
+		pool := x509.NewCertPool()
+		if !pool.AppendCertsFromPEM(ca) {
+			return nil, fmt.Errorf("failed to parse CA certificate")
+		}
+		cert, err := r.Tls.ClientCrt()
+		if err != nil {
+			return nil, err
+		}
+		cfg := &tls.Config{RootCAs: pool}
+		if len(cert.Certificate) > 0 {
+			cfg.Certificates = []tls.Certificate{cert}
+		}
+		transport.TLSClientConfig = cfg
 	} else {
 		transport.TLSClientConfig = &tls.Config{
 			InsecureSkipVerify: true,
@@ -116,15 +127,16 @@ func (r *Request) getClient() *http.Client {
 	}
 
 	client := &http.Client{
-		Timeout: r.timeout,
+		Timeout: timeout,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
 		},
 		Transport: transport,
 	}
 
+	r.timeout = timeout
 	r.client = client
-	return client
+	return client, nil
 }
 
 func (r *Request) Do(method, url string, reader io.Reader) (rst []byte, err error) {
@@ -157,7 +169,11 @@ func (r *Request) do(method, url string, reader io.Reader, extraHeaders map[stri
 		req.Header.Set(k, v)
 	}
 
-	rsp, err = r.getClient().Do(req)
+	client, err := r.getClient()
+	if err != nil {
+		return
+	}
+	rsp, err = client.Do(req)
 	if err != nil {
 		return
 	}
@@ -238,8 +254,18 @@ func (r *Request) GPTStream(url string, data []byte, cb func(b []byte)) error {
 	for k, v := range r.Headers {
 		req.Header.Set(k, v)
 	}
+	// 流式接口按 JSON 发 body；仅改本次请求，不污染共享 Headers
+	req.Header.Set("Content-Type", CONTENT_TYPE_JSON)
 
-	rsp, err := r.getClient().Do(req)
+	base, err := r.getClient()
+	if err != nil {
+		return err
+	}
+	// Client.Timeout 覆盖整个 body 读取，长 SSE 会断；流式请求关掉总超时
+	client := *base
+	client.Timeout = 0
+
+	rsp, err := client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -262,7 +288,10 @@ func (r *Request) GPTStream(url string, data []byte, cb func(b []byte)) error {
 			b2 := bytes.TrimSpace(b)
 			if bytes.HasPrefix(b2, headData) {
 				if cb != nil {
-					cb(append(b, '\n'))
+					// ReadBytes 复用内部缓冲，回调侧必须拷贝
+					out := append([]byte(nil), b...)
+					out = append(out, '\n')
+					cb(out)
 				}
 				b3 := bytes.TrimPrefix(b2, headData)
 				if string(b3) == done {
@@ -333,9 +362,9 @@ func (r *Request) Download(url, filename string) (err error) {
 
 	// 创建目录
 	{
-		dirname := path.Dir(filename)
-		if dirname != "" && dirname != "." && dirname != "./" {
-			os.MkdirAll(dirname, 0755)
+		dirname := filepath.Dir(filename)
+		if dirname != "" && dirname != "." {
+			_ = os.MkdirAll(dirname, 0755)
 		}
 	}
 
@@ -366,14 +395,24 @@ func (r *Request) Download(url, filename string) (err error) {
 		}
 	}
 
+	savedTimeout, savedClient := r.timeout, r.client
 	if r.timeout == 0 {
 		r.timeout = 5 * time.Minute
 		r.client = nil
 	}
+	defer func() {
+		r.timeout = savedTimeout
+		r.client = savedClient
+	}()
 
 	var resp *http.Response
 	{
-		resp, err = r.getClient().Do(req)
+		var client *http.Client
+		client, err = r.getClient()
+		if err != nil {
+			return
+		}
+		resp, err = client.Do(req)
 		if err != nil {
 			return
 		}

@@ -73,7 +73,11 @@ func SetHeader(name, value string) *Request {
 }
 
 func Exists(url string) (bool, error) {
-	resp, err := New().SetTimeout(10 * time.Second).getClient().Head(url)
+	client, err := New().SetTimeout(10 * time.Second).getClient()
+	if err != nil {
+		return false, err
+	}
+	resp, err := client.Head(url)
 	if err != nil {
 		return false, err
 	}

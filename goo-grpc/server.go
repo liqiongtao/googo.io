@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/cloudflare/tableflip"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
@@ -27,6 +28,7 @@ type Server struct {
 	lis net.Listener
 
 	stopOnce  sync.Once
+	restartMu sync.Mutex
 	hooksOnce sync.Once
 }
 
@@ -135,10 +137,16 @@ func (s *Server) Serve() (err error) {
 		address := s.lis.Addr().String()
 		regAddr := address
 		if s.conf.ServiceEndpoint != "" {
-			index := strings.LastIndex(address, ":")
-			regAddr = fmt.Sprintf("%s:%s", s.conf.ServiceEndpoint, address[index+1:])
+			_, port, perr := net.SplitHostPort(address)
+			if perr != nil {
+				err = fmt.Errorf("parse listen addr %q: %w", address, perr)
+				goo_log.WithTag("goo-grpc").Error(err)
+				s.gracefulStop()
+				return
+			}
+			regAddr = net.JoinHostPort(s.conf.ServiceEndpoint, port)
 		}
-		if err = cli.RegisterService(s.conf.ServiceName, regAddr); err != nil {
+		if err = cli.RegisterServiceTimeout(s.conf.ServiceName, regAddr, 30*time.Second); err != nil {
 			goo_log.WithTag("goo-grpc").Error(err)
 			s.gracefulStop()
 			return
@@ -178,6 +186,10 @@ func (s *Server) registerSignalHooks() {
 			if s.upg == nil {
 				return
 			}
+			if !s.restartMu.TryLock() {
+				return
+			}
+			defer s.restartMu.Unlock()
 			if err := s.upg.Upgrade(); err != nil {
 				goo_log.WithTag("goo-grpc").Error(err)
 				return
@@ -192,10 +204,20 @@ func (s *Server) registerSignalHooks() {
 	})
 }
 
-// 平滑退出
+// 平滑退出（最长等 30s，超时强制 Stop，避免 OnExit/Wait 永久卡住）
 func (s *Server) gracefulStop() {
 	s.stopOnce.Do(func() {
-		s.Server.GracefulStop()
+		done := make(chan struct{})
+		go func() {
+			s.Server.GracefulStop()
+			close(done)
+		}()
+		select {
+		case <-done:
+		case <-time.After(30 * time.Second):
+			goo_log.WithTag("goo-grpc").Warn("GracefulStop 超时，强制 Stop")
+			s.Server.Stop()
+		}
 		if s.lis != nil {
 			if err := s.lis.Close(); err != nil && !errors.Is(err, net.ErrClosed) {
 				goo_log.WithTag("goo-grpc").Error(err)

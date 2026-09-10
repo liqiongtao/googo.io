@@ -41,6 +41,11 @@ func STSCredential(cfg StsConfig) (*sts.CredentialResult, error) {
 		goo_log.Error(res.Error)
 		return nil, res.Error
 	}
+	if res.Credentials == nil {
+		err = fmt.Errorf("sts credentials is nil")
+		goo_log.Error(err)
+		return nil, err
+	}
 
 	return res, nil
 }
@@ -64,37 +69,39 @@ func STSCredentialWithCache(cfg StsConfig, redis *goo_redis.Client) (*sts.Creden
 	key := stsCacheKey(cfg)
 
 	result, err, _ := sfSts.Do(key, func() (interface{}, error) {
-		var str string
 		if redis != nil {
-			str = redis.Get(key).Val()
-		}
-		if str != "" {
-			// 从缓存中获取
-			var credentials *sts.Credentials
-			if err := json.Unmarshal([]byte(str), &credentials); err == nil {
-				return credentials, nil
+			cmd := redis.Get(key)
+			if cerr := cmd.Err(); cerr == nil {
+				var credentials *sts.Credentials
+				if uerr := json.Unmarshal([]byte(cmd.Val()), &credentials); uerr == nil && credentials != nil {
+					return credentials, nil
+				}
+			} else if cerr != goo_redis.ErrNil {
+				goo_log.ErrorF("sts redis get %s error: %s", key, cerr.Error())
 			}
 		}
 
-		// 从接口中获取
 		res, err := STSCredential(cfg)
 		if err != nil {
 			return nil, err
 		}
+		if res.Credentials == nil {
+			return nil, fmt.Errorf("sts credentials is nil")
+		}
 
-		// 设置缓存（提前过期，避免临近失效仍被取用）
-		if redis != nil && res.Credentials != nil {
-			b, merr := json.Marshal(&res.Credentials)
-			if merr != nil {
-				return res.Credentials, nil
+		if redis != nil {
+			b, merr := json.Marshal(res.Credentials)
+			if merr == nil {
+				ttl := time.Duration(cfg.GetExpire()) * time.Second
+				if ttl > 10*time.Minute {
+					ttl -= 5 * time.Minute
+				} else if ttl > time.Minute {
+					ttl -= time.Minute
+				}
+				if serr := redis.Set(key, string(b), ttl).Err(); serr != nil {
+					goo_log.ErrorF("sts redis set %s error: %s", key, serr.Error())
+				}
 			}
-			ttl := time.Duration(cfg.GetExpire()) * time.Second
-			if ttl > 10*time.Minute {
-				ttl -= 5 * time.Minute
-			} else if ttl > time.Minute {
-				ttl -= time.Minute
-			}
-			redis.Set(key, string(b), ttl)
 		}
 
 		return res.Credentials, nil
@@ -104,5 +111,9 @@ func STSCredentialWithCache(cfg StsConfig, redis *goo_redis.Client) (*sts.Creden
 		return nil, err
 	}
 
-	return result.(*sts.Credentials), nil
+	cred, ok := result.(*sts.Credentials)
+	if !ok || cred == nil {
+		return nil, fmt.Errorf("sts credentials is nil")
+	}
+	return cred, nil
 }

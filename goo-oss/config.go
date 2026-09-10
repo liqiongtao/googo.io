@@ -2,6 +2,7 @@ package goo_oss
 
 import (
 	"fmt"
+	"strings"
 )
 
 type Config struct {
@@ -14,5 +15,7 @@ type Config struct {
 }
 
 func (c Config) BaseUrl() string {
-	return fmt.Sprintf("https://%s.%s", c.Bucket, c.Endpoint)
+	endpoint := strings.TrimPrefix(c.Endpoint, "https://")
+	endpoint = strings.TrimPrefix(endpoint, "http://")
+	return fmt.Sprintf("https://%s.%s", c.Bucket, endpoint)
 }

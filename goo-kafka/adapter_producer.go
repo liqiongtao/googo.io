@@ -153,7 +153,7 @@ func (p *producer) tryDedup(msg IMessage) (dedupKey string, err error) {
 		return "", nil
 	}
 
-	dedupKey = msg.Key()
+	dedupKey = prodDedupKey(msg.Topic(), msg.Key())
 	val := goo_utils.M{
 		"topic":     msg.Topic(),
 		"body":      msg,

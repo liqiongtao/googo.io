@@ -52,11 +52,12 @@ func (t *TaskQueueTasks) renewLease(task *Task) error {
 if redis.call('ZSCORE', KEYS[2], ARGV[3]) == false then
 	return 0
 end
+redis.call('EXPIRE', KEYS[1], tonumber(ARGV[4]))
 redis.call('ZADD', KEYS[2], ARGV[2], ARGV[3])
 `, []string{
 		t.taskInfoKey(task.Id),
 		t.TaskProcessingKey,
-	}, task.Generation, float64(nowMs), task.Id)
+	}, task.Generation, float64(nowMs), task.Id, taskInfoTTLSec)
 	if err != nil {
 		t.log().WithTag("renewLease").Error(err)
 		return err
@@ -124,13 +125,14 @@ func (t *TaskQueueTasks) requeue(task *Task, nextRunAtMs int64) error {
 	ok, err := t.evalWithGeneration(`
 redis.call('HINCRBY', KEYS[1], 'retry_times', 1)
 redis.call('HSET', KEYS[1], 'ts', ARGV[3])
+redis.call('EXPIRE', KEYS[1], tonumber(ARGV[5]))
 redis.call('ZREM', KEYS[2], ARGV[2])
 redis.call('ZADD', KEYS[3], ARGV[4], ARGV[2])
 `, []string{
 		t.taskInfoKey(task.Id),
 		t.TaskProcessingKey,
 		t.TaskPendingKey,
-	}, task.Generation, task.Id, strconv.FormatInt(nextRunAtMs, 10), score)
+	}, task.Generation, task.Id, strconv.FormatInt(nextRunAtMs, 10), score, infoTTLSecUntil(nextRunAtMs))
 	if err != nil {
 		t.log().WithTag("requeue").Error(err)
 		return err
@@ -177,13 +179,14 @@ func (t *TaskQueueTasks) putBack(task *Task) error {
 
 	ok, err := t.evalWithGeneration(`
 redis.call('HSET', KEYS[1], 'ts', ARGV[3])
+redis.call('EXPIRE', KEYS[1], tonumber(ARGV[5]))
 redis.call('ZREM', KEYS[2], ARGV[2])
 redis.call('ZADD', KEYS[3], ARGV[4], ARGV[2])
 `, []string{
 		t.taskInfoKey(task.Id),
 		t.TaskProcessingKey,
 		t.TaskPendingKey,
-	}, task.Generation, task.Id, strconv.FormatInt(nextRunAtMs, 10), score)
+	}, task.Generation, task.Id, strconv.FormatInt(nextRunAtMs, 10), score, taskInfoTTLSec)
 	if err != nil {
 		t.log().WithTag("putBack").Error(err)
 		return err
@@ -210,7 +213,7 @@ func (t *TaskQueueTasks) requeueOrFail(task *Task, nextRunAtMs int64) error {
 
 	script := `
 -- KEYS[1]=info KEYS[2]=processing KEYS[3]=pending KEYS[4]=fail
--- ARGV[1]=taskId ARGV[2]=nextRunAtMs ARGV[3]=pendingScore ARGV[4]=defaultMaxRetry
+-- ARGV[1]=taskId ARGV[2]=nextRunAtMs ARGV[3]=pendingScore ARGV[4]=defaultMaxRetry ARGV[5]=infoTTLSec
 if redis.call('ZSCORE', KEYS[2], ARGV[1]) == false then
 	return 0
 end
@@ -226,6 +229,7 @@ end
 local retryTimes = tonumber(redis.call('HGET', KEYS[1], 'retry_times') or '0') or 0
 
 redis.call('HINCRBY', KEYS[1], 'generation', 1)
+redis.call('EXPIRE', KEYS[1], tonumber(ARGV[5]))
 
 if maxRetry ~= 0 and retryTimes >= maxRetry then
 	redis.call('ZREM', KEYS[2], ARGV[1])
@@ -244,7 +248,7 @@ return 1
 		t.TaskProcessingKey,
 		t.TaskPendingKey,
 		t.TaskFailKey,
-	}, task.Id, strconv.FormatInt(nextRunAtMs, 10), score, defaultMaxRetry).Result()
+	}, task.Id, strconv.FormatInt(nextRunAtMs, 10), score, defaultMaxRetry, infoTTLSecUntil(nextRunAtMs)).Result()
 	if err != nil {
 		if errors.Is(err, goo_redis.ErrNil) {
 			return nil

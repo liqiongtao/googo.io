@@ -255,7 +255,6 @@ func (s *TaskQueueSubscriber) onFailure(task *Task, err error, log func() *goo_l
 		log().WithField("task", task).ErrorF("重试收尾失败: %v", requeueErr)
 		return
 	}
-	time.Sleep(time.Duration(rand.Intn(600)+200) * time.Millisecond)
 }
 
 // leaseRenewLoop 按 Timeout/3 刷新 processing 租约；间隔必须小于 Timeout，避免短任务被误回收

@@ -1,5 +1,5 @@
 ---
-description: 代码审查时忽略的已知/接受项（goo-http/grpc/es/request/db/redis/mongo/etcd/kafka/oss/log）
+description: 代码审查时忽略的已知/接受项（goo-http/grpc/es/request/db/redis/mongo/etcd/kafka/oss/cos/log）
 alwaysApply: true
 ---
 
@@ -45,6 +45,10 @@ alwaysApply: true
 
 ## goo-oss
 - 重复 `Init` 丢弃旧 Uploader / 客户端
+- `Upload` 中 `path.Join(Prefix, filename)` 可因 `../` 逃出 Prefix
+
+## goo-cos
+- `Download` 的 `localFileName` 未规范化，可路径穿越写本地盘
 
 ## goo-log
 - `Panic` / `PanicF` 未先 `Sync`；FileAdapter 异步写时 panic 日志可能丢失

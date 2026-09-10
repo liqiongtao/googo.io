@@ -70,11 +70,15 @@ func (c *ESClient) Query(index []string, filter []goo_utils.M, offset, size int)
 }
 
 func (c *ESClient) LoopV2(index []string, m goo_utils.M, fn func(p goo_utils.Params) error) {
+	body := goo_utils.M{}
+	for k, v := range m {
+		body[k] = v
+	}
 	size := 500
 	for n := 0; n < 1000; n++ {
-		m["from"] = n * size
-		m["size"] = size
-		_, list := c.QueryV2(index, m)
+		body["from"] = n * size
+		body["size"] = size
+		_, list := c.QueryV2(index, body)
 		l := len(list)
 
 		if c.showLog {

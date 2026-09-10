@@ -11,7 +11,17 @@ import (
 const (
 	defaultMaxRetry    = 99
 	defaultTaskTimeout = int64(2 * time.Hour / time.Millisecond) // 毫秒，默认 2 小时
+	taskInfoTTLSec     = int64(48 * 60 * 60)
 )
+
+// infoTTLSecUntil：基础 48h + 距 nextRun 的延迟，避免长延迟任务 info 先过期被清掉
+func infoTTLSecUntil(nextRunAtMs int64) int64 {
+	ttl := taskInfoTTLSec
+	if delaySec := (nextRunAtMs - time.Now().UnixMilli()) / 1000; delaySec > 0 {
+		ttl += delaySec
+	}
+	return ttl
+}
 
 type Task struct {
 	Id           string `json:"id,omitempty"`            // 任务唯一ID 必填

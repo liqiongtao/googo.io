@@ -53,6 +53,9 @@ func Error(code int32, message string, v ...interface{}) *Response {
 }
 
 func ErrorWithValidate(err error, messages map[string]string) *Response {
+	if err == nil {
+		return Success(nil)
+	}
 	if v, ok := err.(*json.UnmarshalTypeError); ok {
 		return Error(7001, fmt.Sprintf("请求参数 %s 的类型是 %s, 不是 %s", v.Field, v.Type, v.Value))
 	}

@@ -26,14 +26,16 @@ local member = tasks[1]
 redis.call('ZREM', KEYS[1], member)
 redis.call('ZADD', KEYS[2], ARGV[2], member)
 
-local gen = redis.call('HINCRBY', ARGV[3] .. member, 'generation', 1)
+local infoKey = ARGV[3] .. member
+redis.call('EXPIRE', infoKey, tonumber(ARGV[4]))
+local gen = redis.call('HINCRBY', infoKey, 'generation', 1)
 return {member, tostring(gen)}
 `
 
 	nowMs := float64(time.Now().UnixMilli())
 	keys := []string{t.TaskPendingKey, t.TaskProcessingKey}
-	// ARGV[1]=可调度上限；ARGV[2]=processing 开始时间；ARGV[3]=info key 前缀
-	args := []any{nowMs + 0.5, nowMs, t.TaskInfoKey + ":"}
+	// ARGV[1]=可调度上限；ARGV[2]=processing 开始时间；ARGV[3]=info key 前缀；ARGV[4]=info TTL 秒
+	args := []any{nowMs + 0.5, nowMs, t.TaskInfoKey + ":", taskInfoTTLSec}
 
 	result, err := t.r.Eval(luaScript, keys, args...).Result()
 	if err != nil {
@@ -96,6 +98,9 @@ return {member, tostring(gen)}
 func (t *TaskQueueTasks) putBackOnReadError(taskId, genStr string) {
 	gen, _ := strconv.ParseInt(genStr, 10, 64)
 	task := &Task{Id: taskId, Generation: gen}
+	if v, err := t.r.HGet(t.taskInfoKey(taskId), "high_priority").Int(); err == nil {
+		task.HighPriority = v
+	}
 	if pbErr := t.putBack(task); pbErr != nil {
 		t.log().WithTag("getOneTask").WithField("task_id", taskId).ErrorF("putBack after redis read error: %v", pbErr)
 	}

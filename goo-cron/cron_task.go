@@ -2,6 +2,7 @@ package goo_cron
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -82,17 +83,29 @@ func (c *CronTask) execTask(task *TaskData) {
 }
 
 func (c *CronTask) Add(task *TaskData) error {
-	c.Remove(task.Code)
+	if task == nil {
+		return fmt.Errorf("task is nil")
+	}
+
+	// 先挂新 entry，成功后再删旧的，避免 Spec 非法时把旧任务一并丢掉
+	var oldID cron.EntryID
+	hadOld := false
+	if v, ok := c.code2EntryId.Load(task.Code); ok {
+		oldID, hadOld = v.(cron.EntryID)
+	}
 
 	entryId, err := c.c.AddFunc(task.Spec, func() {
 		c.execTask(task)
 	})
-
-	if err == nil {
-		c.code2EntryId.Store(task.Code, entryId)
+	if err != nil {
+		return err
 	}
 
-	return err
+	c.code2EntryId.Store(task.Code, entryId)
+	if hadOld {
+		c.c.Remove(oldID)
+	}
+	return nil
 }
 
 func (c *CronTask) Remove(taskCode string) {

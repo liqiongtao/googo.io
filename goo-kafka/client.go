@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	goo_redis "github.com/liqiongtao/googo.io/goo-redis"
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 )
 
 type Client struct {
@@ -36,12 +35,8 @@ func (c *Client) init() (err error) {
 
 	// 等所有follower都成功后再返回
 	config.Producer.RequiredAcks = sarama.WaitForAll
-	// 分区策略为Manual，指定分区发送消息
-	//config.Producer.Partitioner = sarama.NewManualPartitioner
-	// 分区策略为Hash，解决相同key的消息落在一个分区
-	//config.Producer.Partitioner = sarama.NewHashPartitioner
-	// 分区策略为Random，解决消费组分布式部署
-	config.Producer.Partitioner = sarama.NewRandomPartitioner
+	// 分区策略为 Hash，相同 key 落入同一分区，保证同 key 有序
+	config.Producer.Partitioner = sarama.NewHashPartitioner
 	config.Producer.Return.Successes = true
 	config.Producer.Return.Errors = true
 	config.Producer.Retry.Max = 5
@@ -82,15 +77,17 @@ func (c *Client) init() (err error) {
 		return
 	}
 
-	if cfg := c.conf.RedisConfig; cfg.Addr != "" {
-		var redisErr error
-		c.redis, redisErr = goo_redis.New(cfg)
-		if redisErr != nil {
-			goo_log.WithTag("goo-kafka").Error("Redis 初始化失败", redisErr)
-			c.redis = nil
-			_ = c.Client.Close()
-			c.Client = nil
-			err = redisErr
+	if c.redis == nil {
+		if cfg := c.conf.RedisConfig; cfg.Addr != "" {
+			var redisErr error
+			c.redis, redisErr = goo_redis.New(cfg)
+			if redisErr != nil {
+				goo_log.WithTag("goo-kafka").Error("Redis 初始化失败", redisErr)
+				c.redis = nil
+				_ = c.Client.Close()
+				c.Client = nil
+				err = redisErr
+			}
 		}
 	}
 
@@ -106,8 +103,23 @@ func (c *Client) Close() {
 	}
 }
 
-func (c *Client) GetKey(topic, msg string) string {
-	return fmt.Sprintf("goo:mq:%s:%s", time.Now().Format("20060102"), goo_utils.MD5([]byte(topic+msg)))
+func (c *Client) GetKey(topic, key string) string {
+	return prodDedupKey(topic, key)
+}
+
+// prodDedupKey 生产端去重 key，与消费端隔离
+func prodDedupKey(topic, key string) string {
+	return fmt.Sprintf("goo:kafka:prod:%s:%s", topic, key)
+}
+
+// consumeCacheKey 消费端缓存 key，与生产端隔离
+func consumeCacheKey(topic, key string) string {
+	return fmt.Sprintf("goo:kafka:cache:%s:%s", topic, key)
+}
+
+// consumeLockKey 消费组并发锁，含 group/topic，带命名空间
+func consumeLockKey(groupId, topic, key string) string {
+	return fmt.Sprintf("goo:kafka:lock:%s:%s:%s", groupId, topic, key)
 }
 
 func (c *Client) Redis() *goo_redis.Client {
@@ -186,11 +198,7 @@ func (c *Client) OffsetInfo(topic, groupId string) (data []map[string]int64) {
 			continue
 		}
 
-		nextOffset, msg := pom.NextOffset()
-		if msg != "" {
-			l.Error(msg)
-			continue
-		}
+		nextOffset, _ := pom.NextOffset()
 
 		backlog := offset
 		if nextOffset != -1 {

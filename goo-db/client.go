@@ -11,6 +11,7 @@ import (
 
 type Client struct {
 	*xorm.EngineGroup
+	sqlLogger *logger
 }
 
 func New(conf Config) (cli *Client, err error) {
@@ -35,8 +36,11 @@ func New(conf Config) (cli *Client, err error) {
 		return
 	}
 
-	cli.EngineGroup.SetLogger(newLogger(conf.LogFilepath))
-	cli.EngineGroup.ShowSQL(conf.LogModel)
+	if conf.LogModel {
+		cli.sqlLogger = newLogger(conf.LogFilepath)
+		cli.EngineGroup.SetLogger(cli.sqlLogger)
+		cli.EngineGroup.ShowSQL(true)
+	}
 
 	maxIdle := conf.MaxIdle
 	if maxIdle <= 0 {
@@ -55,4 +59,18 @@ func New(conf Config) (cli *Client, err error) {
 	}
 
 	return
+}
+
+func (cli *Client) Close() error {
+	if cli == nil {
+		return nil
+	}
+	if cli.sqlLogger != nil {
+		_ = cli.sqlLogger.Close()
+		cli.sqlLogger = nil
+	}
+	if cli.EngineGroup != nil {
+		return cli.EngineGroup.Close()
+	}
+	return nil
 }

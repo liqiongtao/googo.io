@@ -30,6 +30,10 @@ type TaskQueue struct {
 }
 
 func New(r *goo_redis.Client) *TaskQueue {
+	if r == nil {
+		return nil
+	}
+
 	rand.Seed(time.Now().UnixNano())
 
 	keys := NewTaskQueueKeys()
@@ -71,10 +75,16 @@ func (q *TaskQueue) WithMaxMemoryPercent(percent float64) *TaskQueue {
 }
 
 func (q *TaskQueue) Publish(tasks ...*Task) error {
+	if q == nil || q.TaskQueuePublisher == nil {
+		return fmt.Errorf("task queue未初始化")
+	}
 	return q.TaskQueuePublisher.Publish(tasks...)
 }
 
 func (q *TaskQueue) Subscribe(limit int, handler TaskQueueHandler) {
+	if q == nil || q.TaskQueueSubscriber == nil {
+		return
+	}
 	q.TaskQueueSubscriber.Subscribe(limit, handler)
 }
 

@@ -26,7 +26,7 @@ func New(conf Config) (cli *Client, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
 	defer cancel()
 
-	cli = &Client{conf: conf, ctx: context.TODO()}
+	cli = &Client{conf: conf, ctx: context.Background()}
 
 	var uri string
 	if conf.User != "" {
@@ -61,7 +61,18 @@ func New(conf Config) (cli *Client, err error) {
 }
 
 func (cli *Client) WithContext(ctx context.Context) *Client {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	return &Client{Client: cli.Client, conf: cli.conf, ctx: ctx}
+}
+
+// Context 返回 WithContext 绑定的上下文，供 Find/Insert 等操作使用。
+func (cli *Client) Context() context.Context {
+	if cli == nil || cli.ctx == nil {
+		return context.Background()
+	}
+	return cli.ctx
 }
 
 func (cli *Client) DB() *mongo.Database {

@@ -117,9 +117,9 @@ func (cli *Client) Get(key string, opts ...clientv3.OpOption) (resp *clientv3.Ge
 	return
 }
 
-// get string value by prefix key
+// get string value by exact key
 func (cli *Client) GetString(key string) string {
-	resp, err := cli.Get(key, clientv3.WithPrefix())
+	resp, err := cli.Get(key)
 	if err != nil {
 		return ""
 	}
@@ -180,26 +180,40 @@ func (cli *Client) DelWithPrefix(key string) (resp *clientv3.DeleteResponse, err
 }
 
 // register service and keepalive
-func (cli *Client) RegisterService(serviceName, addr string) (err error) {
+func (cli *Client) RegisterService(serviceName, addr string) error {
+	return cli.registerService(cli.ctx, serviceName, addr)
+}
+
+// RegisterServiceTimeout 在超时内完成首次注册；成功后的续租仍跟 cli.ctx（进程生命周期）。
+func (cli *Client) RegisterServiceTimeout(serviceName, addr string, d time.Duration) error {
+	if d <= 0 {
+		d = 30 * time.Second
+	}
+	ctx, cancel := context.WithTimeout(cli.ctx, d)
+	defer cancel()
+	return cli.registerService(ctx, serviceName, addr)
+}
+
+func (cli *Client) registerService(ctx context.Context, serviceName, addr string) (err error) {
 	for {
-		if err = cli.ctx.Err(); err != nil {
+		if err = ctx.Err(); err != nil {
 			return err
 		}
 
-		err = cli.registerServiceOnce(serviceName, addr)
+		err = cli.registerServiceOnce(ctx, serviceName, addr)
 		if err == nil {
 			return nil
 		}
 
 		select {
-		case <-cli.ctx.Done():
-			return cli.ctx.Err()
+		case <-ctx.Done():
+			return ctx.Err()
 		case <-time.After(3 * time.Second):
 		}
 	}
 }
 
-func (cli *Client) registerServiceOnce(serviceName, addr string) (err error) {
+func (cli *Client) registerServiceOnce(ctx context.Context, serviceName, addr string) (err error) {
 	if cli.Client == nil {
 		return fmt.Errorf("etcd client is nil")
 	}
@@ -211,7 +225,7 @@ func (cli *Client) registerServiceOnce(serviceName, addr string) (err error) {
 		ch    <-chan *clientv3.LeaseKeepAliveResponse
 	)
 
-	lease, err = cli.Client.Grant(cli.ctx, ttl)
+	lease, err = cli.Client.Grant(ctx, ttl)
 	if err != nil {
 		goo_log.WithTag("goo-etcd").WithField("serviceName", serviceName).WithField("addr", addr).Error(err)
 		return
@@ -221,8 +235,8 @@ func (cli *Client) registerServiceOnce(serviceName, addr string) (err error) {
 	registered := false
 	defer func() {
 		if err != nil && !registered {
-			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-			_, _ = cli.Client.Revoke(ctx, lease.ID)
+			rctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+			_, _ = cli.Client.Revoke(rctx, lease.ID)
 			cancel()
 		}
 	}()
@@ -233,13 +247,14 @@ func (cli *Client) registerServiceOnce(serviceName, addr string) (err error) {
 		return
 	}
 
-	serviceKey := serviceName + "/" + strconv.Itoa(int(lease.ID))
-	err = em.AddEndpoint(cli.ctx, serviceKey, endpoints.Endpoint{Addr: addr}, clientv3.WithLease(lease.ID))
+	serviceKey := serviceName + "/" + strconv.FormatInt(int64(lease.ID), 10)
+	err = em.AddEndpoint(ctx, serviceKey, endpoints.Endpoint{Addr: addr}, clientv3.WithLease(lease.ID))
 	if err != nil {
 		goo_log.WithTag("goo-etcd").WithField("serviceName", serviceName).WithField("addr", addr).Error(err)
 		return
 	}
 
+	// 续租绑定进程级 ctx，避免注册超时 ctx 结束后 lease 被取消
 	ch, err = cli.Client.KeepAlive(cli.ctx, lease.ID)
 	if err != nil {
 		goo_log.WithTag("goo-etcd").WithField("serviceName", serviceName).WithField("addr", addr).Error(err)
@@ -254,8 +269,8 @@ func (cli *Client) registerServiceOnce(serviceName, addr string) (err error) {
 			select {
 			case <-cli.ctx.Done():
 				goo_log.WithTag("goo-etcd").WithField("serviceName", serviceName).WithField("addr", addr).Warn("服务退出,收回注册信息")
-				ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-				_, _ = cli.Client.Revoke(ctx, lease.ID)
+				rctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+				_, _ = cli.Client.Revoke(rctx, lease.ID)
 				cancel()
 				return
 
@@ -263,7 +278,19 @@ func (cli *Client) registerServiceOnce(serviceName, addr string) (err error) {
 				if !ok || rsp == nil {
 					goo_log.WithTag("goo-etcd").WithField("serviceName", serviceName).WithField("addr", addr).Error("服务注册续租失效")
 					go func() {
-						_ = cli.RegisterService(serviceName, addr)
+						for cli.ctx.Err() == nil {
+							err := cli.RegisterServiceTimeout(serviceName, addr, 30*time.Second)
+							if err == nil {
+								return
+							}
+							goo_log.WithTag("goo-etcd").WithField("serviceName", serviceName).WithField("addr", addr).
+								ErrorF("服务重新注册失败: %v", err)
+							select {
+							case <-cli.ctx.Done():
+								return
+							case <-time.After(3 * time.Second):
+							}
+						}
 					}()
 					return
 				}
@@ -283,18 +310,6 @@ func (cli *Client) Watch(key string) <-chan []string {
 		rev  int64
 	)
 
-	// 先 Get 拿到一致快照与 revision，再从 rev+1 Watch，避免中间变更丢失
-	if resp, err := cli.Get(key, clientv3.WithPrefix()); err == nil && resp != nil {
-		for _, kv := range resp.Kvs {
-			data[string(kv.Key)] = string(kv.Value)
-		}
-		rev = resp.Header.Revision
-		ch <- cli.map2array(data)
-	} else if err != nil {
-		// Get 失败不推空快照，避免服务发现短暂丢节点
-		goo_log.WithTag("goo-etcd").WithField("key", key).Error(err)
-	}
-
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
@@ -303,7 +318,30 @@ func (cli *Client) Watch(key string) <-chan []string {
 			close(ch)
 		}()
 
-		// resync 用 Get 对齐快照；失败则重试，绝不带着旧快照从「当前」重订（会丢中间变更）
+		// 推送最新快照；通道满则丢旧帧，避免堵住 Watch 循环（服务发现只需最新状态）
+		push := func(arr []string) bool {
+			select {
+			case ch <- arr:
+				return true
+			case <-cli.ctx.Done():
+				return false
+			default:
+			}
+			select {
+			case <-ch:
+			default:
+			}
+			select {
+			case ch <- arr:
+				return true
+			case <-cli.ctx.Done():
+				return false
+			default:
+				return true
+			}
+		}
+
+		// Get 对齐快照；失败则重试。Get 成功前不 Watch，避免空快照+从「当前」订丢失已有 key。
 		resync := func() (int64, bool) {
 			for {
 				resp, gerr := cli.Get(key, clientv3.WithPrefix())
@@ -329,9 +367,7 @@ func (cli *Client) Watch(key string) <-chan []string {
 				arr := cli.map2array(data)
 				mu.Unlock()
 
-				select {
-				case ch <- arr:
-				case <-cli.ctx.Done():
+				if !push(arr) {
 					return 0, false
 				}
 				return nextRev, true
@@ -346,6 +382,11 @@ func (cli *Client) Watch(key string) <-chan []string {
 			return cli.Client.Watch(cli.ctx, key, opts...)
 		}
 
+		nextRev, synced := resync()
+		if !synced {
+			return
+		}
+		rev = nextRev
 		wc := startWatch(rev)
 
 		for {
@@ -365,7 +406,7 @@ func (cli *Client) Watch(key string) <-chan []string {
 				}
 
 				if needResync {
-					nextRev, synced := resync()
+					nextRev, synced = resync()
 					if !synced {
 						return
 					}
@@ -393,9 +434,7 @@ func (cli *Client) Watch(key string) <-chan []string {
 				arr := cli.map2array(data)
 				mu.Unlock()
 
-				select {
-				case ch <- arr:
-				case <-cli.ctx.Done():
+				if !push(arr) {
 					return
 				}
 			}

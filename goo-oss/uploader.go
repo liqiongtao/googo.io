@@ -75,9 +75,7 @@ func (o *Uploader) Upload(filename string, r io.Reader) (string, error) {
 	}
 
 	// 拼接前缀
-	if o.conf.Prefix != "" {
-		filename = path.Join(o.conf.Prefix, filename)
-	}
+	filename = applyPrefix(o.conf.Prefix, filename)
 
 	if err := o.Bucket.PutObject(filename, r, options...); err != nil {
 		goo_log.Error("Oss Upload Failed", err.Error(), filename)

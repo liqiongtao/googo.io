@@ -42,6 +42,7 @@ func NewServer(opt ...Option) *Server {
 
 	s.Engine.NoRoute(s.noRoute)
 	s.Engine.NoMethod(s.noMethod)
+	s.Engine.HandleMethodNotAllowed = true
 
 	s.Use(s.injectOpts, s.cors, s.noAccess, s.setFields, s.recovery, s.encrypt, s.log)
 
@@ -67,8 +68,13 @@ func (s *Server) Run(addr string) {
 	}
 
 	// 先注册钩子再 Listen/Root，避免信号窗口内空钩子直接 cancel
+	var restartMu sync.Mutex
 	s.hooksOnce.Do(func() {
 		goocontext.OnRestart(func() {
+			if !restartMu.TryLock() {
+				return
+			}
+			defer restartMu.Unlock()
 			if err := upg.Upgrade(); err != nil {
 				goo_log.Error(err.Error())
 				return

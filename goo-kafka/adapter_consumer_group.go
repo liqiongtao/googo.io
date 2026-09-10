@@ -1,8 +1,8 @@
 package goo_kafka
 
 import (
-	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -11,6 +11,8 @@ import (
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	"github.com/liqiongtao/googo.io/goocontext"
 )
+
+var errConcurrentConsume = errors.New("concurrent consume")
 
 // 分组
 type group struct {
@@ -38,19 +40,30 @@ func (g group) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.Co
 			if !ok {
 				return nil
 			}
-			var err error
-			func() {
-				defer func() {
-					if r := recover(); r != nil {
-						goo_log.WithTag("goo-kafka-consumer-group", g.id).Error(r)
-						// panic 视为消费失败，避免 err==nil 继续消费导致 AutoCommit 跨过
-						err = fmt.Errorf("panic: %v", r)
-					}
+			// 同一条处理到成功，或判定为需停 claim 的失败（避免 Mark 跨过）
+			for {
+				var err error
+				func() {
+					defer func() {
+						if r := recover(); r != nil {
+							goo_log.WithTag("goo-kafka-consumer-group", g.id).Error(r)
+							err = fmt.Errorf("panic: %v", r)
+						}
+					}()
+					err = g.doHandler(msg, session)
 				}()
-				err = g.doHandler(msg, session)
-			}()
-			if err != nil {
-				// 失败消息未 Mark：停止继续消费，避免后续成功 Mark + AutoCommit 跨过失败 offset
+				if err == nil {
+					break
+				}
+				// 另一实例持锁：不 Mark、不退出 claim，等 1s 再试本条，避免无谓 rebalance
+				if errors.Is(err, errConcurrentConsume) {
+					select {
+					case <-session.Context().Done():
+						return nil
+					case <-time.After(time.Second):
+					}
+					continue
+				}
 				select {
 				case <-session.Context().Done():
 					return nil
@@ -63,10 +76,8 @@ func (g group) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.Co
 }
 
 func (g group) doHandler(msg *sarama.ConsumerMessage, session sarama.ConsumerGroupSession) (err error) {
-	// 消息key
 	key := string(msg.Key)
 
-	// 消息试题
 	m := goo_utils.M{
 		"topic":     msg.Topic,
 		"key":       key,
@@ -75,9 +86,7 @@ func (g group) doHandler(msg *sarama.ConsumerMessage, session sarama.ConsumerGro
 		"timestamp": msg.Timestamp.Format("2006-01-02 15:04:05"),
 	}
 
-	// 填充数据
 	{
-		// body
 		if len(msg.Value) > 0 {
 			var body interface{}
 			if err = json.Unmarshal(msg.Value, &body); err == nil {
@@ -87,7 +96,6 @@ func (g group) doHandler(msg *sarama.ConsumerMessage, session sarama.ConsumerGro
 			}
 		}
 
-		// headers
 		if len(msg.Headers) > 0 {
 			headers := map[string]string{}
 			for _, i := range msg.Headers {
@@ -97,17 +105,16 @@ func (g group) doHandler(msg *sarama.ConsumerMessage, session sarama.ConsumerGro
 		}
 	}
 
-	// 在途消费不挂 Root：进程退出只停拉取，handler 自行决定是否响应取消
-	ctx := goocontext.WithGenerateTraceId(context.Background())
+	// 跟随 session：rebalance 时可取消；不挂 Root，进程退出只停拉取
+	ctx := goocontext.WithGenerateTraceId(session.Context())
 	log := goocontext.Log(ctx).WithTag("goo-kafka-consumer-group", g.id).WithField("msg", m)
 
-	// uniq key
 	{
 		var uniqKey string
 		if key != "" {
-			uniqKey = fmt.Sprintf("%s:%s", g.id, key)
+			uniqKey = consumeLockKey(g.id, msg.Topic, key)
 		} else {
-			uniqKey = fmt.Sprintf("%s:%s:%s", g.id, msg.Topic, goo_utils.MD5([]byte(g.id+msg.Topic+string(msg.Value))))
+			uniqKey = consumeLockKey(g.id, msg.Topic, goo_utils.MD5([]byte(g.id+msg.Topic+string(msg.Value))))
 		}
 		if g.cli.redis != nil {
 			ok, setErr := g.cli.redis.SetNX(uniqKey, goo_utils.M{
@@ -123,9 +130,8 @@ func (g group) doHandler(msg *sarama.ConsumerMessage, session sarama.ConsumerGro
 				return
 			}
 			if !ok {
-				log.Warn("消息消费失败，并发消费")
-				// 去重命中视为已处理，提交 offset，避免卡在重投循环
-				session.MarkMessage(msg, "")
+				log.Warn("消息并发消费中，稍后重试")
+				err = errConcurrentConsume
 				return
 			}
 			defer func() {
@@ -134,9 +140,8 @@ func (g group) doHandler(msg *sarama.ConsumerMessage, session sarama.ConsumerGro
 		}
 	}
 
-	// 建立缓存
 	if g.cli.redis != nil && key != "" {
-		g.cli.redis.Set(key, goo_utils.M{
+		g.cli.redis.Set(consumeCacheKey(msg.Topic, key), goo_utils.M{
 			"topic":     msg.Topic,
 			"body":      m["body"],
 			"headers":   m["headers"],
@@ -144,12 +149,10 @@ func (g group) doHandler(msg *sarama.ConsumerMessage, session sarama.ConsumerGro
 		}.String(), time.Hour)
 	}
 
-	// 打印日志
 	t1 := time.Now()
 	defer func() {
-		// 删除缓存
 		if g.cli.redis != nil && key != "" {
-			g.cli.redis.Expire(key, 5*time.Second)
+			g.cli.redis.Expire(consumeCacheKey(msg.Topic, key), 5*time.Second)
 		}
 
 		log = log.WithField("执行时间", fmt.Sprintf("%f", float64(time.Now().Sub(t1).Milliseconds())/1e3))
@@ -161,12 +164,10 @@ func (g group) doHandler(msg *sarama.ConsumerMessage, session sarama.ConsumerGro
 		log.Debug("消息消费成功")
 	}()
 
-	// 执行业务方法
 	if err = g.handler(ctx, &ConsumerMessage{ConsumerMessage: msg, GroupSession: session}, nil); err != nil {
 		return
 	}
 
-	// 提交
 	session.MarkMessage(msg, "")
 
 	return

@@ -24,6 +24,9 @@ func (p *TaskQueuePublisher) Publish(tasks ...*Task) error {
 	pi := p.r.TxPipeline()
 
 	for _, task := range tasks {
+		if task == nil {
+			return fmt.Errorf("任务为空")
+		}
 		if task.Id == "" {
 			return fmt.Errorf("任务Id为空")
 		}
@@ -47,7 +50,7 @@ func (p *TaskQueuePublisher) Publish(tasks ...*Task) error {
 
 		pi.HMSet(ctx, infoKey, task.MapData())
 		pi.HIncrBy(ctx, infoKey, "generation", 1) // 使旧执行收尾失效
-		pi.Expire(ctx, infoKey, 48*time.Hour)
+		pi.Expire(ctx, infoKey, time.Duration(infoTTLSecUntil(task.Ts))*time.Second)
 		pi.ZAdd(ctx, p.TaskPendingKey, goo_redis.Z{Score: score, Member: task.Id})
 		pi.ZRem(ctx, p.TaskProcessingKey, task.Id) // 执行中重投：摘掉 processing
 		pi.ZRem(ctx, p.TaskFailKey, task.Id)

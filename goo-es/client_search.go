@@ -156,20 +156,22 @@ func (c *ESClient) PageSearch(index []string, body []byte, fn func(p goo_utils.P
 
 // SearchAfter 用 search_after 深翻页，不受 scroll 超时影响。
 // body 未指定 sort 时默认 [{"_id":"asc"}]；请勿与 from 同用（会忽略 from）。
+// 不会修改调用方传入的 body（内部浅拷贝）。
 func (c *ESClient) SearchAfter(index []string, body goo_utils.M, fn func(p goo_utils.Params) error) error {
-	if body == nil {
-		body = goo_utils.M{}
+	q := goo_utils.M{}
+	for k, v := range body {
+		q[k] = v
 	}
-	if _, ok := body["size"]; !ok {
-		body["size"] = 500
+	if _, ok := q["size"]; !ok {
+		q["size"] = 500
 	}
-	if body["sort"] == nil {
-		body["sort"] = []goo_utils.M{{"_id": "asc"}}
+	if q["sort"] == nil {
+		q["sort"] = []goo_utils.M{{"_id": "asc"}}
 	}
-	delete(body, "from")
+	delete(q, "from")
 
 	for n := 0; ; n++ {
-		res, err := c.Search(index, body.Json())
+		res, err := c.Search(index, q.Json())
 		if err != nil {
 			c.log().Error(err)
 			return err
@@ -215,6 +217,6 @@ func (c *ESClient) SearchAfter(index []string, body goo_utils.M, fn func(p goo_u
 			c.log().Error(err)
 			return err
 		}
-		body["search_after"] = sortVals
+		q["search_after"] = sortVals
 	}
 }

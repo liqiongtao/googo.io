@@ -2,9 +2,8 @@ package goo_request
 
 import (
 	"crypto/tls"
+	"fmt"
 	"os"
-
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
 )
 
 type Tls struct {
@@ -13,21 +12,25 @@ type Tls struct {
 	ClientKeyFile string
 }
 
-func (s *Tls) CaCrt() []byte {
+func (s *Tls) CaCrt() ([]byte, error) {
 	if s.CaCrtFile == "" {
-		return caCert
+		return caCert, nil
 	}
 	bts, err := os.ReadFile(s.CaCrtFile)
 	if err != nil {
-		goo_log.Error(err.Error())
+		return nil, fmt.Errorf("read ca cert: %w", err)
 	}
-	return bts
+	return bts, nil
 }
 
-func (s *Tls) ClientCrt() tls.Certificate {
+func (s *Tls) ClientCrt() (tls.Certificate, error) {
+	// 允许只配 CA、不做 mTLS
+	if s.ClientCrtFile == "" || s.ClientKeyFile == "" {
+		return tls.Certificate{}, nil
+	}
 	crt, err := tls.LoadX509KeyPair(s.ClientCrtFile, s.ClientKeyFile)
 	if err != nil {
-		goo_log.Error(err.Error())
+		return tls.Certificate{}, fmt.Errorf("load client cert: %w", err)
 	}
-	return crt
+	return crt, nil
 }

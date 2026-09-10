@@ -16,7 +16,7 @@ type StsConfig struct {
 }
 
 func (c StsConfig) GetAction() []string {
-	if c.Action == nil {
+	if len(c.Action) == 0 {
 		return DefaultAction
 	}
 	return c.Action

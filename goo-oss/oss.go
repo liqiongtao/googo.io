@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"path"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
@@ -115,11 +117,24 @@ func UploadFile(filename, filepath string) (string, error) {
 	return o.UploadFile(filename, filepath)
 }
 
+func applyPrefix(prefix, objectKey string) string {
+	objectKey = strings.TrimPrefix(objectKey, "/")
+	prefix = strings.Trim(prefix, "/")
+	if prefix == "" {
+		return objectKey
+	}
+	if objectKey == prefix || strings.HasPrefix(objectKey, prefix+"/") {
+		return objectKey
+	}
+	return path.Join(prefix, objectKey)
+}
+
 func GetAppendPosition(objectKey string) (int64, error) {
 	o, err := requireOSS()
 	if err != nil {
 		return 0, err
 	}
+	objectKey = applyPrefix(o.conf.Prefix, objectKey)
 	hd, err := o.Bucket.GetObjectDetailedMeta(objectKey)
 	if err != nil {
 		var v oss.ServiceError
@@ -157,6 +172,7 @@ func AppendObject(objectKey string, b []byte) (int64, error) {
 
 	const maxRetry = 5
 	var lastErr error
+	objectKey = applyPrefix(o.conf.Prefix, objectKey)
 	for i := 0; i < maxRetry; i++ {
 		appendPosition, err := GetAppendPosition(objectKey)
 		if err != nil {

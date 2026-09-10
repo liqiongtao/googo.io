@@ -20,9 +20,13 @@ func (lu LocalUpload) Upload(c *gin.Context, uploadDir string) *Response {
 	}
 	defer f.Close()
 
-	data, err := io.ReadAll(f)
+	const maxUploadBytes int64 = 32 << 20 // 32MB
+	data, err := io.ReadAll(io.LimitReader(f, maxUploadBytes+1))
 	if err != nil {
 		return Error(7002, fmt.Sprintf("上传失败，原因：%s", err.Error()))
+	}
+	if int64(len(data)) > maxUploadBytes {
+		return Error(7002, fmt.Sprintf("上传失败，原因：文件超过 %d 字节限制", maxUploadBytes))
 	}
 
 	md5str := goo_utils.MD5(data)

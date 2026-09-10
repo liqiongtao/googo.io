@@ -40,7 +40,8 @@ func OnSignal(sig os.Signal, fn func()) {
 }
 
 // OnExit 注册退出钩子（SIGTERM / SIGINT / SIGQUIT）。
-// 先 cancel(Root) 再执行钩子，故钩子内可安全 <-Root().Done()；主流程若需等关服完成请用 Wait()。
+// 先 cancel(Root) 再执行钩子，故钩子内可安全 <-Root().Done()。
+// 主流程等关服完成用 Wait()；钩子内不要调用 Wait()（会等自己结束 → 死锁），用 Done() 或业务 WaitGroup。
 func OnExit(fn func()) {
 	OnSignal(syscall.SIGTERM, fn) // kill -15
 	OnSignal(syscall.SIGINT, fn)  // kill -2
@@ -121,6 +122,7 @@ func Root() context.Context {
 
 // Wait 阻塞直到退出钩子执行完毕（若尚未退出则一直等）。
 // HTTP/gRPC 等主循环应 Wait()，以便 Shutdown/GracefulStop 完成后再返回。
+// 勿在 OnExit 钩子内调用（会死锁）；钩子内请用 <-Root().Done()。
 func Wait() {
 	Root()
 	<-exitFinished
