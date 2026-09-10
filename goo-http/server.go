@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"syscall"
@@ -306,6 +307,13 @@ func (s *Server) log(c *gin.Context) {
 func (s *Server) recovery(c *gin.Context) {
 	defer func() {
 		if r := recover(); r != nil {
+			goo_log.WithTag("goo-api").
+				WithField("client-ip", ClientIP(c)).
+				WithField("trace-id", RequestId(c)).
+				WithField("method", c.Request.Method).
+				WithField("uri", c.Request.RequestURI).
+				WithField("stack", string(debug.Stack())).
+				Error(r)
 			s.abortWithStatus50X(c, 5001, fmt.Sprintf("请求异常, 提示信息: %v", r))
 		}
 	}()
