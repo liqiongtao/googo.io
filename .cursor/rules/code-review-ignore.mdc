@@ -29,9 +29,19 @@ alwaysApply: true
 ## goo-db
 - `Ping()` 无超时
 - 重复 `Init` 不关闭旧连接 / EngineGroup
+- 多配置 `Init` 部分成功后仍返回 error（已写入全局 map 的 client 保留）
+
+## goo-redis / goo-mongo
+- 多配置 `Init` 部分成功后仍返回 error（已写入全局 map 的 client 保留）
 
 ## goo-redis / goo-mongo / goo-etcd / goo-kafka
 - 重复 `Init` 不关闭旧连接 / 客户端
+
+## goo-etcd
+- TLS / `New` 失败日志通过 `WithField("config", conf)` 打出完整配置（含 Password）
+
+## goo-kafka
+- `Close()` 不关闭持有的 Redis 连接池
 
 ## goo-oss
 - 重复 `Init` 丢弃旧 Uploader / 客户端

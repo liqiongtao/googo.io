@@ -110,57 +110,70 @@ func (c *CronTask) Subscribe(ctx context.Context) {
 		return
 	}
 
-	sub := c.r.Subscribe(c.key)
-	defer func() { _ = sub.Close() }()
-
 	for {
+		if ctx.Err() != nil {
+			goo_log.WithTag("goo-cron").Info("定时任务订阅服务退出")
+			return
+		}
+
+		sub := c.r.Subscribe(c.key)
+		goo_log.WithTag("goo-cron").WithField("key", c.key).Info("定时任务订阅已建立")
+
+		for running := true; running; {
+			select {
+			case <-ctx.Done():
+				_ = sub.Close()
+				goo_log.WithTag("goo-cron").Info("定时任务订阅服务退出")
+				return
+
+			case msg, ok := <-sub.Channel():
+				if !ok {
+					running = false
+					break
+				}
+				if msg == nil || msg.Channel != c.key {
+					continue
+				}
+				if msg.Payload == "" {
+					goo_log.WithTag("goo-cron").WithField("msg", msg).Warn("payload is empty")
+					continue
+				}
+
+				task, err := ConvertTaskData(msg.Payload)
+				if err != nil {
+					goo_log.WithTag("goo-cron").WithField("payload", msg.Payload).ErrorF("convert cron task data err: %v", err)
+					continue
+				}
+				if err = task.Valid(); err != nil {
+					goo_log.WithTag("goo-cron").WithField("task", task).ErrorF("validate cron task data err: %v", err)
+					continue
+				}
+
+				goo_log.WithTag("goo-cron").WithField("task", task).Info("receive message")
+
+				switch task.Status {
+				case TaskStatusDelete: // 删除任务
+					c.Remove(task.Code)
+
+				case TaskStatusCreate, TaskStatusUpdate: // 添加、更新任务
+					if err := c.Add(task); err != nil {
+						goo_log.WithTag("goo-cron").WithField("task", task).ErrorF("add cron task err: %v", err)
+					}
+
+				case TaskStatusExecute: // 立即执行（拷贝指针，避免异步晚于下一条消息执行时用到错误的 task）
+					t := task
+					goo_utils.AsyncFunc(func() { c.execTask(t) })
+				}
+			}
+		}
+
+		_ = sub.Close()
+		goo_log.WithTag("goo-cron").Warn("定时任务订阅通道关闭，1s 后重连")
 		select {
 		case <-ctx.Done():
 			goo_log.WithTag("goo-cron").Info("定时任务订阅服务退出")
 			return
-
-		case msg, ok := <-sub.Channel():
-			if !ok {
-				goo_log.WithTag("goo-cron").Info("定时任务订阅通道关闭")
-				return
-			}
-			if msg == nil {
-				continue
-			}
-			if msg.Channel != c.key {
-				continue
-			}
-			if msg.Payload == "" {
-				goo_log.WithTag("goo-cron").WithField("msg", msg).Warn("payload is empty")
-				continue
-			}
-
-			task, err := ConvertTaskData(msg.Payload)
-			if err != nil {
-				goo_log.WithTag("goo-cron").WithField("payload", msg.Payload).ErrorF("convert cron task data err: %v", err)
-				continue
-			}
-			if err = task.Valid(); err != nil {
-				goo_log.WithTag("goo-cron").WithField("task", task).ErrorF("validate cron task data err: %v", err)
-				continue
-			}
-
-			goo_log.WithTag("goo-cron").WithField("task", task).Info("receive message")
-
-			switch task.Status {
-			case TaskStatusDelete: // 删除任务
-				c.Remove(task.Code)
-
-			case TaskStatusCreate, TaskStatusUpdate: // 添加、更新任务
-				if err := c.Add(task); err != nil {
-					goo_log.WithTag("goo-cron").WithField("task", task).ErrorF("add cron task err: %v", err)
-					continue
-				}
-
-			case TaskStatusExecute: // 立即执行（拷贝指针，避免异步晚于下一条消息执行时用到错误的 task）
-				t := task
-				goo_utils.AsyncFunc(func() { c.execTask(t) })
-			}
+		case <-time.After(time.Second):
 		}
 	}
 }
