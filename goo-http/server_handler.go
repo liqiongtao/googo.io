@@ -53,7 +53,7 @@ func Handler(controller iController) gin.HandlerFunc {
 		}
 
 		for v := range opts.encryptionExcludeUris {
-			if v == c.Request.RequestURI || strings.HasPrefix(c.Request.RequestURI, v) {
+			if matchURIPrefix(c.Request.RequestURI, v) {
 				c.JSON(200, resp)
 				return
 			}

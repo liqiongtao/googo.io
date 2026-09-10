@@ -117,7 +117,7 @@ func (s *Server) Run(addr string) {
 		_ = syscall.Kill(os.Getpid(), syscall.SIGTERM)
 	}()
 
-	<-goocontext.Root().Done()
+	goocontext.Wait()
 }
 
 const gooOptsKey = "__goo_opts"
@@ -184,7 +184,7 @@ func (s *Server) encrypt(c *gin.Context) {
 	}
 
 	for v := range s.opts.encryptionExcludeUris {
-		if v == c.Request.RequestURI || strings.HasPrefix(c.Request.RequestURI, v) {
+		if matchURIPrefix(c.Request.RequestURI, v) {
 			c.Next()
 			return
 		}

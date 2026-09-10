@@ -106,27 +106,6 @@ func (s *Server) Serve() (err error) {
 		return
 	}
 
-	// 服务注册
-	goo_utils.AsyncFunc(func() {
-		if !s.opts.Register2Etcd {
-			return
-		}
-
-		cli := s.opts.EtcdClient
-		if cli == nil {
-			goo_log.WithTag("goo-grpc").Error("no etcd client")
-			return
-		}
-
-		address := s.lis.Addr().String()
-		if s.conf.ServiceEndpoint != "" {
-			index := strings.LastIndex(address, ":")
-			cli.RegisterService(s.conf.ServiceName, fmt.Sprintf("%s:%s", s.conf.ServiceEndpoint, address[index+1:]))
-		} else {
-			cli.RegisterService(s.conf.ServiceName, address)
-		}
-	})
-
 	// 先注册钩子，再 Serve，缩小空钩子 cancel 窗口
 	s.registerSignalHooks()
 
@@ -143,6 +122,28 @@ func (s *Server) Serve() (err error) {
 			serveErrCh <- serveErr
 		}
 	}()
+
+	// Ready 前完成首次 etcd 注册，避免服务发现空窗
+	if s.opts.Register2Etcd {
+		cli := s.opts.EtcdClient
+		if cli == nil {
+			err = fmt.Errorf("Register2Etcd enabled but etcd client is nil")
+			goo_log.WithTag("goo-grpc").Error(err)
+			s.gracefulStop()
+			return
+		}
+		address := s.lis.Addr().String()
+		regAddr := address
+		if s.conf.ServiceEndpoint != "" {
+			index := strings.LastIndex(address, ":")
+			regAddr = fmt.Sprintf("%s:%s", s.conf.ServiceEndpoint, address[index+1:])
+		}
+		if err = cli.RegisterService(s.conf.ServiceName, regAddr); err != nil {
+			goo_log.WithTag("goo-grpc").Error(err)
+			s.gracefulStop()
+			return
+		}
+	}
 
 	s.storePID()
 
@@ -163,8 +164,8 @@ func (s *Server) Serve() (err error) {
 		// Serve 立刻失败时触发退出钩子，避免假活
 		err = serveErr
 		_ = syscall.Kill(os.Getpid(), syscall.SIGTERM)
-		<-goocontext.Root().Done()
 	}
+	goocontext.Wait()
 
 	return
 }

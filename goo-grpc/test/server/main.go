@@ -32,7 +32,7 @@ func main() {
 		s.Serve()
 	})
 
-	<-goocontext.Root().Done()
+	goocontext.Wait()
 }
 
 type Server struct {

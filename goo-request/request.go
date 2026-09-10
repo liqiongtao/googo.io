@@ -204,7 +204,14 @@ func (r *Request) Get(url string) ([]byte, error) {
 }
 
 func (r *Request) GetWithQuery(url string, data []byte) ([]byte, error) {
-	return r.handle("GET", url, data)
+	if len(data) > 0 {
+		if strings.Contains(url, "?") {
+			url += "&" + string(data)
+		} else {
+			url += "?" + string(data)
+		}
+	}
+	return r.handle("GET", url, nil)
 }
 
 func (r *Request) Post(url string, data []byte) ([]byte, error) {

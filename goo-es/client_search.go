@@ -153,3 +153,68 @@ func (c *ESClient) PageSearch(index []string, body []byte, fn func(p goo_utils.P
 
 	return nil
 }
+
+// SearchAfter 用 search_after 深翻页，不受 scroll 超时影响。
+// body 未指定 sort 时默认 [{"_id":"asc"}]；请勿与 from 同用（会忽略 from）。
+func (c *ESClient) SearchAfter(index []string, body goo_utils.M, fn func(p goo_utils.Params) error) error {
+	if body == nil {
+		body = goo_utils.M{}
+	}
+	if _, ok := body["size"]; !ok {
+		body["size"] = 500
+	}
+	if body["sort"] == nil {
+		body["sort"] = []goo_utils.M{{"_id": "asc"}}
+	}
+	delete(body, "from")
+
+	for n := 0; ; n++ {
+		res, err := c.Search(index, body.Json())
+		if err != nil {
+			c.log().Error(err)
+			return err
+		}
+
+		if res.IsError() {
+			err = fmt.Errorf("error getting response: %s", res.String())
+			_ = res.Body.Close()
+			c.log().Error(err)
+			return err
+		}
+
+		b, err := io.ReadAll(res.Body)
+		_ = res.Body.Close()
+		if err != nil {
+			c.log().Error(err)
+			return err
+		}
+
+		p, err := goo_utils.Byte(b).Params()
+		if err != nil {
+			c.log().Error(err)
+			return err
+		}
+
+		hits := p.Get("hits.hits").Array()
+		if len(hits) == 0 {
+			return nil
+		}
+
+		c.log().DebugF("search_after 第 %d 页，%d 条", n+1, len(hits))
+
+		for _, hit := range hits {
+			if err = fn(hit.Get("_source")); err != nil {
+				c.log().Error(err)
+				return err
+			}
+		}
+
+		sortVals := hits[len(hits)-1].Get("sort").ArrayData()
+		if len(sortVals) == 0 {
+			err = fmt.Errorf("search_after: missing hit.sort")
+			c.log().Error(err)
+			return err
+		}
+		body["search_after"] = sortVals
+	}
+}

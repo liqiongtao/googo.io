@@ -9,6 +9,10 @@ import (
 )
 
 func ValidationMessage(err error, messages map[string]string) string {
+	if err == nil {
+		return ""
+	}
+
 	if v, ok := err.(*json.UnmarshalTypeError); ok {
 		return fmt.Sprintf("请求参数 %s 的类型是 %s, 不是 %s", v.Field, v.Type, v.Value)
 	}

@@ -47,5 +47,5 @@ func main() {
 		}
 	})
 
-	<-goocontext.Root().Done()
+	goocontext.Wait()
 }

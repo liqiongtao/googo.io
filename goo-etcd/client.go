@@ -303,11 +303,50 @@ func (cli *Client) Watch(key string) <-chan []string {
 			close(ch)
 		}()
 
-		opts := []clientv3.OpOption{clientv3.WithPrefix()}
-		if rev > 0 {
-			opts = append(opts, clientv3.WithRev(rev+1))
+		// resync 用 Get 对齐快照；失败则重试，绝不带着旧快照从「当前」重订（会丢中间变更）
+		resync := func() (int64, bool) {
+			for {
+				resp, gerr := cli.Get(key, clientv3.WithPrefix())
+				if gerr != nil {
+					goo_log.WithTag("goo-etcd").WithField("key", key).Error(gerr)
+					select {
+					case <-cli.ctx.Done():
+						return 0, false
+					case <-time.After(time.Second):
+					}
+					continue
+				}
+
+				mu.Lock()
+				data = map[string]string{}
+				var nextRev int64
+				if resp != nil {
+					for _, kv := range resp.Kvs {
+						data[string(kv.Key)] = string(kv.Value)
+					}
+					nextRev = resp.Header.Revision
+				}
+				arr := cli.map2array(data)
+				mu.Unlock()
+
+				select {
+				case ch <- arr:
+				case <-cli.ctx.Done():
+					return 0, false
+				}
+				return nextRev, true
+			}
 		}
-		wc := cli.Client.Watch(cli.ctx, key, opts...)
+
+		startWatch := func(fromRev int64) clientv3.WatchChan {
+			opts := []clientv3.OpOption{clientv3.WithPrefix()}
+			if fromRev > 0 {
+				opts = append(opts, clientv3.WithRev(fromRev+1))
+			}
+			return cli.Client.Watch(cli.ctx, key, opts...)
+		}
+
+		wc := startWatch(rev)
 
 		for {
 			select {
@@ -315,53 +354,23 @@ func (cli *Client) Watch(key string) <-chan []string {
 				return
 
 			case w, ok := <-wc:
-				if !ok {
-					return
+				needResync := !ok
+				if ok {
+					if err := w.Err(); err != nil {
+						goo_log.WithTag("goo-etcd").WithField("key", key).Error(err)
+						needResync = true
+					}
+				} else {
+					goo_log.WithTag("goo-etcd").WithField("key", key).Warn("watch channel closed, resync")
 				}
-				if err := w.Err(); err != nil {
-					goo_log.WithTag("goo-etcd").WithField("key", key).Error(err)
-					// compact 等失败：重新 Get 对齐；Get 失败保留旧快照，不推空列表
-					nextRev := int64(0)
-					synced := false
-					for attempt := 0; attempt < 3; attempt++ {
-						resp, gerr := cli.Get(key, clientv3.WithPrefix())
-						if gerr != nil {
-							goo_log.WithTag("goo-etcd").WithField("key", key).Error(gerr)
-							select {
-							case <-cli.ctx.Done():
-								return
-							case <-time.After(time.Second):
-							}
-							continue
-						}
-						mu.Lock()
-						data = map[string]string{}
-						if resp != nil {
-							for _, kv := range resp.Kvs {
-								data[string(kv.Key)] = string(kv.Value)
-							}
-							nextRev = resp.Header.Revision
-						}
-						arr := cli.map2array(data)
-						mu.Unlock()
 
-						select {
-						case ch <- arr:
-						case <-cli.ctx.Done():
-							return
-						}
-						synced = true
-						break
-					}
+				if needResync {
+					nextRev, synced := resync()
 					if !synced {
-						goo_log.WithTag("goo-etcd").WithField("key", key).Warn("resync get failed, keep previous snapshot")
+						return
 					}
-
-					opts = []clientv3.OpOption{clientv3.WithPrefix()}
-					if nextRev > 0 {
-						opts = append(opts, clientv3.WithRev(nextRev+1))
-					}
-					wc = cli.Client.Watch(cli.ctx, key, opts...)
+					rev = nextRev
+					wc = startWatch(rev)
 					continue
 				}
 
@@ -377,6 +386,9 @@ func (cli *Client) Watch(key string) <-chan []string {
 					case clientv3.EventTypeDelete:
 						delete(data, k)
 					}
+				}
+				if w.Header.Revision > rev {
+					rev = w.Header.Revision
 				}
 				arr := cli.map2array(data)
 				mu.Unlock()

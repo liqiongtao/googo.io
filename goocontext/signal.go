@@ -13,18 +13,19 @@ import (
 
 // 信号分档（全进程只 Notify 一次；钩子异步派发，不堵接收循环）：
 //
-//	Exit:    SIGTERM / SIGINT / SIGQUIT(kill -3) → 钩子后 cancel(Root)，只一次
+//	Exit:    SIGTERM / SIGINT / SIGQUIT(kill -3) → 先 cancel(Root)，再跑钩子；Wait() 等钩子结束
 //	Restart: SIGHUP(kill -1)                     → 仅执行钩子，不 cancel
 //	Action:  SIGUSR1 / SIGUSR2 等                → 仅执行钩子（如 pprof）
 
 var (
-	hookMu     sync.Mutex
-	sigHooks   = make(map[os.Signal][]func())
-	rootOnce   sync.Once
-	exitOnce   sync.Once
-	exiting    atomic.Bool
-	rootCtx    context.Context
-	rootCancel context.CancelFunc
+	hookMu       sync.Mutex
+	sigHooks     = make(map[os.Signal][]func())
+	rootOnce     sync.Once
+	exitOnce     sync.Once
+	exiting      atomic.Bool
+	rootCtx      context.Context
+	rootCancel   context.CancelFunc
+	exitFinished chan struct{} // Root() 后非 nil；退出钩子跑完后关闭
 )
 
 // OnSignal 注册某信号的自定义逻辑（进程级，不提供注销）。
@@ -38,7 +39,8 @@ func OnSignal(sig os.Signal, fn func()) {
 	Root()
 }
 
-// OnExit 注册退出钩子（SIGTERM / SIGINT / SIGQUIT），在 cancel(Root) 之前执行。
+// OnExit 注册退出钩子（SIGTERM / SIGINT / SIGQUIT）。
+// 先 cancel(Root) 再执行钩子，故钩子内可安全 <-Root().Done()；主流程若需等关服完成请用 Wait()。
 func OnExit(fn func()) {
 	OnSignal(syscall.SIGTERM, fn) // kill -15
 	OnSignal(syscall.SIGINT, fn)  // kill -2
@@ -73,9 +75,11 @@ func isExitSignal(sig os.Signal) bool {
 }
 
 // Root 返回进程级共享 Context：全进程只监听一次信号。
+// Done() 在收到退出信号时立刻触发；若要等 OnExit 钩子（如 Shutdown）结束，用 Wait()。
 func Root() context.Context {
 	rootOnce.Do(func() {
 		rootCtx, rootCancel = context.WithCancel(context.Background())
+		exitFinished = make(chan struct{})
 
 		// 缓冲略大：钩子异步派发，避免短时连发信号被丢弃
 		sig := make(chan os.Signal, 8)
@@ -94,13 +98,12 @@ func Root() context.Context {
 			for ch := range sig {
 				s := ch
 				if isExitSignal(s) {
-					// 只退出一次；钩子在独立 goroutine，不堵信号循环
-					// cancel 仍在钩子之后，保证 <-Root().Done() 等 Shutdown 完成
 					exitOnce.Do(func() {
 						exiting.Store(true)
 						go func() {
-							runHooks(s)
+							defer close(exitFinished)
 							rootCancel()
+							runHooks(s)
 						}()
 					})
 					continue
@@ -114,4 +117,11 @@ func Root() context.Context {
 		}()
 	})
 	return rootCtx
+}
+
+// Wait 阻塞直到退出钩子执行完毕（若尚未退出则一直等）。
+// HTTP/gRPC 等主循环应 Wait()，以便 Shutdown/GracefulStop 完成后再返回。
+func Wait() {
+	Root()
+	<-exitFinished
 }

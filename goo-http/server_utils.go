@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -89,4 +90,26 @@ func readAndRestoreBody(c *gin.Context) ([]byte, error) {
 	c.Request.Body = io.NopCloser(bytes.NewReader(b))
 	c.Request.ContentLength = int64(len(b))
 	return b, nil
+}
+
+// matchURIPrefix 路径前缀匹配：/api 匹配 /api、/api/、/api?x、/api/foo，不匹配 /apiEvil；空前缀不匹配。
+func matchURIPrefix(uri, prefix string) bool {
+	if prefix == "" {
+		return false
+	}
+	if uri == prefix {
+		return true
+	}
+	if !strings.HasPrefix(uri, prefix) {
+		return false
+	}
+	if strings.HasSuffix(prefix, "/") {
+		return true
+	}
+	switch uri[len(prefix)] {
+	case '/', '?':
+		return true
+	default:
+		return false
+	}
 }

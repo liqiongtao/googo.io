@@ -45,7 +45,7 @@ func TestRegisterService(t *testing.T) {
 	err := RegisterService("/goo/http-api/node-1", "192.168.1.101:15002")
 	fmt.Println(err)
 
-	<-goocontext.Root().Done()
+	goocontext.Wait()
 }
 
 func TestWatch(t *testing.T) {
