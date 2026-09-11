@@ -17,7 +17,7 @@ func TestXlsxWrite_Handler(t *testing.T) {
 
 	w.SetTitles([]string{"姓名", "手机号"})
 
-	w.SetData([]interface{}{"李涛", "18510381580"}, defaultTitleStyle)
+	w.SetData([]any{"李涛", "18510381580"}, defaultTitleStyle)
 
 	w.Save2File("user.xlsx")
 }

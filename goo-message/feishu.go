@@ -5,10 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	goo_request "github.com/liqiongtao/googo.io/goo-request"
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	"runtime"
 	"sync"
+
+	goo_request "github.com/liqiongtao/googo.io/goo-request"
+	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 )
 
 var (
@@ -30,9 +31,9 @@ func FeiShu(hookUrl string, text string) error {
 	__fieShuCH <- struct{}{}
 	defer func() { <-__fieShuCH }()
 
-	data := map[string]interface{}{
+	data := map[string]any{
 		"msg_type": "text",
-		"content": map[string]interface{}{
+		"content": map[string]any{
 			"text": text,
 		},
 	}

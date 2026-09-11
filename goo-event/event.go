@@ -18,7 +18,7 @@ func New() *Event {
 }
 
 // 发布
-func (ev *Event) Publish(topic string, data interface{}) {
+func (ev *Event) Publish(topic string, data any) {
 	ev.mu.RLock()
 	defer ev.mu.RUnlock()
 

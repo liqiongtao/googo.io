@@ -3,14 +3,15 @@ package goo_utils
 import (
 	"bytes"
 	"fmt"
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	"strings"
 	"text/template"
+
+	goo_log "github.com/liqiongtao/googo.io/goo-log"
 )
 
-func Template(text string, data interface{}) (string, []interface{}, error) {
-	var args []interface{}
-	var argsFunc = func(value interface{}) string {
+func Template(text string, data any) (string, []any, error) {
+	var args []any
+	var argsFunc = func(value any) string {
 		if v, ok := value.([]string); ok {
 			var arr []string
 			for _, vv := range v {
@@ -36,20 +37,20 @@ func Template(text string, data interface{}) (string, []interface{}, error) {
 	tpl := template.New("")
 	tpl.Funcs(template.FuncMap{
 		"args": argsFunc,
-		"like": func(value interface{}) string {
+		"like": func(value any) string {
 			return argsFunc(fmt.Sprintf("%%%s%%", value))
 		},
 	})
 
 	if _, err := tpl.Parse(text); err != nil {
 		goo_log.WithField("text", text).WithField("data", data).Error(err)
-		return "", []interface{}{}, err
+		return "", []any{}, err
 	}
 
 	var b bytes.Buffer
 	if err := tpl.Execute(&b, data); err != nil {
 		goo_log.WithField("text", text).WithField("data", data).Error(err)
-		return "", []interface{}{}, err
+		return "", []any{}, err
 	}
 
 	var lines []string

@@ -71,8 +71,8 @@ func getTaskByCache(r *goo_redis.Client, key string) (*Task, error) {
 	return task, nil
 }
 
-func (t *Task) MapData() map[string]interface{} {
-	return map[string]interface{}{
+func (t *Task) MapData() map[string]any {
+	return map[string]any{
 		"id":            t.Id,
 		"type":          t.Type,
 		"payload":       t.Payload,

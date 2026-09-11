@@ -95,16 +95,16 @@ func SplitInt64Array(arr []int64, size int) (list [][]int64) {
 	return
 }
 
-func SplitArray(arr []interface{}, size int) (list [][]interface{}) {
+func SplitArray(arr []any, size int) (list [][]any) {
 	l := len(arr)
 
 	if l == 0 {
-		list = make([][]interface{}, 0)
+		list = make([][]any, 0)
 		return
 	}
 
 	if size <= 0 || l <= size {
-		list = [][]interface{}{arr}
+		list = [][]any{arr}
 		return
 	}
 

@@ -12,7 +12,7 @@ import (
 
 // 服务端 - 单向拦截器 - panic捕获
 func serverUnaryInterceptorRecovery() grpc.UnaryServerInterceptor {
-	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
+	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
 		defer func() {
 			if r := recover(); r != nil {
 				goo_log.WithTag("goo-grpc").WithField("method", info.FullMethod).
@@ -28,7 +28,7 @@ func serverUnaryInterceptorRecovery() grpc.UnaryServerInterceptor {
 
 // 服务端 - 流式拦截器 - panic捕获
 func serverStreamInterceptorRecovery() grpc.StreamServerInterceptor {
-	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) (err error) {
+	return func(srv any, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) (err error) {
 		defer func() {
 			if r := recover(); r != nil {
 				goo_log.WithTag("goo-grpc").WithField("method", info.FullMethod).

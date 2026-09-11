@@ -21,7 +21,7 @@ func TestSHAWithRSA_prod(t *testing.T) {
 	json.Unmarshal(jwksData, &m1)
 	m1["kid"] = GenIdStr()
 	m := M{
-		"keys": []interface{}{
+		"keys": []any{
 			m1,
 		},
 	}
@@ -39,11 +39,11 @@ func TestSHAWithRSA_token_prod(t *testing.T) {
 	privateKey, _ := ioutil.ReadFile(env + "/private_key.pem")
 	publicKey, _ := ioutil.ReadFile(env + "/public_key.pem")
 
-	header := map[string]interface{}{
+	header := map[string]any{
 		"kid": "7193460017817718785",
 	}
 
-	data := map[string]interface{}{}
+	data := map[string]any{}
 	data["scp"] = []string{"durables:registration:create", "durables:products:read", "durables:parties:read"}
 	data["firstname"] = ""
 	data["iss"] = "https://championplanet-pd.oss-cn-shenzhen.aliyuncs.com/jwt/"
@@ -85,7 +85,7 @@ func TestSHAWithRSA_token_prod(t *testing.T) {
 //	json.Unmarshal(jwksData, &m1)
 //	m1["kid"] = GenIdStr()
 //	m := M{
-//		"keys": []interface{}{
+//		"keys": []any{
 //			m1,
 //		},
 //	}
@@ -103,11 +103,11 @@ func TestSHAWithRSA_token_test(t *testing.T) {
 	privateKey, _ := ioutil.ReadFile(env + "/private_key.pem")
 	publicKey, _ := ioutil.ReadFile(env + "/public_key.pem")
 
-	header := map[string]interface{}{
+	header := map[string]any{
 		"kid": "5fe5224e1ba6a55d02e89f6934b45f44",
 	}
 
-	data := map[string]interface{}{}
+	data := map[string]any{}
 	data["scp"] = []string{"durables:registration:create", "durables:products:read", "durables:parties:read"}
 	data["firstname"] = ""
 	//data["iss"] = "https://championplanet-dev.oss-cn-shenzhen.aliyuncs.com/jwt/"

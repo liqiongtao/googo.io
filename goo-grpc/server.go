@@ -54,7 +54,7 @@ func New(conf Config, opt ...ServerOption) *Server {
 			serverStreamInterceptorAuth(opts.AuthFunc),
 		),
 		// todo:: 服务未找到
-		//grpc.UnknownServiceHandler(func(srv interface{}, stream grpc.ServerStream) error {
+		//grpc.UnknownServiceHandler(func(srv any, stream grpc.ServerStream) error {
 		//	return nil
 		//}),
 	}...)

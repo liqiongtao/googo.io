@@ -18,13 +18,14 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"github.com/golang-jwt/jwt/v5"
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
-	"github.com/go-jose/go-jose/v4"
 	"io"
 	"math/big"
 	"net/url"
 	"strings"
+
+	"github.com/go-jose/go-jose/v4"
+	"github.com/golang-jwt/jwt/v5"
+	goo_log "github.com/liqiongtao/googo.io/goo-log"
 )
 
 func MD5(buf []byte) string {
@@ -362,7 +363,7 @@ func RSA_SHA256() (privateKeyBytes []byte, publicKeyBytes []byte, jwkBytes []byt
 	return
 }
 
-func JWTTokenCreate(data map[string]interface{}, header map[string]interface{}, privateKeyByte []byte) (string, error) {
+func JWTTokenCreate(data map[string]any, header map[string]any, privateKeyByte []byte) (string, error) {
 	// 从PEM格式解码公钥
 	block, _ := pem.Decode(privateKeyByte)
 	if block == nil || block.Type != "RSA PRIVATE KEY" {
@@ -413,7 +414,7 @@ func JWT_TokenParse(signedToken string, publicKeyByte []byte) (*jwt.Token, error
 		return nil, err
 	}
 
-	parsedToken, err := jwt.Parse(signedToken, func(token *jwt.Token) (interface{}, error) {
+	parsedToken, err := jwt.Parse(signedToken, func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
 			goo_log.Error("unexpected signing method: %v", token.Header["alg"])
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])

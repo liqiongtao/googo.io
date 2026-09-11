@@ -7,7 +7,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-func LoadConfig(yamlFile string, conf interface{}) (err error) {
+func LoadConfig(yamlFile string, conf any) (err error) {
 	var buf []byte
 
 	buf, err = os.ReadFile(yamlFile)

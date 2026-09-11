@@ -23,42 +23,42 @@ func newLogger(logFilePath string) *logger {
 	}
 }
 
-func (l logger) Debug(v ...interface{}) {
+func (l logger) Debug(v ...any) {
 	if l.LogLevel > log.LOG_DEBUG {
 		return
 	}
 	l.l.Debug(v...)
 }
 
-func (l logger) Debugf(format string, v ...interface{}) {
+func (l logger) Debugf(format string, v ...any) {
 	if l.LogLevel > log.LOG_DEBUG {
 		return
 	}
 	l.l.Debug(fmt.Sprintf(format, v...))
 }
 
-func (l logger) Error(v ...interface{}) {
+func (l logger) Error(v ...any) {
 	if l.LogLevel > log.LOG_ERR {
 		return
 	}
 	l.l.Error(v...)
 }
 
-func (l logger) Errorf(format string, v ...interface{}) {
+func (l logger) Errorf(format string, v ...any) {
 	if l.LogLevel > log.LOG_ERR {
 		return
 	}
 	l.l.Error(fmt.Sprintf(format, v...))
 }
 
-func (l logger) Info(v ...interface{}) {
+func (l logger) Info(v ...any) {
 	if l.LogLevel > log.LOG_INFO {
 		return
 	}
 	l.l.Info(v...)
 }
 
-func (l logger) Infof(format string, v ...interface{}) {
+func (l logger) Infof(format string, v ...any) {
 	if l.LogLevel > log.LOG_INFO {
 		return
 	}
@@ -68,14 +68,14 @@ func (l logger) Infof(format string, v ...interface{}) {
 	l.l.Info(fmt.Sprintf(format, v...))
 }
 
-func (l logger) Warn(v ...interface{}) {
+func (l logger) Warn(v ...any) {
 	if l.LogLevel > log.LOG_WARNING {
 		return
 	}
 	l.l.Warn(v...)
 }
 
-func (l logger) Warnf(format string, v ...interface{}) {
+func (l logger) Warnf(format string, v ...any) {
 	if l.LogLevel > log.LOG_WARNING {
 		return
 	}

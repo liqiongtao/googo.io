@@ -2,7 +2,7 @@ package goo_event
 
 type Message struct {
 	Topic string
-	Data  interface{}
+	Data  any
 }
 
 type MessageChan chan Message

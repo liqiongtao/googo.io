@@ -18,7 +18,7 @@ func Default() *Event {
 	return ensureEvent()
 }
 
-func Publish(topic string, data interface{}) {
+func Publish(topic string, data any) {
 	ensureEvent().Publish(topic, data)
 }
 

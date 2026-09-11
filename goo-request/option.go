@@ -2,7 +2,7 @@ package goo_request
 
 type Option struct {
 	Name  string
-	Value interface{}
+	Value any
 }
 
 func TlsOption(caCrtFile, clientCrtFile, clientKeyFile string) Option {

@@ -15,7 +15,7 @@ func TestJson2Params(t *testing.T) {
 		arr = append(arr, p)
 	}
 
-	arr[1].Set("info", map[string]interface{}{"sex": "男"})
+	arr[1].Set("info", map[string]any{"sex": "男"})
 
 	fmt.Println(arr)
 	fmt.Println(arr[1])

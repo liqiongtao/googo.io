@@ -142,7 +142,7 @@ func (x *xlsxWrite) SetTitles(titles []string, styles ...*excelize.Style) error 
 	return nil
 }
 
-func (x *xlsxWrite) SetData(data []interface{}, styles ...*excelize.Style) error {
+func (x *xlsxWrite) SetData(data []any, styles ...*excelize.Style) error {
 	x.IncrRowNum()
 
 	left := fmt.Sprintf("A%d", x.RowNum())
@@ -166,7 +166,7 @@ func (x *xlsxWrite) SetData(data []interface{}, styles ...*excelize.Style) error
 	return nil
 }
 
-func (x *xlsxWrite) SetRows(data [][]interface{}, styles ...*excelize.Style) *xlsxWrite {
+func (x *xlsxWrite) SetRows(data [][]any, styles ...*excelize.Style) *xlsxWrite {
 	for _, i := range data {
 		x.IncrRowNum()
 

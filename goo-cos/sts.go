@@ -68,7 +68,7 @@ func stsCacheKey(cfg StsConfig) string {
 func STSCredentialWithCache(cfg StsConfig, redis *goo_redis.Client) (*sts.Credentials, error) {
 	key := stsCacheKey(cfg)
 
-	result, err, _ := sfSts.Do(key, func() (interface{}, error) {
+	result, err, _ := sfSts.Do(key, func() (any, error) {
 		if redis != nil {
 			cmd := redis.Get(key)
 			if cerr := cmd.Err(); cerr == nil {

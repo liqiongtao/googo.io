@@ -16,8 +16,8 @@ func (a *recordingAdapter) Write(msg *Message) {
 	a.msgs = append(a.msgs, msg)
 }
 
-func fieldMap(msg *Message) map[string]interface{} {
-	m := map[string]interface{}{}
+func fieldMap(msg *Message) map[string]any {
+	m := map[string]any{}
 	if msg == nil || msg.Entry == nil {
 		return m
 	}

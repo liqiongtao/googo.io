@@ -2,6 +2,7 @@ package goo_grpc
 
 import (
 	"context"
+
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -12,7 +13,7 @@ type AuthFunc func(md metadata.MD, ctx context.Context, fullMethod string) (cont
 
 // 服务端 - 单向拦截器 - 认证
 func serverUnaryInterceptorAuth(authFunc AuthFunc) grpc.UnaryServerInterceptor {
-	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		if authFunc == nil {
 			return handler(ctx, req)
 		}
@@ -32,7 +33,7 @@ func serverUnaryInterceptorAuth(authFunc AuthFunc) grpc.UnaryServerInterceptor {
 
 // 服务端 - 流式拦截器 - 认证
 func serverStreamInterceptorAuth(authFunc AuthFunc) grpc.StreamServerInterceptor {
-	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+	return func(srv any, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		if authFunc == nil {
 			return handler(srv, ss)
 		}

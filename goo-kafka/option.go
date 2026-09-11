@@ -9,7 +9,7 @@ const (
 
 type Option struct {
 	Name  string
-	Value interface{}
+	Value any
 }
 
 // 是否强制

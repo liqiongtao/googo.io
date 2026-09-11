@@ -2,10 +2,11 @@ package goo_utils
 
 import (
 	"encoding/json"
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	"reflect"
 	"strconv"
 	"strings"
+
+	goo_log "github.com/liqiongtao/googo.io/goo-log"
 )
 
 type Byte []byte
@@ -15,11 +16,11 @@ func (b Byte) Params() (p Params, err error) {
 }
 
 type Params struct {
-	data interface{}
+	data any
 }
 
 func NewParams() Params {
-	return Params{data: map[string]interface{}{}}
+	return Params{data: map[string]any{}}
 }
 
 func Json2Params(b []byte) (p Params, err error) {
@@ -35,10 +36,10 @@ func Json2Params(b []byte) (p Params, err error) {
 	return
 }
 
-func (p Params) Set(key string, val interface{}) Params {
-	m, ok := p.data.(map[string]interface{})
+func (p Params) Set(key string, val any) Params {
+	m, ok := p.data.(map[string]any)
 	if !ok || m == nil {
-		m = map[string]interface{}{}
+		m = map[string]any{}
 		p.data = m
 	}
 	m[key] = val
@@ -48,7 +49,7 @@ func (p Params) Set(key string, val interface{}) Params {
 func (p Params) Get(key string) Params {
 	keys := strings.Split(key, ".")
 	for _, k := range keys {
-		if data, ok := (p.data).(map[string]interface{}); ok {
+		if data, ok := (p.data).(map[string]any); ok {
 			if v, ok := data[k]; ok {
 				p.data = v
 				continue
@@ -145,7 +146,7 @@ func (p Params) Bool() bool {
 
 func (p Params) Array() (ps []Params) {
 	ps = []Params{}
-	if arr, ok := (p.data).([]interface{}); ok {
+	if arr, ok := (p.data).([]any); ok {
 		for _, data := range arr {
 			ps = append(ps, Params{data: data})
 		}
@@ -155,7 +156,7 @@ func (p Params) Array() (ps []Params) {
 
 func (p Params) Map() (rst map[string]Params) {
 	rst = map[string]Params{}
-	if m, ok := (p.data).(map[string]interface{}); ok {
+	if m, ok := (p.data).(map[string]any); ok {
 		for k, data := range m {
 			rst[k] = Params{data: data}
 		}
@@ -163,22 +164,22 @@ func (p Params) Map() (rst map[string]Params) {
 	return
 }
 
-func (p Params) Data() interface{} {
+func (p Params) Data() any {
 	return p.data
 }
 
-func (p Params) MapData() map[string]interface{} {
-	if data, ok := (p.data).(map[string]interface{}); ok {
+func (p Params) MapData() map[string]any {
+	if data, ok := (p.data).(map[string]any); ok {
 		return data
 	}
-	return map[string]interface{}{}
+	return map[string]any{}
 }
 
-func (p Params) ArrayData() []interface{} {
-	if data, ok := (p.data).([]interface{}); ok {
+func (p Params) ArrayData() []any {
+	if data, ok := (p.data).([]any); ok {
 		return data
 	}
-	return []interface{}{}
+	return []any{}
 }
 
 func (p Params) JSON() []byte {

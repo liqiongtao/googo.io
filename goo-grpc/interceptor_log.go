@@ -15,7 +15,7 @@ import (
 
 // 客户端 - 单向拦截器 - 日志
 func clientUnaryInterceptorLog() grpc.UnaryClientInterceptor {
-	return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+	return func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 		err := invoker(ctx, method, req, reply, cc, opts...)
 		if err != nil {
 			//log := goo_log.WithTag("goo-grpc").WithField("method", method).WithField("req", req)
@@ -45,11 +45,11 @@ func clientStreamInterceptorLog() grpc.StreamClientInterceptor {
 
 // 服务端 - 单向拦截器 - 日志
 func serverUnaryInterceptorLog(noLogMethods map[string]struct{}) grpc.UnaryServerInterceptor {
-	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
+	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
 		log := goo_log.WithTag("goo-grpc").WithField("method", info.FullMethod)
 
 		if v, ok := req.(*pb_goo_v1.Request); ok {
-			var vv interface{}
+			var vv any
 			// 使用局部错误，避免污染命名返回值 err
 			if uerr := json.Unmarshal(v.Data, &vv); uerr == nil {
 				log = log.WithField("request", vv)
@@ -72,8 +72,8 @@ func serverUnaryInterceptorLog(noLogMethods map[string]struct{}) grpc.UnaryServe
 			log = log.WithField("duration", fmt.Sprintf("%dms", time.Since(startTime)/1e6))
 
 			if rst, ok := resp.(*pb_goo_v1.Response); ok && rst != nil {
-				var v interface{}
-				respData := map[string]interface{}{
+				var v any
+				respData := map[string]any{
 					"code":    rst.Code,
 					"message": rst.Message,
 				}
@@ -110,7 +110,7 @@ func serverUnaryInterceptorLog(noLogMethods map[string]struct{}) grpc.UnaryServe
 
 // 服务端 - 流式拦截器 - 日志
 func serverStreamInterceptorLog(noLogMethods map[string]struct{}) grpc.StreamServerInterceptor {
-	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) (err error) {
+	return func(srv any, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) (err error) {
 		log := goo_log.WithTag("goo-grpc").WithField("method", info.FullMethod)
 
 		if md, ok := metadata.FromIncomingContext(ss.Context()); ok {

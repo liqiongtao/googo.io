@@ -103,11 +103,11 @@ func (c *Client) Get(key string) *redis.StringCmd {
 	return c.Client.Get(c.ctx(), key)
 }
 
-func (c *Client) Set(key string, value interface{}, expiration time.Duration) *redis.StatusCmd {
+func (c *Client) Set(key string, value any, expiration time.Duration) *redis.StatusCmd {
 	return c.Client.Set(c.ctx(), key, value, expiration)
 }
 
-func (c *Client) SetNX(key string, value interface{}, expiration time.Duration) *redis.BoolCmd {
+func (c *Client) SetNX(key string, value any, expiration time.Duration) *redis.BoolCmd {
 	return c.Client.SetNX(c.ctx(), key, value, expiration)
 }
 
@@ -123,7 +123,7 @@ func (c *Client) Expire(key string, expiration time.Duration) *redis.BoolCmd {
 	return c.Client.Expire(c.ctx(), key, expiration)
 }
 
-func (c *Client) Eval(script string, keys []string, args ...interface{}) *redis.Cmd {
+func (c *Client) Eval(script string, keys []string, args ...any) *redis.Cmd {
 	return c.Client.Eval(c.ctx(), script, keys, args...)
 }
 
@@ -131,7 +131,7 @@ func (c *Client) Subscribe(channels ...string) *redis.PubSub {
 	return c.Client.Subscribe(c.ctx(), channels...)
 }
 
-func (c *Client) HSet(key string, values ...interface{}) *redis.IntCmd {
+func (c *Client) HSet(key string, values ...any) *redis.IntCmd {
 	return c.Client.HSet(c.ctx(), key, values...)
 }
 
@@ -151,7 +151,7 @@ func (c *Client) HKeys(key string) *redis.StringSliceCmd {
 	return c.Client.HKeys(c.ctx(), key)
 }
 
-func (c *Client) HMSet(key string, values ...interface{}) *redis.BoolCmd {
+func (c *Client) HMSet(key string, values ...any) *redis.BoolCmd {
 	return c.Client.HMSet(c.ctx(), key, values...)
 }
 
@@ -163,7 +163,7 @@ func (c *Client) ZAdd(key string, members ...redis.Z) *redis.IntCmd {
 	return c.Client.ZAdd(c.ctx(), key, members...)
 }
 
-func (c *Client) ZRem(key string, members ...interface{}) *redis.IntCmd {
+func (c *Client) ZRem(key string, members ...any) *redis.IntCmd {
 	return c.Client.ZRem(c.ctx(), key, members...)
 }
 
@@ -179,7 +179,7 @@ func (c *Client) ZRangeWithScores(key string, start, stop int64) *redis.ZSliceCm
 	return c.Client.ZRangeWithScores(c.ctx(), key, start, stop)
 }
 
-func (c *Client) Publish(channel string, message interface{}) *redis.IntCmd {
+func (c *Client) Publish(channel string, message any) *redis.IntCmd {
 	return c.Client.Publish(c.ctx(), channel, message)
 }
 

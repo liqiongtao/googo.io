@@ -79,7 +79,7 @@ func (g group) doHandler(msg *sarama.ConsumerMessage, session sarama.ConsumerGro
 
 	{
 		if len(msg.Value) > 0 {
-			var body interface{}
+			var body any
 			if err = json.Unmarshal(msg.Value, &body); err == nil {
 				m["body"] = body
 			} else {

@@ -2,7 +2,7 @@ package goo_utils
 
 import "encoding/json"
 
-type M map[string]interface{}
+type M map[string]any
 
 func (m M) Json() []byte {
 	b, _ := json.Marshal(&m)

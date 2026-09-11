@@ -44,7 +44,7 @@ func insert() {
 		stmt, _ = tx.Prepare(`INSERT INTO user(name, gender) VALUES(?, ?)`)
 	)
 
-    data := []interface{}{"", ""}
+    data := []any{"", ""}
     if _, err := stmt.Exec(data...); err != nil {
         goo_log.Error(err)
         return

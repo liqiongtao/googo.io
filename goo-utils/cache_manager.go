@@ -16,8 +16,8 @@ type CacheManager struct {
 }
 
 type cacheItem struct {
-	value  interface{} // 缓存值
-	expire int64       // 过期时间戳（Unix 时间戳，单位：秒）
+	value  any   // 缓存值
+	expire int64 // 过期时间戳（Unix 时间戳，单位：秒）
 }
 
 func NewCacheManager() *CacheManager {
@@ -40,7 +40,7 @@ func (cm *CacheManager) getDuration() time.Duration {
 	return time.Duration(cm.duration.Load())
 }
 
-func (cm *CacheManager) Get(key string, queryFunc func() (interface{}, error)) (interface{}, error) {
+func (cm *CacheManager) Get(key string, queryFunc func() (any, error)) (any, error) {
 	// 1. 检查缓存
 	if v, ok := cm.cache.Load(key); ok {
 		item := v.(cacheItem)
@@ -55,7 +55,7 @@ func (cm *CacheManager) Get(key string, queryFunc func() (interface{}, error)) (
 	}
 
 	// 2. 使用 singleflight 确保相同 key 的并发请求只执行一次
-	result, err, _ := cm.sfGroup.Do(key, func() (interface{}, error) {
+	result, err, _ := cm.sfGroup.Do(key, func() (any, error) {
 		// 3. 再次检查缓存（可能其他 goroutine 已经查询并缓存了数据）
 		if v, ok := cm.cache.Load(key); ok {
 			item := v.(cacheItem)
@@ -91,7 +91,7 @@ func (cm *CacheManager) Get(key string, queryFunc func() (interface{}, error)) (
 	return result, nil
 }
 
-func (cm *CacheManager) Set(key string, value interface{}) {
+func (cm *CacheManager) Set(key string, value any) {
 	cm.cache.Store(key, cacheItem{
 		value:  value,
 		expire: time.Now().Add(cm.getDuration()).Unix(),
@@ -110,7 +110,7 @@ func (cm *CacheManager) cleanupExpiredItems() {
 		select {
 		case <-ticker.C:
 			now := time.Now().Unix()
-			cm.cache.Range(func(key, value interface{}) bool {
+			cm.cache.Range(func(key, value any) bool {
 				item := value.(cacheItem)
 				if item.expire > 0 && item.expire < now {
 					cm.cache.Delete(key)
