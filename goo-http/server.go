@@ -258,7 +258,7 @@ func (s *Server) log(c *gin.Context) {
 		}
 		if len(b) > 0 {
 			if c.ContentType() == "application/json" {
-				var body interface{}
+				var body any
 				if err := json.Unmarshal(b, &body); err == nil {
 					req["body"] = body
 				} else {

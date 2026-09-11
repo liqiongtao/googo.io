@@ -4,16 +4,17 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
+
 	"github.com/go-playground/validator/v10"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
-	"strings"
 )
 
 type Response struct {
-	Code    int32         `json:"code"`
-	Message string        `json:"message"`
-	Data    interface{}   `json:"data,omitempty"`
-	Errors  []interface{} `json:"-"`
+	Code    int32  `json:"code"`
+	Message string `json:"message"`
+	Data    any    `json:"data,omitempty"`
+	Errors  []any  `json:"-"`
 }
 
 func (rsp *Response) Copy() *Response {
@@ -34,9 +35,9 @@ func (rsp *Response) String() string {
 	return string(buf)
 }
 
-func Success(data interface{}) *Response {
+func Success(data any) *Response {
 	if data == nil {
-		data = map[string]interface{}{}
+		data = map[string]any{}
 	}
 	return &Response{
 		Code:    0,
@@ -45,7 +46,7 @@ func Success(data interface{}) *Response {
 	}
 }
 
-func Error(code int32, message string, v ...interface{}) *Response {
+func Error(code int32, message string, v ...any) *Response {
 	return &Response{
 		Code:    code,
 		Message: message,

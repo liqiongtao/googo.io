@@ -52,7 +52,7 @@ func ClientIP(c *gin.Context) string {
 }
 
 // 请求数据（读完后回填 Body，供后续 handler 再读）
-func RequestBody(c *gin.Context) interface{} {
+func RequestBody(c *gin.Context) any {
 	contentType := c.ContentType()
 	switch contentType {
 	case "application/x-www-form-urlencoded", "text/xml", "application/json":
@@ -66,7 +66,7 @@ func RequestBody(c *gin.Context) interface{} {
 	}
 
 	if contentType == "application/json" {
-		var body interface{}
+		var body any
 		if err := json.Unmarshal(b, &body); err == nil {
 			return body
 		}
