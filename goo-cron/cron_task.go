@@ -20,6 +20,7 @@ type CronTask struct {
 	code2EntryId sync.Map
 	code2Func    map[string]TaskFunc
 	hooks        []TaskFunc
+	wg           sync.WaitGroup
 }
 
 func New(key string, code2Func map[string]TaskFunc, opts ...Option) *CronTask {
@@ -38,10 +39,18 @@ func (c *CronTask) Cron() *cron.Cron {
 	return c.c
 }
 
+func (c *CronTask) goAsync(fn func()) {
+	c.wg.Add(1)
+	goo_utils.AsyncFunc(func() {
+		defer c.wg.Done()
+		fn()
+	})
+}
+
 func (c *CronTask) Run() {
 	ctx := goocontext.Root()
 
-	goo_utils.AsyncFunc(func() {
+	c.goAsync(func() {
 		c.Subscribe(ctx)
 	})
 
@@ -54,9 +63,8 @@ func (c *CronTask) Run() {
 		c.c.Remove(entry.ID)
 	}
 
-	time.Sleep(time.Second)
-
 	<-c.c.Stop().Done()
+	c.wg.Wait()
 	goo_log.WithTag("goo-cron").Debug("系统退出成功，全部任务执行结束")
 }
 
@@ -175,7 +183,7 @@ func (c *CronTask) Subscribe(ctx context.Context) {
 
 				case TaskStatusExecute: // 立即执行（拷贝指针，避免异步晚于下一条消息执行时用到错误的 task）
 					t := task
-					goo_utils.AsyncFunc(func() { c.execTask(t) })
+					c.goAsync(func() { c.execTask(t) })
 				}
 			}
 		}

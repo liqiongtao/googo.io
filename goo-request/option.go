@@ -18,11 +18,11 @@ func ContentTypeXmlOption() Option {
 }
 
 func ContentTypeJsonOption() Option {
-	return Option{Name: "content-type-xml", Value: CONTENT_TYPE_JSON}
+	return Option{Name: "content-type-json", Value: CONTENT_TYPE_JSON}
 }
 
 func ContentTypeFormOption() Option {
-	return Option{Name: "content-type-xml", Value: CONTENT_TYPE_FORM}
+	return Option{Name: "content-type-form", Value: CONTENT_TYPE_FORM}
 }
 
 func HeaderOption(field, value string) Option {

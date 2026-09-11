@@ -48,7 +48,11 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 		limitCH = make(chan any, limit)
 		taskCH  = make(chan *Task, limit)
 		done    = make(chan any)
+		closeOnce sync.Once
 	)
+	closeTasks := func() {
+		closeOnce.Do(func() { close(taskCH) })
+	}
 
 	// 执行任务
 	goo_utils.AsyncFunc(func() {
@@ -86,13 +90,16 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 
 	// 获取任务：同步拉取，空队列时不占用执行槽睡眠
 	goo_utils.AsyncFunc(func() {
-		defer func() { done <- struct{}{} }()
+		// panic 时也要关掉 taskCH，否则执行侧与主流程永久阻塞
+		defer func() {
+			closeTasks()
+			done <- struct{}{}
+		}()
 
 		for {
 			select {
 			case <-ctx.Done():
 				s.log().Info("准备退出")
-				close(taskCH)
 				return
 			default:
 			}
@@ -105,7 +112,6 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 				s.log().WarnF("内存占用超过最大限制=%0.2f%%，等待%dms后重试", percent, n)
 				if !sleepOrDone(ctx, time.Duration(n)*time.Millisecond) {
 					s.log().Info("准备退出")
-					close(taskCH)
 					return
 				}
 				continue
@@ -115,7 +121,6 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 			select {
 			case <-ctx.Done():
 				s.log().Info("准备退出")
-				close(taskCH)
 				return
 			case limitCH <- struct{}{}:
 			}
@@ -125,7 +130,6 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 				<-limitCH // 立即归还，空载睡眠不占槽
 				if !sleepOrDone(ctx, time.Duration(rand.Intn(600)+200)*time.Millisecond) {
 					s.log().Info("准备退出")
-					close(taskCH)
 					return
 				}
 				continue
@@ -137,7 +141,6 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 				// 已抢占但尚未交给执行侧：放回 pending，避免卡在 Timeout 才被 Leader 回收
 				_ = s.TaskQueueTasks.putBack(task)
 				s.log().Info("准备退出")
-				close(taskCH)
 				return
 			case taskCH <- task:
 			}

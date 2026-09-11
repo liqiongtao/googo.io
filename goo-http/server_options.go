@@ -119,12 +119,11 @@ func EnableEncryptionOption(encryptKey, encryptSecret string, excludeUris ...str
 
 func EnableEncryptionOptionWith(fn func(c *gin.Context) *Encryption, excludeUris ...string) Option {
 	return newFuncOption(func(opts *options) {
-		opts.encryptionEnable = true
 		if fn == nil {
-			opts.encryptionFn = nil
-		} else {
-			opts.encryptionFn = fn
+			return
 		}
+		opts.encryptionEnable = true
+		opts.encryptionFn = fn
 		for _, uri := range excludeUris {
 			opts.encryptionExcludeUris[uri] = struct{}{}
 		}

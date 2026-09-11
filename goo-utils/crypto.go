@@ -308,6 +308,9 @@ func BaseXDecoding(strByte []byte, key ...string) []byte {
 	ret := big.NewInt(0)
 	for _, byteElem := range strByte {
 		index := bytes.IndexByte([]byte(key[0]), byteElem)
+		if index < 0 {
+			return nil
+		}
 		ret.Mul(ret, big.NewInt(base))
 		ret.Add(ret, big.NewInt(int64(index)))
 	}

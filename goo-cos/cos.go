@@ -71,7 +71,12 @@ func trimObjectKey(objectKey string) string {
 }
 
 func (c *CosClient) objectKey(objectKey string) string {
-	objectKey = trimObjectKey(objectKey)
+	objectKey = path.Clean("/" + trimObjectKey(objectKey))
+	objectKey = strings.TrimPrefix(objectKey, "/")
+	if objectKey == "." {
+		objectKey = ""
+	}
+
 	base := strings.Trim(c.Config.BaseDir, "/")
 	if base == "" {
 		return objectKey
@@ -79,7 +84,13 @@ func (c *CosClient) objectKey(objectKey string) string {
 	if objectKey == base || strings.HasPrefix(objectKey, base+"/") {
 		return objectKey
 	}
-	return path.Join(base, objectKey)
+
+	joined := path.Clean(path.Join(base, objectKey))
+	if joined != base && !strings.HasPrefix(joined, base+"/") {
+		// ../ 逃逸时回落到 BaseDir，避免写出前缀外对象键
+		return base
+	}
+	return joined
 }
 
 func closeCOSResponse(rsp *cos.Response) {
@@ -256,7 +267,16 @@ func (c *CosClient) Copy(sourceObjectKey, targetObjectKey string, targetCosClien
 	}
 
 	sourceObjectKey = c.objectKey(sourceObjectKey)
-	targetObjectKey = c.objectKey(targetObjectKey)
+	// 跨 client 拷贝时目标键不应带上源 BaseDir，但仍做 Clean 防 ../
+	if targetCosClient == c.Client {
+		targetObjectKey = c.objectKey(targetObjectKey)
+	} else {
+		targetObjectKey = path.Clean("/" + trimObjectKey(targetObjectKey))
+		targetObjectKey = strings.TrimPrefix(targetObjectKey, "/")
+		if targetObjectKey == "." {
+			targetObjectKey = ""
+		}
+	}
 
 	if !strings.HasPrefix(sourceObjectKey, c.BaseURL.BucketURL.Host+c.BaseURL.BucketURL.Path) {
 		sourceObjectKey = c.BaseURL.BucketURL.Host + c.BaseURL.BucketURL.Path + "/" + sourceObjectKey

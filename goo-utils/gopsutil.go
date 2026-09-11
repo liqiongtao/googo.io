@@ -1,6 +1,8 @@
 package goo_utils
 
 import (
+	"errors"
+
 	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	"github.com/shirou/gopsutil/v3/disk"
 	"github.com/shirou/gopsutil/v3/mem"
@@ -13,6 +15,9 @@ func MemoryUsedPercent() (float64, error) {
 		goo_log.Error(err)
 		return 0, err
 	}
+	if v.Total == 0 {
+		return 0, errors.New("memory total is 0")
+	}
 	return 100 - float64(v.Available)/float64(v.Total)*100, nil
 }
 
@@ -22,6 +27,9 @@ func Memory() (float64, float64, float64, float64, error) {
 	if err != nil {
 		goo_log.Error(err)
 		return 0, 0, 0, 0, err
+	}
+	if v.Total == 0 {
+		return 0, 0, 0, 0, errors.New("memory total is 0")
 	}
 	const gb = 1024 * 1024 * 1024
 	return float64(v.Total) / gb,

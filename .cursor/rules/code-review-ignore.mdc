@@ -1,5 +1,5 @@
 ---
-description: 代码审查时忽略的已知/接受项（goo-http/grpc/es/request/db/redis/mongo/etcd/kafka/oss/cos/log）
+description: 代码审查时忽略的已知/接受项（goo-http/grpc/es/request/db/redis/mongo/etcd/kafka/oss/cos/log/mail）
 alwaysApply: true
 ---
 
@@ -52,5 +52,8 @@ alwaysApply: true
 
 ## goo-log
 - `Panic` / `PanicF` 未先 `Sync`；FileAdapter 异步写时 panic 日志可能丢失
+
+## goo-mail
+- TLS 连接默认 `InsecureSkipVerify: true`（跳过证书校验）
 
 检查时只报告上述清单之外的新问题。若用户明确要求修复其中某一项，再处理该项。

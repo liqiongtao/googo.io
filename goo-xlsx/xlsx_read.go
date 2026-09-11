@@ -29,7 +29,11 @@ func ReadBySheet(r io.Reader, sheet string, fn func(n int, row []string) error) 
 	var n int
 	for rows.Next() {
 		n++
-		row, _ := rows.Columns()
+		row, err := rows.Columns()
+		if err != nil {
+			goo_log.Error(err)
+			return err
+		}
 		if err = fn(n, row); err != nil {
 			return err
 		}

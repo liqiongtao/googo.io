@@ -54,27 +54,15 @@ func MetaDataValue(ctx context.Context, key string) []string {
 		return []string{}
 	}
 
-	v, ok := md[key]
-	if !ok {
-		return []string{}
-	}
-
-	return v
+	return md.Get(key)
 }
 
-func ValueWithDefault[T any](ctx context.Context, key string, defValue any) T {
+func ValueWithDefault[T any](ctx context.Context, key string, defValue T) T {
 	val, ok := Value[T](ctx, key)
 	if ok {
 		return val
 	}
-
-	v, ok := defValue.(T)
-	if ok {
-		return v
-	}
-
-	var zero T
-	return zero
+	return defValue
 }
 
 func ValueString(ctx context.Context, key string) string {

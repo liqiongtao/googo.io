@@ -63,6 +63,15 @@ func (r *Request) getClient() (*http.Client, error) {
 		timeout = 120 * time.Second
 	}
 
+	client, err := r.newHTTPClient(timeout)
+	if err != nil {
+		return nil, err
+	}
+	r.client = client
+	return client, nil
+}
+
+func (r *Request) newHTTPClient(timeout time.Duration) (*http.Client, error) {
 	// 基于总超时时间动态计算 Transport 内部的各个超时阶段，确保逻辑一致性
 	// 分配策略：握手和建连占用较少比例，响应等待占用较多比例
 	dialTimeout := timeout / 5 // 20% 用于建立连接（DNS + TCP）
@@ -126,17 +135,13 @@ func (r *Request) getClient() (*http.Client, error) {
 		}
 	}
 
-	client := &http.Client{
+	return &http.Client{
 		Timeout: timeout,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
 		},
 		Transport: transport,
-	}
-
-	r.timeout = timeout
-	r.client = client
-	return client, nil
+	}, nil
 }
 
 func (r *Request) Do(method, url string, reader io.Reader) (rst []byte, err error) {
@@ -186,7 +191,11 @@ func (r *Request) do(method, url string, reader io.Reader, extraHeaders map[stri
 
 	rst = buf.Bytes()
 	if rsp.StatusCode < 200 || rsp.StatusCode >= 300 {
-		err = fmt.Errorf("request failed, status code: %d", rsp.StatusCode)
+		if loc := rsp.Header.Get("Location"); loc != "" {
+			err = fmt.Errorf("request failed, status code: %d, location: %s", rsp.StatusCode, loc)
+		} else {
+			err = fmt.Errorf("request failed, status code: %d", rsp.StatusCode)
+		}
 		return
 	}
 
@@ -364,12 +373,14 @@ func (r *Request) Download(url, filename string) (err error) {
 	{
 		dirname := filepath.Dir(filename)
 		if dirname != "" && dirname != "." {
-			_ = os.MkdirAll(dirname, 0755)
+			if err = os.MkdirAll(dirname, 0755); err != nil {
+				return
+			}
 		}
 	}
 
 	var f *os.File
-	tmpName := filename + ".0"
+	tmpName := fmt.Sprintf("%s.%d.tmp", filename, time.Now().UnixNano())
 	ok := false
 	{
 		f, err = os.Create(tmpName)
@@ -395,20 +406,16 @@ func (r *Request) Download(url, filename string) (err error) {
 		}
 	}
 
-	savedTimeout, savedClient := r.timeout, r.client
-	if r.timeout == 0 {
-		r.timeout = 5 * time.Minute
-		r.client = nil
+	// 下载默认 5 分钟；用局部 client，不改写共享 timeout/client
+	dlTimeout := r.timeout
+	if dlTimeout == 0 {
+		dlTimeout = 5 * time.Minute
 	}
-	defer func() {
-		r.timeout = savedTimeout
-		r.client = savedClient
-	}()
 
 	var resp *http.Response
 	{
 		var client *http.Client
-		client, err = r.getClient()
+		client, err = r.newHTTPClient(dlTimeout)
 		if err != nil {
 			return
 		}

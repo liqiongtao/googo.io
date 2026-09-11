@@ -2,6 +2,7 @@ package goo_kafka
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/IBM/sarama"
@@ -128,7 +129,14 @@ func (p *producer) SendAsyncMessage(msg IMessage, cb MessageHandler) (err error)
 	}
 	defer producer.Close()
 
-	producer.Input() <- m
+	const asyncTimeout = 10 * time.Second
+	select {
+	case producer.Input() <- m:
+	case <-time.After(asyncTimeout):
+		p.clearDedup(dedupKey)
+		err = fmt.Errorf("async send input timeout")
+		return
+	}
 
 	select {
 	case msg := <-producer.Successes():
@@ -141,6 +149,9 @@ func (p *producer) SendAsyncMessage(msg IMessage, cb MessageHandler) (err error)
 		if cb != nil {
 			cb(&ProducerMessage{e.Msg}, e.Err)
 		}
+	case <-time.After(asyncTimeout):
+		// 结果超时不清去重：消息可能已成功，保留 key 避免重试双发
+		err = fmt.Errorf("async send result timeout")
 	}
 
 	return

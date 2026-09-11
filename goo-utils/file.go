@@ -34,7 +34,9 @@ func DIR() string {
 func WriteToFile(filename string, b []byte) error {
 	dirname := path.Dir(filename)
 	if _, err := os.Stat(dirname); err != nil {
-		os.MkdirAll(dirname, 0755)
+		if err := os.MkdirAll(dirname, 0755); err != nil {
+			return err
+		}
 	}
 	f, err := os.Create(filename)
 	if err != nil {

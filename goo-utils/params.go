@@ -36,7 +36,12 @@ func Json2Params(b []byte) (p Params, err error) {
 }
 
 func (p Params) Set(key string, val interface{}) Params {
-	p.data.(map[string]interface{})[key] = val
+	m, ok := p.data.(map[string]interface{})
+	if !ok || m == nil {
+		m = map[string]interface{}{}
+		p.data = m
+	}
+	m[key] = val
 	return p
 }
 

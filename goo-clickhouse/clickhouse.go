@@ -24,6 +24,9 @@ func Init(configs ...Config) (err error) {
 		}
 
 		__mu.Lock()
+		if old, ok := __clients[name]; ok && old != nil && old.DB != nil {
+			_ = old.DB.Close()
+		}
 		__clients[name] = cli
 		__mu.Unlock()
 	}

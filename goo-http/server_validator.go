@@ -2,6 +2,7 @@ package goo_http
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/go-playground/validator/v10"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
@@ -13,11 +14,13 @@ func ValidationMessage(err error, messages map[string]string) string {
 		return ""
 	}
 
-	if v, ok := err.(*json.UnmarshalTypeError); ok {
-		return fmt.Sprintf("请求参数 %s 的类型是 %s, 不是 %s", v.Field, v.Type, v.Value)
+	var ute *json.UnmarshalTypeError
+	if errors.As(err, &ute) {
+		return fmt.Sprintf("请求参数 %s 的类型是 %s, 不是 %s", ute.Field, ute.Type, ute.Value)
 	}
 
-	if v, ok := err.(validator.ValidationErrors); ok {
+	var v validator.ValidationErrors
+	if errors.As(err, &v) {
 		for _, i := range v {
 			field := goo_utils.Camel2Case(i.Field())
 			key := fmt.Sprintf("%s_%s", field, strings.ToLower(i.Tag()))

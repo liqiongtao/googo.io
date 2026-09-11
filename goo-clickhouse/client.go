@@ -1,6 +1,7 @@
 package goo_clickhouse
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"strings"
@@ -33,7 +34,9 @@ func New(conf Config) (cli *Client, err error) {
 		return
 	}
 
-	if err = cli.DB.Ping(); err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(conf.ReadTimeout)*time.Second)
+	defer cancel()
+	if err = cli.DB.PingContext(ctx); err != nil {
 		goo_log.WithTag("goo-clickhouse").Error(err)
 		_ = cli.DB.Close()
 		cli = nil

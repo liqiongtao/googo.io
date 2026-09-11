@@ -69,11 +69,24 @@ func (c *idCode) Decode(str string) (id int64, err error) {
 	keyArr := []rune(c.key)
 
 	l := len(strArr)
+	if l < 2 {
+		err = errors.New("code无效")
+		return
+	}
+
 	n := strings.IndexRune(c.key, strArr[0])
+	if n < 0 {
+		err = errors.New("code无效")
+		return
+	}
 
 	var buf bytes.Buffer
 	for _, s := range strArr[1 : l-1] {
 		pos := strings.IndexRune(c.key, s)
+		if pos < 0 {
+			err = errors.New("code无效")
+			return
+		}
 		if pos >= n {
 			buf.WriteString(strconv.FormatInt(int64(pos-n), 16))
 		} else {

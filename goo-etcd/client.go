@@ -277,6 +277,10 @@ func (cli *Client) registerServiceOnce(ctx context.Context, serviceName, addr st
 			case rsp, ok := <-ch:
 				if !ok || rsp == nil {
 					goo_log.WithTag("goo-etcd").WithField("serviceName", serviceName).WithField("addr", addr).Error("服务注册续租失效")
+					// 先撤销旧 lease，避免 TTL 内双 endpoint
+					rctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+					_, _ = cli.Client.Revoke(rctx, lease.ID)
+					cancel()
 					go func() {
 						for cli.ctx.Err() == nil {
 							err := cli.RegisterServiceTimeout(serviceName, addr, 30*time.Second)

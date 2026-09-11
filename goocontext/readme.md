@@ -7,10 +7,12 @@
 | 档位 | 信号 | 命令 | 框架默认 | 钩子 |
 |------|------|------|----------|------|
 | Restart | `SIGHUP` | `kill -1` | 不 cancel | `OnRestart` → `upg.Upgrade()` |
-| Exit | `SIGTERM` / `SIGINT` / `SIGQUIT` | `kill` / `Ctrl+C` / `kill -3` | 钩子后 `cancel(Root)`（只一次） | `OnExit` |
+| Exit | `SIGTERM` / `SIGINT` / `SIGQUIT` | `kill` / `Ctrl+C` / `kill -3` | 先 `cancel(Root)`，再跑钩子 | `OnExit` |
 | Action | `SIGUSR1` | `kill -USR1` | 无 | `OnSignal`（pprof） |
 
-钩子均异步派发，信号循环不因长 `Shutdown` 卡住；Exit 用 `sync.Once`，重复 TERM/INT/QUIT 只生效一次。进入 Exit 后忽略 HUP/USR*。`cancel(Root)` 仍在 Exit 钩子跑完之后，因此 `<-Root().Done()` 会等优雅退出结束。
+钩子均异步派发，信号循环不因长 `Shutdown` 卡住；Exit 用 `sync.Once`，重复 TERM/INT/QUIT 只生效一次。进入 Exit 后忽略 HUP/USR*。
+
+`Root().Done()` 在收到退出信号时**立刻**触发（先于钩子），便于各组件停止拉新工作。主流程要等 `Shutdown` / `GracefulStop` 完成，请用 `Wait()`，不要只 `<-Root().Done()`。钩子内可安全 `<-Root().Done()`；**勿在钩子内调用 `Wait()`**（会等自己结束 → 死锁）。
 
 **启动顺序**：先 `OnExit`/`OnRestart`，再让其它组件调用 `Root()`（如 `etcd.New`、`RegisterSignal`）。若钩子尚未注册就收到退出信号，会直接 `cancel(Root)`，优雅退出钩子来不及执行。
 
@@ -31,7 +33,7 @@ go func() {
 	<-upg.Exit()
 	_ = syscall.Kill(os.Getpid(), syscall.SIGTERM)
 }()
-<-goocontext.Root().Done()
+goocontext.Wait() // 等 OnExit 钩子跑完，不要只 <-Root().Done()
 ```
 
 ## 请求派生

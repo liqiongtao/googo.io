@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
@@ -31,7 +32,12 @@ func (lu LocalUpload) Upload(c *gin.Context, uploadDir string) *Response {
 
 	md5str := goo_utils.MD5(data)
 	relDir := path.Join(md5str[0:2], md5str[2:4])
-	relFile := path.Join(relDir, path.Base(fh.Filename)+"_"+md5str[8:16]+path.Ext(fh.Filename))
+	// 统一成 / 再取 Base，避免 Windows 风格路径穿越
+	baseName := path.Base(strings.ReplaceAll(fh.Filename, "\\", "/"))
+	if baseName == "." || baseName == "/" || baseName == "" {
+		baseName = "file"
+	}
+	relFile := path.Join(relDir, baseName+"_"+md5str[8:16]+path.Ext(baseName))
 
 	if err := os.MkdirAll(path.Join(uploadDir, relDir), 0755); err != nil {
 		return Error(7003, fmt.Sprintf("上传失败，原因：%s", err.Error()))

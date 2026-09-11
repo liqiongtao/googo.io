@@ -3,6 +3,7 @@ package goo_event
 import (
 	"sync"
 
+	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	"github.com/liqiongtao/googo.io/goocontext"
 )
@@ -54,7 +55,15 @@ func (ev *Event) Subscribe(topic string, fn SubscribeFunc) (unsubscribe func()) 
 			case <-stop:
 				return
 			case msg := <-ch:
-				fn(msg)
+				// 单条回调 panic 不应杀死整个订阅循环
+				func() {
+					defer func() {
+						if r := recover(); r != nil {
+							goo_log.WithTag("goo-event").WithField("topic", topic).Error(r)
+						}
+					}()
+					fn(msg)
+				}()
 			}
 		}
 	})

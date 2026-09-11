@@ -52,7 +52,9 @@ func New(conf Config) (cli *Client, err error) {
 
 	if err = cli.Ping(ctx, readpref.Primary()); err != nil {
 		goo_log.WithTag("goo-mongo").Error(err)
-		_ = cli.Disconnect(context.Background())
+		dctx, dcancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
+		_ = cli.Disconnect(dctx)
+		dcancel()
 		cli = nil
 		return
 	}

@@ -3,9 +3,10 @@ package goo_file
 import (
 	"bufio"
 	"errors"
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	"io"
 	"os"
+
+	goo_log "github.com/liqiongtao/googo.io/goo-log"
 )
 
 // 文件内容对比，输出增加的、减少的内容
@@ -67,6 +68,15 @@ func Compare(srcFile, targetFile, appendFile, reduceFile string) (err error) {
 	r1 = bufio.NewReader(f1)
 	r2 = bufio.NewReader(f2)
 
+	write := func(f *os.File, s string) bool {
+		if _, e := f.WriteString(s); e != nil {
+			err = e
+			goo_log.Error(e)
+			return false
+		}
+		return true
+	}
+
 	var (
 		s1, s2     string
 		end1, end2 bool
@@ -104,7 +114,9 @@ func Compare(srcFile, targetFile, appendFile, reduceFile string) (err error) {
 		}
 
 		if s1 > s2 {
-			f4.WriteString(s2)
+			if !write(f4, s2) {
+				return
+			}
 
 			s2, err = r2.ReadString('\n')
 			if err != nil {
@@ -125,7 +137,9 @@ func Compare(srcFile, targetFile, appendFile, reduceFile string) (err error) {
 		}
 
 		if s1 < s2 {
-			f3.WriteString(s1)
+			if !write(f3, s1) {
+				return
+			}
 
 			s1, err = r1.ReadString('\n')
 			if err != nil {
@@ -149,16 +163,22 @@ func Compare(srcFile, targetFile, appendFile, reduceFile string) (err error) {
 	if end1 && end2 {
 		if s1 != "" && s2 != "" && s1 != s2 {
 			if s1 < s2 {
-				_, _ = f3.WriteString(s1)
-				_, _ = f4.WriteString(s2)
+				if !write(f3, s1) || !write(f4, s2) {
+					return
+				}
 			} else {
-				_, _ = f4.WriteString(s2)
-				_, _ = f3.WriteString(s1)
+				if !write(f4, s2) || !write(f3, s1) {
+					return
+				}
 			}
 		} else if s1 != "" && s2 == "" {
-			_, _ = f3.WriteString(s1)
+			if !write(f3, s1) {
+				return
+			}
 		} else if s2 != "" && s1 == "" {
-			_, _ = f4.WriteString(s2)
+			if !write(f4, s2) {
+				return
+			}
 		}
 		return
 	}
@@ -168,17 +188,23 @@ func Compare(srcFile, targetFile, appendFile, reduceFile string) (err error) {
 		if s1 != "" && s2 != "" {
 			if s1 != s2 {
 				if s1 < s2 {
-					_, _ = f3.WriteString(s1)
-					_, _ = f4.WriteString(s2)
+					if !write(f3, s1) || !write(f4, s2) {
+						return
+					}
 				} else {
-					_, _ = f4.WriteString(s2)
-					_, _ = f3.WriteString(s1)
+					if !write(f4, s2) || !write(f3, s1) {
+						return
+					}
 				}
 			}
 		} else if s1 != "" {
-			_, _ = f3.WriteString(s1)
+			if !write(f3, s1) {
+				return
+			}
 		} else if s2 != "" {
-			_, _ = f4.WriteString(s2)
+			if !write(f4, s2) {
+				return
+			}
 		}
 
 		for {
@@ -186,7 +212,9 @@ func Compare(srcFile, targetFile, appendFile, reduceFile string) (err error) {
 			if err != nil {
 				if io.EOF == err {
 					if s2 != "" {
-						_, _ = f4.WriteString(s2)
+						if !write(f4, s2) {
+							return
+						}
 					}
 					err = nil
 					break
@@ -194,7 +222,9 @@ func Compare(srcFile, targetFile, appendFile, reduceFile string) (err error) {
 				goo_log.Error(err)
 				return
 			}
-			_, _ = f4.WriteString(s2)
+			if !write(f4, s2) {
+				return
+			}
 		}
 		return
 	}
@@ -203,17 +233,23 @@ func Compare(srcFile, targetFile, appendFile, reduceFile string) (err error) {
 		if s1 != "" && s2 != "" {
 			if s1 != s2 {
 				if s1 < s2 {
-					_, _ = f3.WriteString(s1)
-					_, _ = f4.WriteString(s2)
+					if !write(f3, s1) || !write(f4, s2) {
+						return
+					}
 				} else {
-					_, _ = f4.WriteString(s2)
-					_, _ = f3.WriteString(s1)
+					if !write(f4, s2) || !write(f3, s1) {
+						return
+					}
 				}
 			}
 		} else if s2 != "" {
-			_, _ = f4.WriteString(s2)
+			if !write(f4, s2) {
+				return
+			}
 		} else if s1 != "" {
-			_, _ = f3.WriteString(s1)
+			if !write(f3, s1) {
+				return
+			}
 		}
 
 		for {
@@ -221,7 +257,9 @@ func Compare(srcFile, targetFile, appendFile, reduceFile string) (err error) {
 			if err != nil {
 				if io.EOF == err {
 					if s1 != "" {
-						_, _ = f3.WriteString(s1)
+						if !write(f3, s1) {
+							return
+						}
 					}
 					err = nil
 					break
@@ -229,7 +267,9 @@ func Compare(srcFile, targetFile, appendFile, reduceFile string) (err error) {
 				goo_log.Error(err)
 				return
 			}
-			_, _ = f3.WriteString(s1)
+			if !write(f3, s1) {
+				return
+			}
 		}
 		return
 	}

@@ -55,21 +55,12 @@ func (g group) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.Co
 				if err == nil {
 					break
 				}
-				// 另一实例持锁：不 Mark、不退出 claim，等 1s 再试本条，避免无谓 rebalance
-				if errors.Is(err, errConcurrentConsume) {
-					select {
-					case <-session.Context().Done():
-						return nil
-					case <-time.After(time.Second):
-					}
-					continue
-				}
+				// 处理失败不退出 claim（否则整 session 结束触发 rebalance）；等 1s 再试本条
 				select {
 				case <-session.Context().Done():
 					return nil
 				case <-time.After(time.Second):
 				}
-				return err
 			}
 		}
 	}
@@ -114,7 +105,8 @@ func (g group) doHandler(msg *sarama.ConsumerMessage, session sarama.ConsumerGro
 		if key != "" {
 			uniqKey = consumeLockKey(g.id, msg.Topic, key)
 		} else {
-			uniqKey = consumeLockKey(g.id, msg.Topic, goo_utils.MD5([]byte(g.id+msg.Topic+string(msg.Value))))
+			// 无 Key 时用分区+offset，避免相同 payload 误互斥
+			uniqKey = consumeLockKey(g.id, msg.Topic, fmt.Sprintf("%d-%d", msg.Partition, msg.Offset))
 		}
 		if g.cli.redis != nil {
 			ok, setErr := g.cli.redis.SetNX(uniqKey, goo_utils.M{

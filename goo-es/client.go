@@ -18,8 +18,7 @@ func (c *ESClient) Client() *elasticsearch.Client {
 }
 
 func (c *ESClient) Debug() *ESClient {
-	c.showLog = true
-	return c
+	return &ESClient{cli: c.cli, showLog: true}
 }
 
 func (c *ESClient) log() *goo_log.Entry {

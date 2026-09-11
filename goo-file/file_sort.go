@@ -82,7 +82,10 @@ func FileSort(filename, sortedFile string) (err error) {
 			sort.Strings(data)
 
 			for _, s := range data {
-				fh.WriteString(s)
+				if _, err = fh.WriteString(s); err != nil {
+					goo_log.Error(err)
+					return
+				}
 			}
 
 			goo_log.DebugF("产生一个文件：%s", partFile)
