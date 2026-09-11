@@ -1,4 +1,4 @@
-package goo_grpc
+package googrpc
 
 import (
 	"context"

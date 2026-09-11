@@ -4,28 +4,28 @@ import (
 	"context"
 	"time"
 
-	goo_etcd "github.com/liqiongtao/googo.io/goo-etcd"
-	goo_grpc "github.com/liqiongtao/googo.io/goo-grpc"
+	"github.com/liqiongtao/googo.io/goo-context"
+	gooetcd "github.com/liqiongtao/googo.io/goo-etcd"
+	googrpc "github.com/liqiongtao/googo.io/goo-grpc"
 	pb_grpc_v1 "github.com/liqiongtao/googo.io/goo-grpc/test/proto"
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goolog "github.com/liqiongtao/googo.io/goo-log"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
-	"github.com/liqiongtao/googo.io/goocontext"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
 func main() {
-	cli, err := goo_etcd.New(goo_etcd.Config{
+	cli, err := gooetcd.New(gooetcd.Config{
 		Endpoints: []string{"127.0.0.1:2379"},
 	})
 	if err != nil {
 		panic(err)
 	}
 
-	cc, err := goo_grpc.DialContextWithEtcd(context.TODO(), "my-grpc", cli)
+	cc, err := googrpc.DialContextWithEtcd(context.TODO(), "my-grpc", cli)
 	if err != nil {
-		goo_log.Error(err)
+		goolog.Error(err)
 		return
 	}
 
@@ -38,12 +38,12 @@ func main() {
 
 			rsp, err := c.GetName(ctx, &pb_grpc_v1.GetName_Request{Name: "hnatao"})
 			if s := status.Convert(err); s.Code() != codes.OK {
-				goo_log.Error("request error", s.Message())
+				goolog.Error("request error", s.Message())
 				time.Sleep(time.Second)
 				continue
 			}
 
-			goo_log.Info(rsp.Name)
+			goolog.Info(rsp.Name)
 		}
 	})
 

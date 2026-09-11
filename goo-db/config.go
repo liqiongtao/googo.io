@@ -1,4 +1,4 @@
-package goo_db
+package goodb
 
 type Config struct {
 	Name        string   `yaml:"name" json:"name"`

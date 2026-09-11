@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goolog "github.com/liqiongtao/googo.io/goo-log"
 )
 
 type PProf struct {
@@ -54,11 +54,11 @@ func (pp *PProf) Start() error {
 	defer pp.mu.Unlock()
 
 	if pp.flag {
-		goo_log.WithTag("goo-pprof").Info("正在执行")
+		goolog.WithTag("goo-pprof").Info("正在执行")
 		return nil
 	}
 
-	goo_log.WithTag("goo-pprof").Info("开始执行")
+	goolog.WithTag("goo-pprof").Info("开始执行")
 
 	// 开启对锁调用的跟踪
 	runtime.SetMutexProfileFraction(1)
@@ -67,7 +67,7 @@ func (pp *PProf) Start() error {
 
 	// 仅启动 CPU 采样；memory/goroutine/mutex/block 在 Stop 时写入，此时才有有效样本
 	if err := pp.startCPU(); err != nil {
-		goo_log.WithTag("goo-pprof").Error(err)
+		goolog.WithTag("goo-pprof").Error(err)
 		runtime.SetMutexProfileFraction(0)
 		runtime.SetBlockProfileRate(0)
 		return err
@@ -103,7 +103,7 @@ func (pp *PProf) Stop() {
 	pp.closeFH(&pp.mutexFH)
 	pp.closeFH(&pp.blockFH)
 
-	goo_log.WithTag("goo-pprof").InfoF(
+	goolog.WithTag("goo-pprof").InfoF(
 		"执行结束:\n%s\n%s\n%s\n%s\n%s",
 		pp.memoryFile, pp.cpuFile, pp.goroutineFile, pp.blockFile, pp.mutexFile,
 	)
@@ -133,7 +133,7 @@ func (pp *PProf) startCPU() error {
 func (pp *PProf) writeMemory() {
 	var err error
 	if pp.memoryFH, err = os.Create(pp.memoryFile); err != nil {
-		goo_log.WithTag("goo-pprof").Error(err)
+		goolog.WithTag("goo-pprof").Error(err)
 		return
 	}
 	runtime.GC()
@@ -143,7 +143,7 @@ func (pp *PProf) writeMemory() {
 func (pp *PProf) writeGoroutine() {
 	var err error
 	if pp.goroutineFH, err = os.Create(pp.goroutineFile); err != nil {
-		goo_log.WithTag("goo-pprof").Error(err)
+		goolog.WithTag("goo-pprof").Error(err)
 		return
 	}
 	if prof := pprof.Lookup("goroutine"); prof != nil {
@@ -154,7 +154,7 @@ func (pp *PProf) writeGoroutine() {
 func (pp *PProf) writeMutex() {
 	var err error
 	if pp.mutexFH, err = os.Create(pp.mutexFile); err != nil {
-		goo_log.WithTag("goo-pprof").Error(err)
+		goolog.WithTag("goo-pprof").Error(err)
 		return
 	}
 	if prof := pprof.Lookup("mutex"); prof != nil {
@@ -165,7 +165,7 @@ func (pp *PProf) writeMutex() {
 func (pp *PProf) writeBlock() {
 	var err error
 	if pp.blockFH, err = os.Create(pp.blockFile); err != nil {
-		goo_log.WithTag("goo-pprof").Error(err)
+		goolog.WithTag("goo-pprof").Error(err)
 		return
 	}
 	if prof := pprof.Lookup("block"); prof != nil {

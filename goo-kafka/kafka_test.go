@@ -1,4 +1,4 @@
-package goo_kafka
+package gookafka
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	goo_redis "github.com/liqiongtao/googo.io/goo-redis"
+	gooredis "github.com/liqiongtao/googo.io/goo-redis"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 )
 
@@ -48,7 +48,7 @@ func (t *TestMessage) Deserialize(b []byte) {
 }
 
 func TestProducer(t *testing.T) {
-	redis, _ := goo_redis.New(goo_redis.Config{
+	redis, _ := gooredis.New(gooredis.Config{
 		Addr:     "redis.in:20063",
 		Password: "",
 		DB:       0,
@@ -71,7 +71,7 @@ func TestConsumer(t *testing.T) {
 		User:     "admin",
 		Password: "",
 		Addrs:    []string{"kafka.in:20092"},
-		RedisConfig: goo_redis.Config{
+		RedisConfig: gooredis.Config{
 			Addr:     "redis.in:20063",
 			Password: "",
 			DB:       0,

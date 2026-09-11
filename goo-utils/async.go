@@ -6,13 +6,13 @@ import (
 	"sync"
 	"time"
 
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goolog "github.com/liqiongtao/googo.io/goo-log"
 )
 
 // 捕获panic
 func Recovery() {
 	if r := recover(); r != nil {
-		goo_log.Error(r)
+		goolog.Error(r)
 	}
 }
 

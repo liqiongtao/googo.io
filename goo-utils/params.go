@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goolog "github.com/liqiongtao/googo.io/goo-log"
 )
 
 type Byte []byte
@@ -31,7 +31,7 @@ func Json2Params(b []byte) (p Params, err error) {
 	}
 
 	if err = json.Unmarshal(b, &p.data); err != nil {
-		goo_log.WithField("params", string(b)).Error(err)
+		goolog.WithField("params", string(b)).Error(err)
 	}
 	return
 }

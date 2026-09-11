@@ -1,11 +1,11 @@
-package goo_event
+package gooevent
 
 import (
 	"sync"
 
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	"github.com/liqiongtao/googo.io/goo-context"
+	goolog "github.com/liqiongtao/googo.io/goo-log"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
-	"github.com/liqiongtao/googo.io/goocontext"
 )
 
 type Event struct {
@@ -31,7 +31,7 @@ func (ev *Event) Publish(topic string, data any) {
 				case ch <- msg:
 				default:
 					// 订阅方处理过慢时丢弃，避免永久阻塞发布 goroutine
-					goo_log.WithTag("goo-event").WithField("topic", topic).Warn("订阅 channel 已满，丢弃消息")
+					goolog.WithTag("goo-event").WithField("topic", topic).Warn("订阅 channel 已满，丢弃消息")
 				}
 			}
 		})
@@ -60,7 +60,7 @@ func (ev *Event) Subscribe(topic string, fn SubscribeFunc) (unsubscribe func()) 
 				func() {
 					defer func() {
 						if r := recover(); r != nil {
-							goo_log.WithTag("goo-event").WithField("topic", topic).Error(r)
+							goolog.WithTag("goo-event").WithField("topic", topic).Error(r)
 						}
 					}()
 					fn(msg)

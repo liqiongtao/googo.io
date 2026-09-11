@@ -1,4 +1,4 @@
-package goo_etcd
+package gooetcd
 
 import (
 	"errors"
@@ -42,7 +42,7 @@ func requireClient() (*Client, error) {
 	cli := __client
 	__mu.RUnlock()
 	if cli == nil {
-		return nil, errors.New("etcd not initialized, call goo_etcd.Init first")
+		return nil, errors.New("etcd not initialized, call gooetcd.Init first")
 	}
 	return cli, nil
 }

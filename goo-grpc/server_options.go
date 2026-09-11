@@ -1,9 +1,9 @@
-package goo_grpc
+package googrpc
 
 import (
 	"time"
 
-	goo_etcd "github.com/liqiongtao/googo.io/goo-etcd"
+	gooetcd "github.com/liqiongtao/googo.io/goo-etcd"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 )
@@ -73,7 +73,7 @@ func newDefaultServerOptions(cfg Config) serverOptions {
 type serverOptions struct {
 	AuthFunc AuthFunc
 
-	EtcdClient    *goo_etcd.Client
+	EtcdClient    *gooetcd.Client
 	Register2Etcd bool
 
 	ServerOptions []grpc.ServerOption

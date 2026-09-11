@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"time"
 
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goolog "github.com/liqiongtao/googo.io/goo-log"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -45,13 +45,13 @@ func New(conf Config) (cli *Client, err error) {
 
 	cli.Client, err = mongo.Connect(ctx, opts)
 	if err != nil {
-		goo_log.WithTag("goo-mongo").Error(err)
+		goolog.WithTag("goo-mongo").Error(err)
 		cli = nil
 		return
 	}
 
 	if err = cli.Ping(ctx, readpref.Primary()); err != nil {
-		goo_log.WithTag("goo-mongo").Error(err)
+		goolog.WithTag("goo-mongo").Error(err)
 		dctx, dcancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
 		_ = cli.Disconnect(dctx)
 		dcancel()

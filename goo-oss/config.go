@@ -1,4 +1,4 @@
-package goo_oss
+package goooss
 
 import (
 	"fmt"

@@ -1,11 +1,11 @@
-package goo_db
+package goodb
 
 import (
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goolog "github.com/liqiongtao/googo.io/goo-log"
 	"xorm.io/xorm"
 )
 
@@ -24,13 +24,13 @@ func New(conf Config) (cli *Client, err error) {
 
 	cli.EngineGroup, err = xorm.NewEngineGroup(conf.Driver, conns)
 	if err != nil {
-		goo_log.WithTag("goo-db").Error(err)
+		goolog.WithTag("goo-db").Error(err)
 		cli = nil
 		return
 	}
 
 	if err = cli.Ping(); err != nil {
-		goo_log.WithTag("goo-db").Error(err)
+		goolog.WithTag("goo-db").Error(err)
 		_ = cli.Close()
 		cli = nil
 		return

@@ -6,15 +6,15 @@ import (
 	"sync"
 	"time"
 
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
-	goo_redis "github.com/liqiongtao/googo.io/goo-redis"
+	"github.com/liqiongtao/googo.io/goo-context"
+	goolog "github.com/liqiongtao/googo.io/goo-log"
+	gooredis "github.com/liqiongtao/googo.io/goo-redis"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
-	"github.com/liqiongtao/googo.io/goocontext"
 	"github.com/robfig/cron/v3"
 )
 
 type CronTask struct {
-	r            *goo_redis.Client
+	r            *gooredis.Client
 	c            *cron.Cron
 	key          string
 	code2EntryId sync.Map
@@ -57,7 +57,7 @@ func (c *CronTask) Run() {
 	c.c.Start()
 
 	<-ctx.Done()
-	goo_log.WithTag("goo-cron").Debug("系统退出，等待全部任务执行结束...")
+	goolog.WithTag("goo-cron").Debug("系统退出，等待全部任务执行结束...")
 
 	for _, entry := range c.c.Entries() {
 		c.c.Remove(entry.ID)
@@ -65,19 +65,19 @@ func (c *CronTask) Run() {
 
 	<-c.c.Stop().Done()
 	c.wg.Wait()
-	goo_log.WithTag("goo-cron").Debug("系统退出成功，全部任务执行结束")
+	goolog.WithTag("goo-cron").Debug("系统退出成功，全部任务执行结束")
 }
 
 func (c *CronTask) execTask(task *TaskData) {
 	defer func() {
 		if r := recover(); r != nil {
-			goo_log.WithTag("goo-cron").WithField("task", task).Error(r)
+			goolog.WithTag("goo-cron").WithField("task", task).Error(r)
 		}
 	}()
 
 	handler, ok := c.code2Func[task.Code]
 	if !ok {
-		goo_log.WithTag("goo-cron").WithField("task", task).Warn("no task handler")
+		goolog.WithTag("goo-cron").WithField("task", task).Warn("no task handler")
 		return
 	}
 
@@ -133,18 +133,18 @@ func (c *CronTask) Subscribe(ctx context.Context) {
 
 	for {
 		if ctx.Err() != nil {
-			goo_log.WithTag("goo-cron").Info("定时任务订阅服务退出")
+			goolog.WithTag("goo-cron").Info("定时任务订阅服务退出")
 			return
 		}
 
 		sub := c.r.Subscribe(c.key)
-		goo_log.WithTag("goo-cron").WithField("key", c.key).Info("定时任务订阅已建立")
+		goolog.WithTag("goo-cron").WithField("key", c.key).Info("定时任务订阅已建立")
 
 		for running := true; running; {
 			select {
 			case <-ctx.Done():
 				_ = sub.Close()
-				goo_log.WithTag("goo-cron").Info("定时任务订阅服务退出")
+				goolog.WithTag("goo-cron").Info("定时任务订阅服务退出")
 				return
 
 			case msg, ok := <-sub.Channel():
@@ -156,21 +156,21 @@ func (c *CronTask) Subscribe(ctx context.Context) {
 					continue
 				}
 				if msg.Payload == "" {
-					goo_log.WithTag("goo-cron").WithField("msg", msg).Warn("payload is empty")
+					goolog.WithTag("goo-cron").WithField("msg", msg).Warn("payload is empty")
 					continue
 				}
 
 				task, err := ConvertTaskData(msg.Payload)
 				if err != nil {
-					goo_log.WithTag("goo-cron").WithField("payload", msg.Payload).ErrorF("convert cron task data err: %v", err)
+					goolog.WithTag("goo-cron").WithField("payload", msg.Payload).ErrorF("convert cron task data err: %v", err)
 					continue
 				}
 				if err = task.Valid(); err != nil {
-					goo_log.WithTag("goo-cron").WithField("task", task).ErrorF("validate cron task data err: %v", err)
+					goolog.WithTag("goo-cron").WithField("task", task).ErrorF("validate cron task data err: %v", err)
 					continue
 				}
 
-				goo_log.WithTag("goo-cron").WithField("task", task).Info("receive message")
+				goolog.WithTag("goo-cron").WithField("task", task).Info("receive message")
 
 				switch task.Status {
 				case TaskStatusDelete: // 删除任务
@@ -178,7 +178,7 @@ func (c *CronTask) Subscribe(ctx context.Context) {
 
 				case TaskStatusCreate, TaskStatusUpdate: // 添加、更新任务
 					if err := c.Add(task); err != nil {
-						goo_log.WithTag("goo-cron").WithField("task", task).ErrorF("add cron task err: %v", err)
+						goolog.WithTag("goo-cron").WithField("task", task).ErrorF("add cron task err: %v", err)
 					}
 
 				case TaskStatusExecute: // 立即执行（拷贝指针，避免异步晚于下一条消息执行时用到错误的 task）
@@ -189,10 +189,10 @@ func (c *CronTask) Subscribe(ctx context.Context) {
 		}
 
 		_ = sub.Close()
-		goo_log.WithTag("goo-cron").Warn("定时任务订阅通道关闭，1s 后重连")
+		goolog.WithTag("goo-cron").Warn("定时任务订阅通道关闭，1s 后重连")
 		select {
 		case <-ctx.Done():
-			goo_log.WithTag("goo-cron").Info("定时任务订阅服务退出")
+			goolog.WithTag("goo-cron").Info("定时任务订阅服务退出")
 			return
 		case <-time.After(time.Second):
 		}

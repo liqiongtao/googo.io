@@ -5,7 +5,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/liqiongtao/googo.io/goocontext"
+	"github.com/liqiongtao/googo.io/goo-context"
 	"golang.org/x/sync/singleflight"
 )
 

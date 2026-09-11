@@ -4,22 +4,22 @@ import (
 	"context"
 	"time"
 
-	goo_etcd "github.com/liqiongtao/googo.io/goo-etcd"
-	goo_grpc "github.com/liqiongtao/googo.io/goo-grpc"
+	"github.com/liqiongtao/googo.io/goo-context"
+	gooetcd "github.com/liqiongtao/googo.io/goo-etcd"
+	googrpc "github.com/liqiongtao/googo.io/goo-grpc"
 	pb_grpc_v1 "github.com/liqiongtao/googo.io/goo-grpc/test/proto"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
-	"github.com/liqiongtao/googo.io/goocontext"
 )
 
 func main() {
-	cli, err := goo_etcd.New(goo_etcd.Config{
+	cli, err := gooetcd.New(gooetcd.Config{
 		Endpoints: []string{"127.0.0.1:2379"},
 	})
 	if err != nil {
 		panic(err)
 	}
 
-	s := goo_grpc.New(goo_grpc.Config{
+	s := googrpc.New(googrpc.Config{
 		ServiceName:     "my-grpc",
 		ServiceEndpoint: "my.grpc",
 		Addr:            "127.0.0.1:10011",

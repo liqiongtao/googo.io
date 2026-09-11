@@ -1,8 +1,8 @@
-package goo_etcd
+package gooetcd
 
 import (
 	"fmt"
-	"github.com/liqiongtao/googo.io/goocontext"
+	"github.com/liqiongtao/googo.io/goo-context"
 	"log"
 	"testing"
 	"time"

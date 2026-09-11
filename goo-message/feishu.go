@@ -15,7 +15,6 @@ import (
 var (
 	__fieShuCH   chan struct{}
 	__feiShuOnce sync.Once
-	__feiShuMu   sync.Mutex
 )
 
 func FeiShu(hookUrl string, text string) error {

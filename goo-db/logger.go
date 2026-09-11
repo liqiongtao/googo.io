@@ -1,17 +1,17 @@
-package goo_db
+package goodb
 
 import (
 	"fmt"
 	"strings"
 
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goolog "github.com/liqiongtao/googo.io/goo-log"
 	"xorm.io/xorm/log"
 )
 
 type logger struct {
 	showSQL  bool
 	LogLevel log.LogLevel
-	l        *goo_log.Logger
+	l        *goolog.Logger
 }
 
 func newLogger(logFilePath string) *logger {
@@ -19,7 +19,7 @@ func newLogger(logFilePath string) *logger {
 		logFilePath = "logs/sql/"
 	}
 	return &logger{
-		l: goo_log.NewFileLog(goo_log.FilePathOption(logFilePath)),
+		l: goolog.NewFileLog(goolog.FilePathOption(logFilePath)),
 	}
 }
 

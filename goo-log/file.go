@@ -1,4 +1,4 @@
-package goo_log
+package goolog
 
 import (
 	"fmt"

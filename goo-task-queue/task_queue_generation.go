@@ -1,4 +1,4 @@
-package goo_task_queue
+package gootaskqueue
 
 import (
 	"errors"
@@ -27,7 +27,7 @@ return 1
 	allArgs := append([]any{strconv.FormatInt(expectGen, 10)}, args...)
 	res, err := t.r.Eval(script, keys, allArgs...).Result()
 	if err != nil {
-		if errors.Is(err, goo_redis.ErrNil) {
+		if errors.Is(err, gooredis.ErrNil) {
 			return false, nil
 		}
 		return false, err
@@ -250,7 +250,7 @@ return 1
 		t.TaskFailKey,
 	}, task.Id, strconv.FormatInt(nextRunAtMs, 10), score, defaultMaxRetry, infoTTLSecUntil(nextRunAtMs)).Result()
 	if err != nil {
-		if errors.Is(err, goo_redis.ErrNil) {
+		if errors.Is(err, gooredis.ErrNil) {
 			return nil
 		}
 		t.log().WithTag("requeueOrFail").WithField("task_id", task.Id).Error(err)

@@ -1,4 +1,4 @@
-package goo_mail
+package goomail
 
 import (
 	"bytes"

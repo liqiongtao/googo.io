@@ -1,4 +1,4 @@
-package goo_grpc
+package googrpc
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goolog "github.com/liqiongtao/googo.io/goo-log"
 	pb_goo_v1 "github.com/liqiongtao/googo.io/goo-proto/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
@@ -18,7 +18,7 @@ func clientUnaryInterceptorLog() grpc.UnaryClientInterceptor {
 	return func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 		err := invoker(ctx, method, req, reply, cc, opts...)
 		if err != nil {
-			//log := goo_log.WithTag("goo-grpc").WithField("method", method).WithField("req", req)
+			//log := goolog.WithTag("goo-grpc").WithField("method", method).WithField("req", req)
 			//if md, ok := metadata.FromIncomingContext(ctx); ok {
 			//	log.WithField("metadata", md)
 			//}
@@ -33,7 +33,7 @@ func clientStreamInterceptorLog() grpc.StreamClientInterceptor {
 	return func(ctx context.Context, desc *grpc.StreamDesc, cc *grpc.ClientConn, method string, streamer grpc.Streamer, opts ...grpc.CallOption) (grpc.ClientStream, error) {
 		stream, err := streamer(ctx, desc, cc, method, opts...)
 		if err != nil {
-			//log := goo_log.WithTag("goo-grpc").WithField("method", method).WithField("desc", desc)
+			//log := goolog.WithTag("goo-grpc").WithField("method", method).WithField("desc", desc)
 			//if md, ok := metadata.FromIncomingContext(ctx); ok {
 			//	log.WithField("metadata", md)
 			//}
@@ -46,7 +46,7 @@ func clientStreamInterceptorLog() grpc.StreamClientInterceptor {
 // 服务端 - 单向拦截器 - 日志
 func serverUnaryInterceptorLog(noLogMethods map[string]struct{}) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
-		log := goo_log.WithTag("goo-grpc").WithField("method", info.FullMethod)
+		log := goolog.WithTag("goo-grpc").WithField("method", info.FullMethod)
 
 		if v, ok := req.(*pb_goo_v1.Request); ok {
 			var vv any
@@ -111,7 +111,7 @@ func serverUnaryInterceptorLog(noLogMethods map[string]struct{}) grpc.UnaryServe
 // 服务端 - 流式拦截器 - 日志
 func serverStreamInterceptorLog(noLogMethods map[string]struct{}) grpc.StreamServerInterceptor {
 	return func(srv any, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) (err error) {
-		log := goo_log.WithTag("goo-grpc").WithField("method", info.FullMethod)
+		log := goolog.WithTag("goo-grpc").WithField("method", info.FullMethod)
 
 		if md, ok := metadata.FromIncomingContext(ss.Context()); ok {
 			log = log.WithField("metadata", md)

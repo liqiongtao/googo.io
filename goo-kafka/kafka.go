@@ -1,9 +1,9 @@
-package goo_kafka
+package gookafka
 
 import (
 	"sync"
 
-	goo_redis "github.com/liqiongtao/googo.io/goo-redis"
+	gooredis "github.com/liqiongtao/googo.io/goo-redis"
 )
 
 var (
@@ -29,7 +29,7 @@ func New(conf Config, opts ...Option) (*Client, error) {
 	for _, opt := range opts {
 		switch opt.Name {
 		case RedisName:
-			c.redis = opt.Value.(*goo_redis.Client)
+			c.redis = opt.Value.(*gooredis.Client)
 		}
 	}
 	if err := c.init(); err != nil {

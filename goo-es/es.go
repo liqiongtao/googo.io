@@ -1,4 +1,4 @@
-package goo_es
+package gooes
 
 import (
 	"net"
@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/elastic/go-elasticsearch/v7"
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goolog "github.com/liqiongtao/googo.io/goo-log"
 )
 
 var (
@@ -47,7 +47,7 @@ func New(conf Config) (*ESClient, error) {
 
 	cli, err := elasticsearch.NewClient(cfg)
 	if err != nil {
-		goo_log.WithTag("goo-es").
+		goolog.WithTag("goo-es").
 			WithField("addresses", conf.Addresses).
 			WithField("user", conf.User).
 			Error(err)

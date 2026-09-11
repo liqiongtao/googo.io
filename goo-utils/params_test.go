@@ -8,7 +8,7 @@ import (
 func TestJson2Params(t *testing.T) {
 	str := `{"name":"hnatao"}`
 
-	arr := []Params{}
+	var arr []Params
 
 	for i := 0; i < 3; i++ {
 		p, _ := Json2Params([]byte(str))

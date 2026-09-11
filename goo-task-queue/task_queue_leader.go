@@ -1,4 +1,4 @@
-package goo_task_queue
+package gootaskqueue
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goolog "github.com/liqiongtao/googo.io/goo-log"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 )
 
@@ -231,6 +231,6 @@ return 0`
 	return err == nil && n == 1
 }
 
-func (l *TaskQueueLeader) log() *goo_log.Entry {
-	return goo_log.WithTag("goo-task-queue-leader", l.pid)
+func (l *TaskQueueLeader) log() *goolog.Entry {
+	return goolog.WithTag("goo-task-queue-leader", l.pid)
 }

@@ -1,4 +1,4 @@
-package goo_mail
+package goomail
 
 type Config struct {
 	Username string `json:"username" yaml:"username"`

@@ -1,4 +1,4 @@
-package goo_xlsx
+package gooxlsx
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goolog "github.com/liqiongtao/googo.io/goo-log"
 	"github.com/xuri/excelize/v2"
 )
 
@@ -101,11 +101,11 @@ func (x *xlsxWrite) SetMergeCellValue(left, right string, value any, styles ...*
 	}
 
 	if err := x.Handler().MergeCell(x.sheetName, left, right); err != nil {
-		goo_log.Error(err)
+		goolog.Error(err)
 		return err
 	}
 	if err := x.Handler().SetCellValue(x.sheetName, left, value); err != nil {
-		goo_log.Error(err)
+		goolog.Error(err)
 		return err
 	}
 
@@ -124,7 +124,7 @@ func (x *xlsxWrite) SetTitles(titles []string, styles ...*excelize.Style) error 
 	left := fmt.Sprintf("A%d", x.RowNum())
 
 	if err := x.Handler().SetSheetRow(x.sheetName, left, &titles); err != nil {
-		goo_log.Error(err)
+		goolog.Error(err)
 		return err
 	}
 
@@ -148,7 +148,7 @@ func (x *xlsxWrite) SetData(data []any, styles ...*excelize.Style) error {
 	left := fmt.Sprintf("A%d", x.RowNum())
 
 	if err := x.Handler().SetSheetRow(x.sheetName, left, &data); err != nil {
-		goo_log.Error(err)
+		goolog.Error(err)
 		return err
 	}
 
@@ -173,7 +173,7 @@ func (x *xlsxWrite) SetRows(data [][]any, styles ...*excelize.Style) *xlsxWrite 
 		left := fmt.Sprintf("A%d", x.RowNum())
 
 		if err := x.Handler().SetSheetRow(x.sheetName, left, &i); err != nil {
-			goo_log.Error(err)
+			goolog.Error(err)
 			continue
 		}
 
@@ -209,7 +209,7 @@ func (x *xlsxWrite) Save2File(filename string) (err error) {
 	defer func() { _ = x.Handler().Close() }()
 
 	if err = x.Handler().SaveAs(filename); err != nil {
-		goo_log.Error(err)
+		goolog.Error(err)
 		return
 	}
 

@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/liqiongtao/googo.io/goo"
-	goo_file "github.com/liqiongtao/googo.io/goo-file"
-	goo_oss "github.com/liqiongtao/googo.io/goo-oss"
+	goofile "github.com/liqiongtao/googo.io/goo-file"
+	goooss "github.com/liqiongtao/googo.io/goo-oss"
 )
 
 // go build -ldflags "-s -w" -o oss
@@ -31,7 +31,7 @@ func main() {
 		return
 	}
 
-	conf := goo_oss.Config{
+	conf := goooss.Config{
 		AccessKeyId:     *AccessKeyIdFlag,
 		AccessKeySecret: *AccessKeySecretFlag,
 		Endpoint:        *EndpointFlag,
@@ -39,7 +39,7 @@ func main() {
 		Domain:          *DomainFlag,
 	}
 
-	up, err := goo_oss.New(conf)
+	up, err := goooss.New(conf)
 	if err != nil {
 		fmt.Println(err.Error())
 		return
@@ -52,7 +52,7 @@ func main() {
 			continue
 		}
 
-		md5str, err := goo_file.MD5(filePath)
+		md5str, err := goofile.MD5(filePath)
 		if err != nil {
 			fmt.Println(err)
 			continue

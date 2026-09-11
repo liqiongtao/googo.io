@@ -1,9 +1,9 @@
-package goo_file
+package goofile
 
 import (
 	"bufio"
 	"errors"
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goolog "github.com/liqiongtao/googo.io/goo-log"
 	"io"
 	"os"
 )
@@ -15,7 +15,7 @@ func ReadByLine(filename string, cb func(b []byte, end bool) error) error {
 
 	f, err := os.OpenFile(filename, os.O_RDONLY, 0)
 	if err != nil {
-		goo_log.Error(err)
+		goolog.Error(err)
 		return err
 	}
 	defer f.Close()
@@ -32,7 +32,7 @@ func ReadByLine(filename string, cb func(b []byte, end bool) error) error {
 				return cb(b, true)
 			}
 
-			goo_log.Error(err)
+			goolog.Error(err)
 			return err
 		}
 

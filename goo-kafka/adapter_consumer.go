@@ -1,4 +1,4 @@
-package goo_kafka
+package gookafka
 
 import (
 	"context"
@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/IBM/sarama"
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	"github.com/liqiongtao/googo.io/goo-context"
+	goolog "github.com/liqiongtao/googo.io/goo-log"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
-	"github.com/liqiongtao/googo.io/goocontext"
 )
 
 type consumer struct {
@@ -57,7 +57,7 @@ func (c *consumer) WithOffsetOldest() IConsumer {
 
 // 消费消息，默认处理最新消息
 func (c *consumer) Consume(topic string, handler ConsumerHandler) {
-	log := goo_log.WithTag("goo-kafka-consumer").WithField("topic", topic)
+	log := goolog.WithTag("goo-kafka-consumer").WithField("topic", topic)
 
 	consumer, err := sarama.NewConsumerFromClient(c.Client())
 	if err != nil {
@@ -105,7 +105,7 @@ func (c *consumer) Consume(topic string, handler ConsumerHandler) {
 	wg.Wait()
 }
 
-func (c *consumer) consumePartition(topic string, pc sarama.PartitionConsumer, handler ConsumerHandler, log *goo_log.Entry) {
+func (c *consumer) consumePartition(topic string, pc sarama.PartitionConsumer, handler ConsumerHandler, log *goolog.Entry) {
 	for {
 		select {
 		case <-goocontext.Root().Done():
@@ -159,7 +159,7 @@ func (c *consumer) consumePartition(topic string, pc sarama.PartitionConsumer, h
 
 // 分组
 func (c *consumer) ConsumeGroup(groupId string, topics []string, handler ConsumerHandler) {
-	l := goo_log.WithTag("goo-kafka-consumer-group").
+	l := goolog.WithTag("goo-kafka-consumer-group").
 		WithField("groupId", groupId).
 		WithField("topics", topics)
 

@@ -1,4 +1,4 @@
-package goo_task_queue
+package gootaskqueue
 
 import (
 	"fmt"
@@ -7,15 +7,15 @@ import (
 	"strconv"
 	"time"
 
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
-	goo_redis "github.com/liqiongtao/googo.io/goo-redis"
+	goolog "github.com/liqiongtao/googo.io/goo-log"
+	gooredis "github.com/liqiongtao/googo.io/goo-redis"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 )
 
 type TaskQueue struct {
 	pid        string
 	instanceId string
-	r          *goo_redis.Client
+	r          *gooredis.Client
 
 	*TaskQueueKeys
 	*TaskQueueCount
@@ -29,7 +29,7 @@ type TaskQueue struct {
 	MaxMemoryPercent float64
 }
 
-func New(r *goo_redis.Client) *TaskQueue {
+func New(r *gooredis.Client) *TaskQueue {
 	if r == nil {
 		return nil
 	}
@@ -88,6 +88,6 @@ func (q *TaskQueue) Subscribe(limit int, handler TaskQueueHandler) {
 	q.TaskQueueSubscriber.Subscribe(limit, handler)
 }
 
-func (q *TaskQueue) log() *goo_log.Entry {
-	return goo_log.WithTag("goo-task-queue", q.pid)
+func (q *TaskQueue) log() *goolog.Entry {
+	return goolog.WithTag("goo-task-queue", q.pid)
 }

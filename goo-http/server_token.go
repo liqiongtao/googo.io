@@ -1,9 +1,9 @@
-package goo_http
+package goohttp
 
 import (
 	"encoding/json"
 	"errors"
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goolog "github.com/liqiongtao/googo.io/goo-log"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	"time"
 )
@@ -40,7 +40,7 @@ func CreateToken(appId string, openid int64) (tokenStr string, err error) {
 
 	encBuf, err = goo_utils.AESCBCEncrypt(token.Bytes(), []byte(key), []byte(iv))
 	if err != nil {
-		goo_log.Error(err.Error())
+		goolog.Error(err.Error())
 		return
 	}
 
@@ -58,13 +58,13 @@ func ParseToken(tokenStr, appId string) (token *Token, err error) {
 
 	b, err = goo_utils.AESCBCDecrypt(tokenBuf, []byte(key), []byte(iv))
 	if err != nil {
-		goo_log.Error(err.Error())
+		goolog.Error(err.Error())
 		return
 	}
 
 	token = new(Token)
 	if err = json.Unmarshal(b, token); err != nil {
-		goo_log.Error(err.Error())
+		goolog.Error(err.Error())
 		return
 	}
 	if token.AppId != appId {

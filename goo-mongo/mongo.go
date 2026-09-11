@@ -3,7 +3,7 @@ package goo_mongo
 import (
 	"sync"
 
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goolog "github.com/liqiongtao/googo.io/goo-log"
 )
 
 var (
@@ -49,7 +49,7 @@ func GetClient(names ...string) *Client {
 		}
 	}
 
-	goo_log.WithTag("goo-mongo").ErrorF("mongo client not found: %s", name)
+	goolog.WithTag("goo-mongo").ErrorF("mongo client not found: %s", name)
 	return nil
 }
 
@@ -67,6 +67,6 @@ func Default() *Client {
 		}
 	}
 
-	goo_log.WithTag("goo-mongo").Error("no default mongo client")
+	goolog.WithTag("goo-mongo").Error("no default mongo client")
 	return nil
 }

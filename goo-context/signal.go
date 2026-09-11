@@ -8,7 +8,7 @@ import (
 	"sync/atomic"
 	"syscall"
 
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goolog "github.com/liqiongtao/googo.io/goo-log"
 )
 
 // 信号分档（全进程只 Notify 一次；钩子异步派发，不堵接收循环）：
@@ -63,7 +63,7 @@ func runHooks(sig os.Signal) {
 		func(fn func()) {
 			defer func() {
 				if r := recover(); r != nil {
-					goo_log.Error(r)
+					goolog.Error(r)
 				}
 			}()
 			fn()
@@ -92,7 +92,7 @@ func Root() context.Context {
 		go func() {
 			defer func() {
 				if r := recover(); r != nil {
-					goo_log.Error(r)
+					goolog.Error(r)
 				}
 			}()
 

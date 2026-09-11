@@ -94,14 +94,14 @@ Leader
 ### 发布任务
 
 ```go
-r, _ := goo_redis.New(goo_redis.Config{
+r, _ := gooredis.New(gooredis.Config{
     Addr:   "127.0.0.1:6379",
     Prefix: "myapp",
 })
 
-q := goo_task_queue.New(r)
+q := gootaskqueue.New(r)
 
-err := q.Publish(&goo_task_queue.Task{
+err := q.Publish(&gootaskqueue.Task{
     Id:           "order-1001",
     Type:         "order.notify",
     Payload:      `{"order_id":1001}`,
@@ -115,10 +115,10 @@ err := q.Publish(&goo_task_queue.Task{
 ### 消费任务（业务控制重试延迟）
 
 ```go
-q.Subscribe(4, func(ctx context.Context, task *goo_task_queue.Task) error {
+q.Subscribe(4, func(ctx context.Context, task *gootaskqueue.Task) error {
     if err := doWork(ctx, task); err != nil {
         // 限流等场景：2 分钟后再试（业务不感知 Redis/score）
-        return goo_task_queue.RetryAfter(2*time.Minute, err)
+        return gootaskqueue.RetryAfter(2*time.Minute, err)
     }
     return nil
 })

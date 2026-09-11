@@ -1,4 +1,4 @@
-package goo_event
+package gooevent
 
 type Message struct {
 	Topic string

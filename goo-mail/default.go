@@ -1,4 +1,4 @@
-package goo_mail
+package goomail
 
 import (
 	"errors"
@@ -22,7 +22,7 @@ func Send(msg Message) error {
 	m := __mail
 	__mu.RUnlock()
 	if m == nil {
-		return errors.New("mail not initialized, call goo_mail.Init first")
+		return errors.New("mail not initialized, call goomail.Init first")
 	}
 	return m.Send(msg)
 }

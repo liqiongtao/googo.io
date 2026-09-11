@@ -1,10 +1,10 @@
-package goo_task_queue
+package gootaskqueue
 
 import (
 	"context"
 	"errors"
 	"fmt"
-	goo_redis "github.com/liqiongtao/googo.io/goo-redis"
+	gooredis "github.com/liqiongtao/googo.io/goo-redis"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	"math/rand"
 	"os"
@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	redisConfig = goo_redis.Config{
+	redisConfig = gooredis.Config{
 		Addr:   "127.0.0.1:6379",
 		DB:     0,
 		Prefix: "test",
@@ -21,7 +21,7 @@ var (
 )
 
 func TestTaskQueue_Publish(t *testing.T) {
-	r, err := goo_redis.New(redisConfig)
+	r, err := gooredis.New(redisConfig)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -41,7 +41,7 @@ func TestTaskQueue_Publish(t *testing.T) {
 }
 
 func TestTaskQueue_Subscribe(t *testing.T) {
-	r, err := goo_redis.New(redisConfig)
+	r, err := gooredis.New(redisConfig)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -59,7 +59,7 @@ func TestTaskQueue_Subscribe(t *testing.T) {
 }
 
 func TestTaskQueue_Subscribe2(t *testing.T) {
-	r, err := goo_redis.New(redisConfig)
+	r, err := gooredis.New(redisConfig)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -77,7 +77,7 @@ func TestTaskQueue_Subscribe2(t *testing.T) {
 }
 
 func TestTaskQueue_TaskCount(t *testing.T) {
-	r, err := goo_redis.New(redisConfig)
+	r, err := gooredis.New(redisConfig)
 	if err != nil {
 		fmt.Println(err)
 		return

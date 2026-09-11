@@ -2,12 +2,12 @@ package goo_cos
 
 import (
 	"fmt"
-	goo_redis "github.com/liqiongtao/googo.io/goo-redis"
+	gooredis "github.com/liqiongtao/googo.io/goo-redis"
 	"testing"
 )
 
 func TestCosClient(t *testing.T) {
-	redis, _ := goo_redis.New(goo_redis.Config{
+	redis, _ := gooredis.New(gooredis.Config{
 		Addr:     "",
 		Password: "",
 		DB:       0,

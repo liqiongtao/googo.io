@@ -1,4 +1,4 @@
-package goo_task_queue
+package gootaskqueue
 
 import "fmt"
 

@@ -1,9 +1,9 @@
-package goo_db
+package goodb
 
 import (
 	"sync"
 
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goolog "github.com/liqiongtao/googo.io/goo-log"
 )
 
 var (
@@ -49,7 +49,7 @@ func GetClient(names ...string) *Client {
 		}
 	}
 
-	goo_log.WithTag("goo-db").ErrorF("db client not found: %s", name)
+	goolog.WithTag("goo-db").ErrorF("db client not found: %s", name)
 	return nil
 }
 
@@ -67,6 +67,6 @@ func Default() *Client {
 		}
 	}
 
-	goo_log.WithTag("goo-db").Error("no default db client")
+	goolog.WithTag("goo-db").Error("no default db client")
 	return nil
 }

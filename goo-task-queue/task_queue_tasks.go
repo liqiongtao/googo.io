@@ -1,4 +1,4 @@
-package goo_task_queue
+package gootaskqueue
 
 import (
 	"errors"
@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"time"
 
+	goolog "github.com/liqiongtao/googo.io/goo-log"
 	"github.com/liqiongtao/googo.io/goo-redis"
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
 )
 
 type TaskQueueTasks struct {
@@ -39,7 +39,7 @@ return {member, tostring(gen)}
 
 	result, err := t.r.Eval(luaScript, keys, args...).Result()
 	if err != nil {
-		if errors.Is(err, goo_redis.ErrNil) {
+		if errors.Is(err, gooredis.ErrNil) {
 			return nil, nil
 		}
 		t.log().WithTag("getOneTask").Error(err)
@@ -127,6 +127,6 @@ func (t *TaskQueueTasks) taskExists(taskId string) (bool, error) {
 	return n > 0, nil
 }
 
-func (t *TaskQueueTasks) log() *goo_log.Entry {
-	return goo_log.WithTag("goo-task-queue-tasks", t.pid)
+func (t *TaskQueueTasks) log() *goolog.Entry {
+	return goolog.WithTag("goo-task-queue-tasks", t.pid)
 }

@@ -1,9 +1,9 @@
-package goo_file
+package goofile
 
 import (
 	"bufio"
 	"fmt"
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goolog "github.com/liqiongtao/googo.io/goo-log"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	"io"
 	"os"
@@ -97,7 +97,7 @@ func fileGroupMerge(file string, filesArr [][]string) (files, tempFiles []string
 		files = append(files, _file)
 		tempFiles = append(tempFiles, _file)
 
-		goo_log.DebugF("文件合并，临时文件: %s", _file)
+		goolog.DebugF("文件合并，临时文件: %s", _file)
 
 		func(_file string, _files []string) {
 			goo_utils.AsyncFunc(func() {
@@ -125,7 +125,7 @@ func fileMergeHandler(file string, files []string) (err error) {
 
 	fh, err = os.OpenFile(file, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0644)
 	if err != nil {
-		goo_log.Error(err)
+		goolog.Error(err)
 		return
 	}
 	defer fh.Close()
@@ -147,7 +147,7 @@ func fileMergeHandler(file string, files []string) (err error) {
 
 		f, err = os.OpenFile(_file, os.O_RDONLY, 0644)
 		if err != nil {
-			goo_log.Error(err)
+			goolog.Error(err)
 			return
 		}
 
@@ -177,7 +177,7 @@ func fileMergeHandler(file string, files []string) (err error) {
 					data[s] = n
 					break
 				}
-				goo_log.Error(err)
+				goolog.Error(err)
 				return
 			}
 			if strings.TrimSpace(s) == "" {
@@ -213,7 +213,7 @@ func fileMergeHandler(file string, files []string) (err error) {
 			strs = append(strs, str)
 			if l := len(strs); l >= 1000 {
 				if _, err = fh.WriteString(strings.Join(strs, "")); err != nil {
-					goo_log.Error(err)
+					goolog.Error(err)
 					return
 				}
 				strs = []string{}
@@ -242,7 +242,7 @@ func fileMergeHandler(file string, files []string) (err error) {
 					data[s] = n
 					break
 				}
-				goo_log.Error(err)
+				goolog.Error(err)
 				return
 			}
 			if strings.TrimSpace(s) == "" {
@@ -258,7 +258,7 @@ func fileMergeHandler(file string, files []string) (err error) {
 
 	if l := len(strs); l > 0 {
 		if _, err = fh.WriteString(strings.Join(strs, "")); err != nil {
-			goo_log.Error(err)
+			goolog.Error(err)
 			return
 		}
 	}

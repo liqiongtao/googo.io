@@ -1,4 +1,4 @@
-package goo_file
+package goofile
 
 import (
 	"errors"
@@ -8,7 +8,7 @@ import (
 	"strings"
 	"sync"
 
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goolog "github.com/liqiongtao/googo.io/goo-log"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 )
 
@@ -71,7 +71,7 @@ func FileSplit(filename string, maxLine int) (files []string, err error) {
 					partFile := partFilename(base, ext, partNum)
 					fh, openErr := os.OpenFile(partFile, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0644)
 					if openErr != nil {
-						goo_log.Error(openErr)
+						goolog.Error(openErr)
 						setErr(openErr)
 						return
 					}
@@ -79,13 +79,13 @@ func FileSplit(filename string, maxLine int) (files []string, err error) {
 
 					for _, s := range data {
 						if _, werr := fh.WriteString(s); werr != nil {
-							goo_log.Error(werr)
+							goolog.Error(werr)
 							setErr(werr)
 							return
 						}
 					}
 
-					goo_log.DebugF("产生一个文件: %s", partFile)
+					goolog.DebugF("产生一个文件: %s", partFile)
 
 					mu.Lock()
 					parts[partNum] = partFile

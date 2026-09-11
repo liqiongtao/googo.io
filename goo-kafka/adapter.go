@@ -1,4 +1,4 @@
-package goo_kafka
+package gookafka
 
 import "github.com/IBM/sarama"
 

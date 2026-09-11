@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goolog "github.com/liqiongtao/googo.io/goo-log"
 	"google.golang.org/grpc/metadata"
 )
 
@@ -137,9 +137,9 @@ func WithDeadline(ctx context.Context, d time.Time) (context.Context, context.Ca
 	return context.WithDeadline(Default(ctx), d)
 }
 
-func Log(ctx context.Context) *goo_log.Entry {
+func Log(ctx context.Context) *goolog.Entry {
 	ctx = Default(ctx)
-	log := goo_log.WithField("trace-id", TraceId(ctx))
+	log := goolog.WithField("trace-id", TraceId(ctx))
 
 	if v := ServiceName(ctx); v != "" {
 		log = log.WithField("service-name", v)

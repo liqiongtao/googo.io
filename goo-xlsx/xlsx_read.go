@@ -1,16 +1,17 @@
-package goo_xlsx
+package gooxlsx
 
 import (
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
-	"github.com/xuri/excelize/v2"
 	"io"
 	"os"
+
+	goolog "github.com/liqiongtao/googo.io/goo-log"
+	"github.com/xuri/excelize/v2"
 )
 
 func ReadBySheet(r io.Reader, sheet string, fn func(n int, row []string) error) error {
 	xlsx, err := excelize.OpenReader(r)
 	if err != nil {
-		goo_log.Error(err)
+		goolog.Error(err)
 		return err
 	}
 	defer xlsx.Close()
@@ -21,7 +22,7 @@ func ReadBySheet(r io.Reader, sheet string, fn func(n int, row []string) error) 
 
 	rows, err := xlsx.Rows(sheet)
 	if err != nil {
-		goo_log.Error(err)
+		goolog.Error(err)
 		return err
 	}
 	defer rows.Close()
@@ -31,7 +32,7 @@ func ReadBySheet(r io.Reader, sheet string, fn func(n int, row []string) error) 
 		n++
 		row, err := rows.Columns()
 		if err != nil {
-			goo_log.Error(err)
+			goolog.Error(err)
 			return err
 		}
 		if err = fn(n, row); err != nil {
@@ -39,7 +40,7 @@ func ReadBySheet(r io.Reader, sheet string, fn func(n int, row []string) error) 
 		}
 	}
 	if err := rows.Error(); err != nil {
-		goo_log.Error(err)
+		goolog.Error(err)
 		return err
 	}
 
@@ -53,7 +54,7 @@ func Read(r io.Reader, fn func(n int, row []string) error) error {
 func ReadFile(file string, fn func(n int, row []string) error) error {
 	h, err := os.Open(file)
 	if err != nil {
-		goo_log.Error(err)
+		goolog.Error(err)
 		return err
 	}
 	defer h.Close()

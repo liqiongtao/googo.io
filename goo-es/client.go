@@ -1,11 +1,11 @@
-package goo_es
+package gooes
 
 import (
 	"context"
 
 	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/elastic/go-elasticsearch/v7/esapi"
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goolog "github.com/liqiongtao/googo.io/goo-log"
 )
 
 type ESClient struct {
@@ -21,8 +21,8 @@ func (c *ESClient) Debug() *ESClient {
 	return &ESClient{cli: c.cli, showLog: true}
 }
 
-func (c *ESClient) log() *goo_log.Entry {
-	return goo_log.WithTag("goo-es")
+func (c *ESClient) log() *goolog.Entry {
+	return goolog.WithTag("goo-es")
 }
 
 func (c *ESClient) exec(req esapi.Request) (*esapi.Response, error) {

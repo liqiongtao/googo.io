@@ -5,8 +5,8 @@ import (
 	"sync"
 	"syscall"
 
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
-	"github.com/liqiongtao/googo.io/goocontext"
+	"github.com/liqiongtao/googo.io/goo-context"
+	goolog "github.com/liqiongtao/googo.io/goo-log"
 )
 
 var (
@@ -24,7 +24,7 @@ func StartDefault() {
 	}
 	pp := New("logs")
 	if err := pp.Start(); err != nil {
-		goo_log.WithTag("goo-pprof").Error(err)
+		goolog.WithTag("goo-pprof").Error(err)
 		return
 	}
 	currentPP = pp
@@ -48,23 +48,23 @@ func Toggle() {
 	if currentPP != nil {
 		currentPP.Stop()
 		currentPP = nil
-		goo_log.WithTag("goo-pprof").Info("pprof 已停止")
+		goolog.WithTag("goo-pprof").Info("pprof 已停止")
 		return
 	}
 	pp := New("logs")
 	if err := pp.Start(); err != nil {
-		goo_log.WithTag("goo-pprof").Error(err)
+		goolog.WithTag("goo-pprof").Error(err)
 		return
 	}
 	currentPP = pp
-	goo_log.WithTag("goo-pprof").Info("pprof 已开始")
+	goolog.WithTag("goo-pprof").Info("pprof 已开始")
 }
 
 // RegisterSignal 全进程只注册一次：SIGUSR1 → Toggle。
 func RegisterSignal() {
 	signalOnce.Do(func() {
 		goocontext.OnSignal(syscall.SIGUSR1, Toggle)
-		goo_log.InfoF("pprof 已注册，切换分析: kill -USR1 %d", os.Getpid())
+		goolog.InfoF("pprof 已注册，切换分析: kill -USR1 %d", os.Getpid())
 	})
 }
 

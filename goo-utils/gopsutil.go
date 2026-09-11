@@ -3,7 +3,7 @@ package goo_utils
 import (
 	"errors"
 
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goolog "github.com/liqiongtao/googo.io/goo-log"
 	"github.com/shirou/gopsutil/v3/disk"
 	"github.com/shirou/gopsutil/v3/mem"
 )
@@ -12,7 +12,7 @@ import (
 func MemoryUsedPercent() (float64, error) {
 	v, err := mem.VirtualMemory()
 	if err != nil {
-		goo_log.Error(err)
+		goolog.Error(err)
 		return 0, err
 	}
 	if v.Total == 0 {
@@ -25,7 +25,7 @@ func MemoryUsedPercent() (float64, error) {
 func Memory() (float64, float64, float64, float64, error) {
 	v, err := mem.VirtualMemory()
 	if err != nil {
-		goo_log.Error(err)
+		goolog.Error(err)
 		return 0, 0, 0, 0, err
 	}
 	if v.Total == 0 {
@@ -43,7 +43,7 @@ func Memory() (float64, float64, float64, float64, error) {
 func Disk() (float64, float64, float64, float64, error) {
 	v, err := disk.Usage("/")
 	if err != nil {
-		goo_log.Error(err)
+		goolog.Error(err)
 		return 0, 0, 0, 0, err
 	}
 	const gb = 1024 * 1024 * 1024

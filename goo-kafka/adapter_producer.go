@@ -1,4 +1,4 @@
-package goo_kafka
+package gookafka
 
 import (
 	"errors"
@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/IBM/sarama"
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goolog "github.com/liqiongtao/googo.io/goo-log"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 )
 
@@ -41,7 +41,7 @@ func (p *producer) SendMessage(msg IMessage) (partition int32, offset int64, err
 	}
 
 	defer func() {
-		log := goo_log.WithTag("goo-kafka-producer").WithField("msg", goo_utils.M{
+		log := goolog.WithTag("goo-kafka-producer").WithField("msg", goo_utils.M{
 			"topic":     msg.Topic(),
 			"key":       msg.Key(),
 			"headers":   msg.Headers(),
@@ -100,7 +100,7 @@ func (p *producer) SendAsyncMessage(msg IMessage, cb MessageHandler) (err error)
 	}
 
 	defer func() {
-		log := goo_log.WithTag("goo-kafka-producer").WithField("msg", goo_utils.M{
+		log := goolog.WithTag("goo-kafka-producer").WithField("msg", goo_utils.M{
 			"topic":     msg.Topic(),
 			"key":       msg.Key(),
 			"headers":   msg.Headers(),

@@ -1,34 +1,34 @@
-package goo_grpc
+package googrpc
 
 import (
 	"context"
 	"fmt"
 	"time"
 
-	goo_etcd "github.com/liqiongtao/googo.io/goo-etcd"
+	gooetcd "github.com/liqiongtao/googo.io/goo-etcd"
 	"go.etcd.io/etcd/client/v3/naming/resolver"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 )
 
-func DialWithEtcd(serviceName string, cli *goo_etcd.Client, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
+func DialWithEtcd(serviceName string, cli *gooetcd.Client, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
 	return dialWithEtcd(context.Background(), serviceName, cli, true, false, opts...)
 }
 
 // DialSecureWithEtcd 不注入 insecure，由调用方提供 WithTransportCredentials。
-func DialSecureWithEtcd(serviceName string, cli *goo_etcd.Client, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
+func DialSecureWithEtcd(serviceName string, cli *gooetcd.Client, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
 	return dialWithEtcd(context.Background(), serviceName, cli, false, false, opts...)
 }
 
-func DialContextWithEtcd(ctx context.Context, serviceName string, cli *goo_etcd.Client, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
+func DialContextWithEtcd(ctx context.Context, serviceName string, cli *gooetcd.Client, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
 	return dialWithEtcd(ctx, serviceName, cli, true, true, opts...)
 }
 
-func DialContextSecureWithEtcd(ctx context.Context, serviceName string, cli *goo_etcd.Client, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
+func DialContextSecureWithEtcd(ctx context.Context, serviceName string, cli *gooetcd.Client, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
 	return dialWithEtcd(ctx, serviceName, cli, false, true, opts...)
 }
 
-func dialWithEtcd(ctx context.Context, serviceName string, cli *goo_etcd.Client, insecure, withCtx bool, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
+func dialWithEtcd(ctx context.Context, serviceName string, cli *gooetcd.Client, insecure, withCtx bool, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
 	if cli == nil || cli.Client == nil {
 		return nil, fmt.Errorf("etcd client is nil")
 	}

@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goolog "github.com/liqiongtao/googo.io/goo-log"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 )
 
@@ -209,7 +209,7 @@ func (r *Request) handle(method, url string, data []byte) (rsp []byte, err error
 func (r *Request) handleWithHeaders(method, url string, data []byte, extraHeaders map[string]string) (rsp []byte, err error) {
 	rsp, err = r.do(method, url, bytes.NewReader(data), extraHeaders)
 	if r.debug {
-		l := goo_log.WithTag(TAG).
+		l := goolog.WithTag(TAG).
 			WithField("method", method).
 			WithField("url", url).
 			WithField("header", r.Headers).
@@ -361,7 +361,7 @@ func (r *Request) Download(url, filename string) (err error) {
 		if !r.debug {
 			return
 		}
-		l := goo_log.WithTag(TAG).WithField("url", url).WithField("file", filename)
+		l := goolog.WithTag(TAG).WithField("url", url).WithField("file", filename)
 		if err != nil {
 			l.Error("下载失败", err)
 			return

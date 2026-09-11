@@ -1,4 +1,4 @@
-package goo_log
+package goolog
 
 var defaultFileOptions = fileOptions{
 	Filepath:     "logs/",
@@ -57,4 +57,3 @@ func FileDropWhenFullOption(drop bool) FileOption {
 		options.DropWhenFull = drop
 	})
 }
-

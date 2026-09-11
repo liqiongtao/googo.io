@@ -1,4 +1,4 @@
-package goo_xlsx
+package gooxlsx
 
 import (
 	"testing"

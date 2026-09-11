@@ -1,4 +1,4 @@
-package goo_grpc
+package googrpc
 
 import (
 	"errors"
@@ -11,10 +11,10 @@ import (
 	"time"
 
 	"github.com/cloudflare/tableflip"
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	"github.com/liqiongtao/googo.io/goo-context"
+	goolog "github.com/liqiongtao/googo.io/goo-log"
 	goo_pprof "github.com/liqiongtao/googo.io/goo-pprof"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
-	"github.com/liqiongtao/googo.io/goocontext"
 	"google.golang.org/grpc"
 )
 
@@ -69,13 +69,13 @@ func New(conf Config, opt ...ServerOption) *Server {
 func (s *Server) Serve() (err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			goo_log.WithTag("goo-grpc").Error(r)
+			goolog.WithTag("goo-grpc").Error(r)
 		}
 	}()
 
 	s.upg, err = tableflip.New(tableflip.Options{})
 	if err != nil {
-		goo_log.WithTag("goo-grpc").Error(err)
+		goolog.WithTag("goo-grpc").Error(err)
 		return
 	}
 	defer s.upg.Stop()
@@ -85,7 +85,7 @@ func (s *Server) Serve() (err error) {
 		var localIp string
 		localIp, err = goo_utils.LocalIP()
 		if err != nil {
-			goo_log.WithTag("goo-grpc").Error(err)
+			goolog.WithTag("goo-grpc").Error(err)
 			return
 		}
 
@@ -104,7 +104,7 @@ func (s *Server) Serve() (err error) {
 
 	s.lis, err = s.upg.Listen("tcp", s.conf.Addr)
 	if err != nil {
-		goo_log.WithTag("goo-grpc").Error(err)
+		goolog.WithTag("goo-grpc").Error(err)
 		return
 	}
 
@@ -115,12 +115,12 @@ func (s *Server) Serve() (err error) {
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
-				goo_log.WithTag("goo-grpc").Error(r)
+				goolog.WithTag("goo-grpc").Error(r)
 			}
 		}()
 
 		if serveErr := s.Server.Serve(s.lis); serveErr != nil {
-			goo_log.WithTag("goo-grpc").Error(serveErr)
+			goolog.WithTag("goo-grpc").Error(serveErr)
 			serveErrCh <- serveErr
 		}
 	}()
@@ -130,7 +130,7 @@ func (s *Server) Serve() (err error) {
 		cli := s.opts.EtcdClient
 		if cli == nil {
 			err = fmt.Errorf("Register2Etcd enabled but etcd client is nil")
-			goo_log.WithTag("goo-grpc").Error(err)
+			goolog.WithTag("goo-grpc").Error(err)
 			s.gracefulStop()
 			return
 		}
@@ -140,14 +140,14 @@ func (s *Server) Serve() (err error) {
 			_, port, perr := net.SplitHostPort(address)
 			if perr != nil {
 				err = fmt.Errorf("parse listen addr %q: %w", address, perr)
-				goo_log.WithTag("goo-grpc").Error(err)
+				goolog.WithTag("goo-grpc").Error(err)
 				s.gracefulStop()
 				return
 			}
 			regAddr = net.JoinHostPort(s.conf.ServiceEndpoint, port)
 		}
 		if err = cli.RegisterServiceTimeout(s.conf.ServiceName, regAddr, 30*time.Second); err != nil {
-			goo_log.WithTag("goo-grpc").Error(err)
+			goolog.WithTag("goo-grpc").Error(err)
 			s.gracefulStop()
 			return
 		}
@@ -157,7 +157,7 @@ func (s *Server) Serve() (err error) {
 
 	// 通知父进程：本进程已就绪可接管
 	if readyErr := s.upg.Ready(); readyErr != nil {
-		goo_log.WithTag("goo-grpc").Error(readyErr)
+		goolog.WithTag("goo-grpc").Error(readyErr)
 	}
 
 	// 父进程在子进程 Ready 后会收到 Exit，走统一优雅退出路径
@@ -191,15 +191,15 @@ func (s *Server) registerSignalHooks() {
 			}
 			defer s.restartMu.Unlock()
 			if err := s.upg.Upgrade(); err != nil {
-				goo_log.WithTag("goo-grpc").Error(err)
+				goolog.WithTag("goo-grpc").Error(err)
 				return
 			}
-			goo_log.WithTag("goo-grpc").Warn("服务重启")
+			goolog.WithTag("goo-grpc").Warn("服务重启")
 		})
 		goocontext.OnExit(func() {
 			goo_pprof.StopDefault()
 			s.gracefulStop()
-			goo_log.WithTag("goo-grpc").Warn("服务退出")
+			goolog.WithTag("goo-grpc").Warn("服务退出")
 		})
 	})
 }
@@ -215,12 +215,12 @@ func (s *Server) gracefulStop() {
 		select {
 		case <-done:
 		case <-time.After(30 * time.Second):
-			goo_log.WithTag("goo-grpc").Warn("GracefulStop 超时，强制 Stop")
+			goolog.WithTag("goo-grpc").Warn("GracefulStop 超时，强制 Stop")
 			s.Server.Stop()
 		}
 		if s.lis != nil {
 			if err := s.lis.Close(); err != nil && !errors.Is(err, net.ErrClosed) {
-				goo_log.WithTag("goo-grpc").Error(err)
+				goolog.WithTag("goo-grpc").Error(err)
 			}
 		}
 	})
@@ -229,8 +229,8 @@ func (s *Server) gracefulStop() {
 func (s *Server) storePID() {
 	pid := fmt.Sprintf("%d", os.Getpid())
 	if err := os.WriteFile(".pid", []byte(pid), 0644); err != nil {
-		goo_log.WithTag("goo-grpc").Error(fmt.Sprintf("server store pid err: %s", err.Error()))
+		goolog.WithTag("goo-grpc").Error(fmt.Sprintf("server store pid err: %s", err.Error()))
 		return
 	}
-	goo_log.WithTag("goo-grpc").DebugF("server is running, address=%s, pid=%s", s.lis.Addr(), pid)
+	goolog.WithTag("goo-grpc").DebugF("server is running, address=%s, pid=%s", s.lis.Addr(), pid)
 }

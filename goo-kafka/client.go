@@ -1,4 +1,4 @@
-package goo_kafka
+package gookafka
 
 import (
 	"fmt"
@@ -6,14 +6,14 @@ import (
 
 	"github.com/IBM/sarama"
 	"github.com/google/uuid"
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
-	goo_redis "github.com/liqiongtao/googo.io/goo-redis"
+	goolog "github.com/liqiongtao/googo.io/goo-log"
+	gooredis "github.com/liqiongtao/googo.io/goo-redis"
 )
 
 type Client struct {
 	conf Config
 	sarama.Client
-	redis *goo_redis.Client
+	redis *gooredis.Client
 }
 
 func (c *Client) init() (err error) {
@@ -73,16 +73,16 @@ func (c *Client) init() (err error) {
 
 	c.Client, err = sarama.NewClient(c.conf.Addrs, config)
 	if err != nil {
-		goo_log.WithTag("goo-kafka").Error(err)
+		goolog.WithTag("goo-kafka").Error(err)
 		return
 	}
 
 	if c.redis == nil {
 		if cfg := c.conf.RedisConfig; cfg.Addr != "" {
 			var redisErr error
-			c.redis, redisErr = goo_redis.New(cfg)
+			c.redis, redisErr = gooredis.New(cfg)
 			if redisErr != nil {
-				goo_log.WithTag("goo-kafka").Error("Redis 初始化失败", redisErr)
+				goolog.WithTag("goo-kafka").Error("Redis 初始化失败", redisErr)
 				c.redis = nil
 				_ = c.Client.Close()
 				c.Client = nil
@@ -122,7 +122,7 @@ func consumeLockKey(groupId, topic, key string) string {
 	return fmt.Sprintf("goo:kafka:lock:%s:%s:%s", groupId, topic, key)
 }
 
-func (c *Client) Redis() *goo_redis.Client {
+func (c *Client) Redis() *gooredis.Client {
 	return c.redis
 }
 
@@ -147,7 +147,7 @@ func (c *Client) Consumer() IConsumer {
 func (c *Client) Topics() []string {
 	topics, err := c.Client.Topics()
 	if err != nil {
-		goo_log.WithTag("goo-kafka").Error(err)
+		goolog.WithTag("goo-kafka").Error(err)
 		return []string{}
 	}
 
@@ -158,7 +158,7 @@ func (c *Client) Topics() []string {
 func (c *Client) Partitions(topic string) []int32 {
 	partitions, err := c.Client.Partitions(topic)
 	if err != nil {
-		goo_log.WithTag("goo-kafka").WithField("topic", topic).Error(err)
+		goolog.WithTag("goo-kafka").WithField("topic", topic).Error(err)
 		return []int32{}
 	}
 
@@ -175,7 +175,7 @@ func (c *Client) OffsetInfo(topic, groupId string) (data []map[string]int64) {
 	}
 
 	var (
-		l = goo_log.WithTag("goo-kafka").WithField("groupId", groupId).WithField("topic", topic)
+		l = goolog.WithTag("goo-kafka").WithField("groupId", groupId).WithField("topic", topic)
 	)
 
 	om, err := sarama.NewOffsetManagerFromClient(groupId, c.Client)

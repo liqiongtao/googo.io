@@ -1,4 +1,4 @@
-package goo_kafka
+package gookafka
 
 import (
 	"encoding/json"
@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/IBM/sarama"
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	"github.com/liqiongtao/googo.io/goo-context"
+	goolog "github.com/liqiongtao/googo.io/goo-log"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
-	"github.com/liqiongtao/googo.io/goocontext"
 )
 
 var errConcurrentConsume = errors.New("concurrent consume")
@@ -46,7 +46,7 @@ func (g group) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.Co
 				func() {
 					defer func() {
 						if r := recover(); r != nil {
-							goo_log.WithTag("goo-kafka-consumer-group", g.id).Error(r)
+							goolog.WithTag("goo-kafka-consumer-group", g.id).Error(r)
 							err = fmt.Errorf("panic: %v", r)
 						}
 					}()

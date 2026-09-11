@@ -1,4 +1,4 @@
-package goo_grpc
+package googrpc
 
 const (
 	MaxRecvMsgSize = 100 * 1024 * 1024

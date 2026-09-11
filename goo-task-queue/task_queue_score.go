@@ -1,4 +1,4 @@
-package goo_task_queue
+package gootaskqueue
 
 // priorityScore 计算 pending 队列 score：
 // - 整数部分 / 主体：下次可执行时间（毫秒时间戳），支持延迟到未来

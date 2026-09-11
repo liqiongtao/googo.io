@@ -1,11 +1,11 @@
-package goo_task_queue
+package gootaskqueue
 
 import (
 	"encoding/json"
 	"strconv"
 	"time"
 
-	goo_redis "github.com/liqiongtao/googo.io/goo-redis"
+	gooredis "github.com/liqiongtao/googo.io/goo-redis"
 )
 
 const (
@@ -35,7 +35,7 @@ type Task struct {
 	Generation   int64  `json:"generation,omitempty"`    // 执行代数（抢占时分配，收尾校验用，业务勿写）
 }
 
-func getTaskByCache(r *goo_redis.Client, key string) (*Task, error) {
+func getTaskByCache(r *gooredis.Client, key string) (*Task, error) {
 	m, err := r.HGetAll(key).Result()
 	if err != nil {
 		return nil, err

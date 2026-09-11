@@ -1,12 +1,12 @@
-package goo_task_queue
+package gootaskqueue
 
 import (
 	"errors"
 	"fmt"
 	"time"
 
+	goolog "github.com/liqiongtao/googo.io/goo-log"
 	"github.com/liqiongtao/googo.io/goo-redis"
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
 )
 
 type TaskQueuePublisher struct {
@@ -51,7 +51,7 @@ func (p *TaskQueuePublisher) Publish(tasks ...*Task) error {
 		pi.HMSet(ctx, infoKey, task.MapData())
 		pi.HIncrBy(ctx, infoKey, "generation", 1) // 使旧执行收尾失效
 		pi.Expire(ctx, infoKey, time.Duration(infoTTLSecUntil(task.Ts))*time.Second)
-		pi.ZAdd(ctx, p.TaskPendingKey, goo_redis.Z{Score: score, Member: task.Id})
+		pi.ZAdd(ctx, p.TaskPendingKey, gooredis.Z{Score: score, Member: task.Id})
 		pi.ZRem(ctx, p.TaskProcessingKey, task.Id) // 执行中重投：摘掉 processing
 		pi.ZRem(ctx, p.TaskFailKey, task.Id)
 	}
@@ -66,6 +66,6 @@ func (p *TaskQueuePublisher) Publish(tasks ...*Task) error {
 	return nil
 }
 
-func (p *TaskQueuePublisher) log() *goo_log.Entry {
-	return goo_log.WithTag("goo-task-queue-publish", p.pid)
+func (p *TaskQueuePublisher) log() *goolog.Entry {
+	return goolog.WithTag("goo-task-queue-publish", p.pid)
 }

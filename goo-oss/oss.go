@@ -1,4 +1,4 @@
-package goo_oss
+package goooss
 
 import (
 	"bytes"
@@ -11,7 +11,7 @@ import (
 	"sync"
 
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goolog "github.com/liqiongtao/googo.io/goo-log"
 )
 
 var (
@@ -35,7 +35,7 @@ func requireOSS() (*Uploader, error) {
 	o := __oss
 	__mu.RUnlock()
 	if o == nil {
-		return nil, errors.New("oss not initialized, call goo_oss.Init first")
+		return nil, errors.New("oss not initialized, call goooss.Init first")
 	}
 	return o, nil
 }
@@ -145,18 +145,18 @@ func GetAppendPosition(objectKey string) (int64, error) {
 			}
 		}
 
-		goo_log.Error(err.Error())
+		goolog.Error(err.Error())
 		return 0, err
 	}
 
 	if hd == nil {
-		goo_log.Error("httpHeader is nil")
+		goolog.Error("httpHeader is nil")
 		return 0, fmt.Errorf("httpHeader is nil")
 	}
 
 	position, err := strconv.ParseInt(hd.Get("x-oss-next-append-position"), 10, 64)
 	if err != nil {
-		goo_log.Error(err.Error())
+		goolog.Error(err.Error())
 		return 0, err
 	}
 

@@ -1,4 +1,4 @@
-package goo_es
+package gooes
 
 type Config struct {
 	Addresses []string `json:"addresses" yaml:"addresses"`

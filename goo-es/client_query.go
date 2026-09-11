@@ -1,10 +1,10 @@
-package goo_es
+package gooes
 
 import (
 	"bytes"
 	"io"
 
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goolog "github.com/liqiongtao/googo.io/goo-log"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 )
 
@@ -15,7 +15,7 @@ func (c *ESClient) Loop(index []string, filter []goo_utils.M, fn func(p goo_util
 		l := len(list)
 
 		if c.showLog {
-			goo_log.Debug("[ES]", "查询数量", l, n, n*size, size)
+			goolog.Debug("[ES]", "查询数量", l, n, n*size, size)
 		}
 
 		if l == 0 {
@@ -24,7 +24,7 @@ func (c *ESClient) Loop(index []string, filter []goo_utils.M, fn func(p goo_util
 
 		for _, i := range list {
 			if err := fn(i); err != nil {
-				goo_log.Error("[ES]", err, i)
+				goolog.Error("[ES]", err, i)
 				return
 			}
 		}
@@ -44,25 +44,25 @@ func (c *ESClient) Query(index []string, filter []goo_utils.M, offset, size int)
 
 	res, err := c.Search(index, m.Json())
 	if err != nil {
-		goo_log.Error("[ES]", err)
+		goolog.Error("[ES]", err)
 		return 0, []goo_utils.Params{}
 	}
 	defer res.Body.Close()
 
 	if res.IsError() {
-		goo_log.Error("[ES]", res.String())
+		goolog.Error("[ES]", res.String())
 		return 0, []goo_utils.Params{}
 	}
 
 	var b bytes.Buffer
 	if _, er := io.Copy(&b, res.Body); er != nil {
-		goo_log.Error("[ES]", er.Error())
+		goolog.Error("[ES]", er.Error())
 		return 0, []goo_utils.Params{}
 	}
 
 	p, er := goo_utils.Byte(b.Bytes()).Params()
 	if er != nil {
-		goo_log.Error("[ES]", er.Error())
+		goolog.Error("[ES]", er.Error())
 		return 0, []goo_utils.Params{}
 	}
 
@@ -82,7 +82,7 @@ func (c *ESClient) LoopV2(index []string, m goo_utils.M, fn func(p goo_utils.Par
 		l := len(list)
 
 		if c.showLog {
-			goo_log.Debug("[ES]", "查询数量", l, n, n*size, size)
+			goolog.Debug("[ES]", "查询数量", l, n, n*size, size)
 		}
 
 		if l == 0 {
@@ -91,7 +91,7 @@ func (c *ESClient) LoopV2(index []string, m goo_utils.M, fn func(p goo_utils.Par
 
 		for _, i := range list {
 			if err := fn(i); err != nil {
-				goo_log.Error("[ES]", err, i)
+				goolog.Error("[ES]", err, i)
 				return
 			}
 		}
@@ -101,25 +101,25 @@ func (c *ESClient) LoopV2(index []string, m goo_utils.M, fn func(p goo_utils.Par
 func (c *ESClient) QueryV2(index []string, m goo_utils.M) (int64, []goo_utils.Params) {
 	res, err := c.Search(index, m.Json())
 	if err != nil {
-		goo_log.Error("[ES]", err)
+		goolog.Error("[ES]", err)
 		return 0, []goo_utils.Params{}
 	}
 	defer res.Body.Close()
 
 	if res.IsError() {
-		goo_log.Error("[ES]", res.String())
+		goolog.Error("[ES]", res.String())
 		return 0, []goo_utils.Params{}
 	}
 
 	var b bytes.Buffer
 	if _, er := io.Copy(&b, res.Body); er != nil {
-		goo_log.Error("[ES]", er.Error())
+		goolog.Error("[ES]", er.Error())
 		return 0, []goo_utils.Params{}
 	}
 
 	p, er := goo_utils.Byte(b.Bytes()).Params()
 	if er != nil {
-		goo_log.Error("[ES]", er.Error())
+		goolog.Error("[ES]", er.Error())
 		return 0, []goo_utils.Params{}
 	}
 

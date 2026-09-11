@@ -1,4 +1,4 @@
-package goo_etcd
+package gooetcd
 
 type Config struct {
 	Endpoints []string `json:"endpoints" yaml:"endpoints"`

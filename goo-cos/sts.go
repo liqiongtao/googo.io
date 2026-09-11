@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
-	goo_redis "github.com/liqiongtao/googo.io/goo-redis"
+	goolog "github.com/liqiongtao/googo.io/goo-log"
+	gooredis "github.com/liqiongtao/googo.io/goo-redis"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	sts "github.com/tencentyun/qcloud-cos-sts-sdk/go"
 	"golang.org/x/sync/singleflight"
@@ -34,16 +34,16 @@ func STSCredential(cfg StsConfig) (*sts.CredentialResult, error) {
 
 	res, err := c.GetCredential(opt)
 	if err != nil {
-		goo_log.Error(err)
+		goolog.Error(err)
 		return nil, err
 	}
 	if res.Error != nil {
-		goo_log.Error(res.Error)
+		goolog.Error(res.Error)
 		return nil, res.Error
 	}
 	if res.Credentials == nil {
 		err = fmt.Errorf("sts credentials is nil")
-		goo_log.Error(err)
+		goolog.Error(err)
 		return nil, err
 	}
 
@@ -65,7 +65,7 @@ func stsCacheKey(cfg StsConfig) string {
 }
 
 // 获取临时密钥(带缓存)
-func STSCredentialWithCache(cfg StsConfig, redis *goo_redis.Client) (*sts.Credentials, error) {
+func STSCredentialWithCache(cfg StsConfig, redis *gooredis.Client) (*sts.Credentials, error) {
 	key := stsCacheKey(cfg)
 
 	result, err, _ := sfSts.Do(key, func() (any, error) {
@@ -76,8 +76,8 @@ func STSCredentialWithCache(cfg StsConfig, redis *goo_redis.Client) (*sts.Creden
 				if uerr := json.Unmarshal([]byte(cmd.Val()), &credentials); uerr == nil && credentials != nil {
 					return credentials, nil
 				}
-			} else if cerr != goo_redis.ErrNil {
-				goo_log.ErrorF("sts redis get %s error: %s", key, cerr.Error())
+			} else if cerr != gooredis.ErrNil {
+				goolog.ErrorF("sts redis get %s error: %s", key, cerr.Error())
 			}
 		}
 
@@ -99,7 +99,7 @@ func STSCredentialWithCache(cfg StsConfig, redis *goo_redis.Client) (*sts.Creden
 					ttl -= time.Minute
 				}
 				if serr := redis.Set(key, string(b), ttl).Err(); serr != nil {
-					goo_log.ErrorF("sts redis set %s error: %s", key, serr.Error())
+					goolog.ErrorF("sts redis set %s error: %s", key, serr.Error())
 				}
 			}
 		}

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"text/template"
 
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goolog "github.com/liqiongtao/googo.io/goo-log"
 )
 
 func Template(text string, data any) (string, []any, error) {
@@ -43,13 +43,13 @@ func Template(text string, data any) (string, []any, error) {
 	})
 
 	if _, err := tpl.Parse(text); err != nil {
-		goo_log.WithField("text", text).WithField("data", data).Error(err)
+		goolog.WithField("text", text).WithField("data", data).Error(err)
 		return "", []any{}, err
 	}
 
 	var b bytes.Buffer
 	if err := tpl.Execute(&b, data); err != nil {
-		goo_log.WithField("text", text).WithField("data", data).Error(err)
+		goolog.WithField("text", text).WithField("data", data).Error(err)
 		return "", []any{}, err
 	}
 

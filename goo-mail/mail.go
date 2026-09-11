@@ -1,4 +1,4 @@
-package goo_mail
+package goomail
 
 import (
 	"crypto/tls"
@@ -8,7 +8,7 @@ import (
 	"net/smtp"
 	"time"
 
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goolog "github.com/liqiongtao/googo.io/goo-log"
 )
 
 type iMail interface {
@@ -43,18 +43,18 @@ func (m *mail) Send(msg Message) (err error) {
 	defer cli.Close()
 
 	if err = cli.Auth(m.auth()); err != nil {
-		goo_log.Error(err.Error())
+		goolog.Error(err.Error())
 		return
 	}
 
 	if err = cli.Mail(msg.Sender); err != nil {
-		goo_log.Error(err.Error())
+		goolog.Error(err.Error())
 		return
 	}
 
 	for _, receiver := range msg.Receivers {
 		if err = cli.Rcpt(receiver); err != nil {
-			goo_log.Error(err.Error())
+			goolog.Error(err.Error())
 			return
 		}
 	}
@@ -64,22 +64,22 @@ func (m *mail) Send(msg Message) (err error) {
 	)
 
 	if w, err = cli.Data(); err != nil {
-		goo_log.Error(err.Error())
+		goolog.Error(err.Error())
 		return
 	}
 
 	if _, err = w.Write(msg.Html()); err != nil {
 		_ = w.Close()
-		goo_log.Error(err.Error())
+		goolog.Error(err.Error())
 		return
 	}
 	if err = w.Close(); err != nil {
-		goo_log.Error(err.Error())
+		goolog.Error(err.Error())
 		return
 	}
 
 	if qerr := cli.Quit(); qerr != nil {
-		goo_log.Error(qerr.Error())
+		goolog.Error(qerr.Error())
 	}
 
 	return
@@ -96,13 +96,13 @@ func (m *mail) client() (conn net.Conn, cli *smtp.Client, err error) {
 	}
 
 	if err != nil {
-		goo_log.Error(err.Error())
+		goolog.Error(err.Error())
 		return
 	}
 
 	cli, err = smtp.NewClient(conn, m.conf.Host)
 	if err != nil {
-		goo_log.Error(err.Error())
+		goolog.Error(err.Error())
 		_ = conn.Close()
 		conn = nil
 		return

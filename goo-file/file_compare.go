@@ -1,4 +1,4 @@
-package goo_file
+package goofile
 
 import (
 	"bufio"
@@ -6,7 +6,7 @@ import (
 	"io"
 	"os"
 
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goolog "github.com/liqiongtao/googo.io/goo-log"
 )
 
 // 文件内容对比，输出增加的、减少的内容
@@ -30,12 +30,12 @@ func Compare(srcFile, targetFile, appendFile, reduceFile string) (err error) {
 
 		if e := os.Rename(appendFile+".0", appendFile); e != nil {
 			err = e
-			goo_log.Error(e)
+			goolog.Error(e)
 			return
 		}
 		if e := os.Rename(reduceFile+".0", reduceFile); e != nil {
 			err = e
-			goo_log.Error(e)
+			goolog.Error(e)
 		}
 	}()
 
@@ -46,28 +46,28 @@ func Compare(srcFile, targetFile, appendFile, reduceFile string) (err error) {
 
 	f1, err = os.OpenFile(srcFile, os.O_RDONLY, 0)
 	if err != nil {
-		goo_log.Error(err)
+		goolog.Error(err)
 		return
 	}
 	defer f1.Close()
 
 	f2, err = os.OpenFile(targetFile, os.O_RDONLY, 0)
 	if err != nil {
-		goo_log.Error(err)
+		goolog.Error(err)
 		return
 	}
 	defer f2.Close()
 
 	f3, err = os.OpenFile(appendFile+".0", os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0755)
 	if err != nil {
-		goo_log.Error(err)
+		goolog.Error(err)
 		return
 	}
 	defer f3.Close()
 
 	f4, err = os.OpenFile(reduceFile+".0", os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0755)
 	if err != nil {
-		goo_log.Error(err)
+		goolog.Error(err)
 		return
 	}
 	defer f4.Close()
@@ -78,7 +78,7 @@ func Compare(srcFile, targetFile, appendFile, reduceFile string) (err error) {
 	write := func(f *os.File, s string) bool {
 		if _, e := f.WriteString(s); e != nil {
 			err = e
-			goo_log.Error(e)
+			goolog.Error(e)
 			return false
 		}
 		return true
@@ -97,7 +97,7 @@ func Compare(srcFile, targetFile, appendFile, reduceFile string) (err error) {
 					err = nil
 					end1 = true
 				} else {
-					goo_log.Error(err)
+					goolog.Error(err)
 					return
 				}
 			}
@@ -108,7 +108,7 @@ func Compare(srcFile, targetFile, appendFile, reduceFile string) (err error) {
 					err = nil
 					end2 = true
 				} else {
-					goo_log.Error(err)
+					goolog.Error(err)
 					return
 				}
 			}
@@ -131,7 +131,7 @@ func Compare(srcFile, targetFile, appendFile, reduceFile string) (err error) {
 					err = nil
 					end2 = true
 				} else {
-					goo_log.Error(err)
+					goolog.Error(err)
 					return
 				}
 			}
@@ -154,7 +154,7 @@ func Compare(srcFile, targetFile, appendFile, reduceFile string) (err error) {
 					err = nil
 					end1 = true
 				} else {
-					goo_log.Error(err)
+					goolog.Error(err)
 					return
 				}
 			}
@@ -226,7 +226,7 @@ func Compare(srcFile, targetFile, appendFile, reduceFile string) (err error) {
 					err = nil
 					break
 				}
-				goo_log.Error(err)
+				goolog.Error(err)
 				return
 			}
 			if !write(f4, s2) {
@@ -271,7 +271,7 @@ func Compare(srcFile, targetFile, appendFile, reduceFile string) (err error) {
 					err = nil
 					break
 				}
-				goo_log.Error(err)
+				goolog.Error(err)
 				return
 			}
 			if !write(f3, s1) {

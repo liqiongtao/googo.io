@@ -46,12 +46,12 @@ func insert() {
 
     data := []any{"", ""}
     if _, err := stmt.Exec(data...); err != nil {
-        goo_log.Error(err)
+        goolog.Error(err)
         return
     }
 
     if err := tx.Commit(); err != nil {
-        goo_log.Error(err)
+        goolog.Error(err)
 	}
 }
 ```
@@ -61,7 +61,7 @@ func insert() {
 ```
 rows, err := DB().Query("SELECT name, gender FROM user")
 if err != nil {
-    goo_log.Fatal(err)
+    goolog.Fatal(err)
 }
 defer rows.Close()
 
@@ -77,7 +77,7 @@ for rows.Next() {
 }
 
 if err := rows.Err(); err != nil {
-    goo_log.Fatal(err)
+    goolog.Fatal(err)
 }
 ```
 
@@ -85,6 +85,6 @@ if err := rows.Err(); err != nil {
 
 ```
 if _, err := DB().Exec("DROP TABLE user"); err != nil {
-	goo_log.Fatal(err)
+	goolog.Fatal(err)
 }
 ```

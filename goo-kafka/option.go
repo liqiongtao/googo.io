@@ -1,6 +1,6 @@
-package goo_kafka
+package gookafka
 
-import goo_redis "github.com/liqiongtao/googo.io/goo-redis"
+import gooredis "github.com/liqiongtao/googo.io/goo-redis"
 
 const (
 	FocusName = "focus"
@@ -18,6 +18,6 @@ func FocusOption() Option {
 }
 
 // redis
-func RedisOption(cli *goo_redis.Client) Option {
+func RedisOption(cli *gooredis.Client) Option {
 	return Option{Name: RedisName, Value: cli}
 }

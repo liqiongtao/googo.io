@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	goo_file "github.com/liqiongtao/googo.io/goo-file"
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goofile "github.com/liqiongtao/googo.io/goo-file"
+	goolog "github.com/liqiongtao/googo.io/goo-log"
 	"github.com/tencentyun/cos-go-sdk-v5"
 )
 
@@ -105,7 +105,7 @@ func (c *CosClient) Upload(localFileName, objectKey string) error {
 
 	f, err := os.Open(localFileName)
 	if err != nil {
-		goo_log.ErrorF("open file %s error: %s", localFileName, err.Error())
+		goolog.ErrorF("open file %s error: %s", localFileName, err.Error())
 		return err
 	}
 	defer func() { _ = f.Close() }()
@@ -113,7 +113,7 @@ func (c *CosClient) Upload(localFileName, objectKey string) error {
 	// 获取文件大小
 	stat, err := f.Stat()
 	if err != nil {
-		goo_log.ErrorF("stat file %s error: %s", localFileName, err.Error())
+		goolog.ErrorF("stat file %s error: %s", localFileName, err.Error())
 		return err
 	}
 
@@ -126,11 +126,11 @@ func (c *CosClient) Upload(localFileName, objectKey string) error {
 	defer closeCOSResponse(rsp)
 
 	if err != nil {
-		goo_log.ErrorF("put %s error: %s", objectKey, err.Error())
+		goolog.ErrorF("put %s error: %s", objectKey, err.Error())
 		return err
 	}
 	if rsp != nil && rsp.StatusCode != 200 {
-		goo_log.ErrorF("put %s error, status code: %d", objectKey, rsp.StatusCode)
+		goolog.ErrorF("put %s error, status code: %d", objectKey, rsp.StatusCode)
 		return fmt.Errorf("上传文件失败，状态码: %d", rsp.StatusCode)
 	}
 
@@ -142,19 +142,19 @@ func (c *CosClient) Download(localFileName, objectKey string) error {
 	objectKey = c.objectKey(objectKey)
 
 	if err := os.MkdirAll(path.Dir(localFileName), 0755); err != nil {
-		goo_log.ErrorF("create dir %s error: %s", path.Dir(localFileName), err.Error())
+		goolog.ErrorF("create dir %s error: %s", path.Dir(localFileName), err.Error())
 		return err
 	}
 
 	rsp, err := c.Object.GetToFile(context.TODO(), objectKey, localFileName, nil)
 	defer closeCOSResponse(rsp)
 	if err != nil {
-		goo_log.ErrorF("download %s error: %s", objectKey, err.Error())
+		goolog.ErrorF("download %s error: %s", objectKey, err.Error())
 		return err
 	}
 
-	if !goo_file.Exist(localFileName) {
-		goo_log.ErrorF("download %s error", objectKey)
+	if !goofile.Exist(localFileName) {
+		goolog.ErrorF("download %s error", objectKey)
 		return fmt.Errorf("下载 %s 失败", objectKey)
 	}
 
@@ -168,7 +168,7 @@ func (c *CosClient) Get(objectKey string) ([]byte, error) {
 	resp, err := c.Object.Get(context.Background(), objectKey, nil)
 	if err != nil {
 		closeCOSResponse(resp)
-		goo_log.ErrorF("get %s error: %s", objectKey, err.Error())
+		goolog.ErrorF("get %s error: %s", objectKey, err.Error())
 		return nil, err
 	}
 	defer closeCOSResponse(resp)
@@ -176,7 +176,7 @@ func (c *CosClient) Get(objectKey string) ([]byte, error) {
 	const maxGetBytes int64 = 64 << 20 // 64MB
 	b, err := io.ReadAll(io.LimitReader(resp.Body, maxGetBytes+1))
 	if err != nil {
-		goo_log.ErrorF("read %s body error: %s", objectKey, err.Error())
+		goolog.ErrorF("read %s body error: %s", objectKey, err.Error())
 		return nil, err
 	}
 	if int64(len(b)) > maxGetBytes {
@@ -227,7 +227,7 @@ func (c *CosClient) Head(objectKey string) (*cos.Response, error) {
 	rsp, err := c.Object.Head(context.Background(), objectKey, nil)
 	if err != nil {
 		closeCOSResponse(rsp)
-		goo_log.ErrorF("head %s error: %s", objectKey, err.Error())
+		goolog.ErrorF("head %s error: %s", objectKey, err.Error())
 		return nil, err
 	}
 	// Head 一般无 body，仍安全关闭，避免连接泄漏
@@ -241,7 +241,7 @@ func (c *CosClient) IsExist(objectKey string) (bool, error) {
 
 	ok, err := c.Object.IsExist(context.Background(), objectKey)
 	if err != nil {
-		goo_log.ErrorF("exist %s error: %s", objectKey, err.Error())
+		goolog.ErrorF("exist %s error: %s", objectKey, err.Error())
 		return false, err
 	}
 
@@ -254,7 +254,7 @@ func (c *CosClient) Delete(objectKey string) error {
 	rsp, err := c.Object.Delete(context.Background(), objectKey, nil)
 	defer closeCOSResponse(rsp)
 	if err != nil {
-		goo_log.ErrorF("delete %s error: %s", objectKey, err.Error())
+		goolog.ErrorF("delete %s error: %s", objectKey, err.Error())
 		return err
 	}
 
@@ -285,7 +285,7 @@ func (c *CosClient) Copy(sourceObjectKey, targetObjectKey string, targetCosClien
 	_, rsp, err := targetCosClient.Object.Copy(context.Background(), targetObjectKey, sourceObjectKey, nil)
 	defer closeCOSResponse(rsp)
 	if err != nil {
-		goo_log.ErrorF("copy %s error: %s", sourceObjectKey, err.Error())
+		goolog.ErrorF("copy %s error: %s", sourceObjectKey, err.Error())
 		return err
 	}
 

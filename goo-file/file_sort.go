@@ -1,9 +1,9 @@
-package goo_file
+package goofile
 
 import (
 	"errors"
 	"fmt"
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goolog "github.com/liqiongtao/googo.io/goo-log"
 	"os"
 	"sort"
 )
@@ -48,7 +48,7 @@ func FileSort(filename, sortedFile string) (err error) {
 			fh, e := os.OpenFile(sortedFile, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0755)
 			if e != nil {
 				err = e
-				goo_log.Error(e)
+				goolog.Error(e)
 				return
 			}
 			_ = fh.Close()
@@ -58,7 +58,7 @@ func FileSort(filename, sortedFile string) (err error) {
 		if l == 1 {
 			if e := os.Rename(partFiles[0], sortedFile); e != nil {
 				err = e
-				goo_log.Error(e)
+				goolog.Error(e)
 			}
 			return
 		}
@@ -82,7 +82,7 @@ func FileSort(filename, sortedFile string) (err error) {
 
 			fh, err = os.OpenFile(partFile, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0755)
 			if err != nil {
-				goo_log.Error(err)
+				goolog.Error(err)
 				return
 			}
 			defer fh.Close()
@@ -91,12 +91,12 @@ func FileSort(filename, sortedFile string) (err error) {
 
 			for _, s := range data {
 				if _, err = fh.WriteString(s); err != nil {
-					goo_log.Error(err)
+					goolog.Error(err)
 					return
 				}
 			}
 
-			goo_log.DebugF("产生一个文件：%s", partFile)
+			goolog.DebugF("产生一个文件：%s", partFile)
 
 			partFiles = append(partFiles, partFile)
 

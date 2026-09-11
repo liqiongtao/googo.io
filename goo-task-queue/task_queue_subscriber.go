@@ -1,4 +1,4 @@
-package goo_task_queue
+package gootaskqueue
 
 import (
 	"context"
@@ -10,9 +10,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	"github.com/liqiongtao/googo.io/goo-context"
+	goolog "github.com/liqiongtao/googo.io/goo-log"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
-	"github.com/liqiongtao/googo.io/goocontext"
 )
 
 type TaskQueueHandler func(ctx context.Context, task *Task) error
@@ -46,9 +46,9 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 	s.log().InfoF("任务监听成功 并发数=%d workerId=%s", limit, s.workId())
 
 	var (
-		limitCH = make(chan any, limit)
-		taskCH  = make(chan *Task, limit)
-		done    = make(chan any)
+		limitCH   = make(chan any, limit)
+		taskCH    = make(chan *Task, limit)
+		done      = make(chan any)
 		closeOnce sync.Once
 	)
 	closeTasks := func() {
@@ -178,7 +178,7 @@ func (s *TaskQueueSubscriber) taskHandle(task *Task, handler TaskQueueHandler) {
 
 	traceId := goo_utils.UUID()
 
-	log := func() *goo_log.Entry {
+	log := func() *goolog.Entry {
 		return s.log().WithTag("taskHandle").WithField("trace-id", traceId).WithField("task_id", task.Id)
 	}
 
@@ -238,7 +238,7 @@ func (s *TaskQueueSubscriber) taskHandle(task *Task, handler TaskQueueHandler) {
 	s.onFailure(task, err, log, elapsedMs, reason)
 }
 
-func (s *TaskQueueSubscriber) onFailure(task *Task, err error, log func() *goo_log.Entry, elapsedMs int64, reason string) {
+func (s *TaskQueueSubscriber) onFailure(task *Task, err error, log func() *goolog.Entry, elapsedMs int64, reason string) {
 	nextRunAtMs := time.Now().UnixMilli()
 	if d, ok := retryAfterDuration(err); ok && d > 0 {
 		nextRunAtMs = time.Now().Add(d).UnixMilli()
@@ -271,7 +271,7 @@ func (s *TaskQueueSubscriber) onFailure(task *Task, err error, log func() *goo_l
 }
 
 // leaseRenewLoop 按 Timeout/3 刷新 processing 租约；间隔必须小于 Timeout，避免短任务被误回收
-func (s *TaskQueueSubscriber) leaseRenewLoop(ctx context.Context, task *Task, log func() *goo_log.Entry) {
+func (s *TaskQueueSubscriber) leaseRenewLoop(ctx context.Context, task *Task, log func() *goolog.Entry) {
 	timeout := time.Duration(task.Timeout) * time.Millisecond
 	if timeout <= 0 {
 		return
@@ -331,6 +331,6 @@ func (s *TaskQueueSubscriber) heartBeat(ctx context.Context) {
 	}
 }
 
-func (s *TaskQueueSubscriber) log() *goo_log.Entry {
-	return goo_log.WithTag("goo-task-queue-subscribe", s.pid)
+func (s *TaskQueueSubscriber) log() *goolog.Entry {
+	return goolog.WithTag("goo-task-queue-subscribe", s.pid)
 }

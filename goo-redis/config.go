@@ -1,4 +1,4 @@
-package goo_redis
+package gooredis
 
 import (
 	"github.com/redis/go-redis/v9"

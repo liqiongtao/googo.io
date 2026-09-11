@@ -1,4 +1,4 @@
-package goo_task_queue
+package gootaskqueue
 
 const zrangeBatchSize int64 = 500
 

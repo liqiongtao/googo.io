@@ -1,8 +1,9 @@
-package goo_es
+package gooes
 
 import (
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	"testing"
+
+	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 )
 
 func TestClient(t *testing.T) {

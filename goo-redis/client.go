@@ -1,10 +1,10 @@
-package goo_redis
+package gooredis
 
 import (
 	"context"
 	"time"
 
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goolog "github.com/liqiongtao/googo.io/goo-log"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -84,7 +84,7 @@ func New(conf Config) (cli *Client, err error) {
 	cli.Client = redis.NewClient(opts)
 
 	if err = cli.Client.Ping(cli.ctx()).Err(); err != nil {
-		goo_log.WithTag("goo-redis").Error(err)
+		goolog.WithTag("goo-redis").Error(err)
 		_ = cli.Close()
 		cli = nil
 		return

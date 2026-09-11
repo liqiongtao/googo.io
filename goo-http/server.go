@@ -1,4 +1,4 @@
-package goo_http
+package goohttp
 
 import (
 	"bytes"
@@ -17,9 +17,9 @@ import (
 	"github.com/cloudflare/tableflip"
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	"github.com/liqiongtao/googo.io/goo-context"
+	goolog "github.com/liqiongtao/googo.io/goo-log"
 	goo_pprof "github.com/liqiongtao/googo.io/goo-pprof"
-	"github.com/liqiongtao/googo.io/goocontext"
 )
 
 // 定义web服务
@@ -53,12 +53,12 @@ func NewServer(opt ...Option) *Server {
 func (s *Server) Run(addr string) {
 	pid := fmt.Sprintf("%d", os.Getpid())
 	if err := os.WriteFile(".pid", []byte(pid), 0644); err != nil {
-		goo_log.Panic(err.Error())
+		goolog.Panic(err.Error())
 	}
 
 	upg, err := tableflip.New(tableflip.Options{})
 	if err != nil {
-		goo_log.Panic(err.Error())
+		goolog.Panic(err.Error())
 	}
 	defer upg.Stop()
 
@@ -77,19 +77,19 @@ func (s *Server) Run(addr string) {
 			}
 			defer restartMu.Unlock()
 			if err := upg.Upgrade(); err != nil {
-				goo_log.Error(err.Error())
+				goolog.Error(err.Error())
 				return
 			}
-			goo_log.Warn("服务重启")
+			goolog.Warn("服务重启")
 		})
 		goocontext.OnExit(func() {
 			goo_pprof.StopDefault()
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancel()
 			if err := httpServer.Shutdown(ctx); err != nil {
-				goo_log.Error(err.Error())
+				goolog.Error(err.Error())
 			}
-			goo_log.Warn("服务退出")
+			goolog.Warn("服务退出")
 		})
 		goo_pprof.RegisterSignal()
 	})
@@ -102,22 +102,22 @@ func (s *Server) Run(addr string) {
 
 	lis, err := upg.Listen("tcp", addr)
 	if err != nil {
-		goo_log.Panic(err.Error())
+		goolog.Panic(err.Error())
 	}
 
 	go func() {
 		if err := httpServer.Serve(lis); err != nil && err != http.ErrServerClosed {
-			goo_log.Error(err.Error())
+			goolog.Error(err.Error())
 			// Serve 异常退出时触发优雅退出，避免进程假活
 			_ = syscall.Kill(os.Getpid(), syscall.SIGTERM)
 		}
 	}()
 
-	goo_log.InfoF("server running, addr=%s pid=%s", lis.Addr().String(), pid)
+	goolog.InfoF("server running, addr=%s pid=%s", lis.Addr().String(), pid)
 
 	// 通知父进程：本进程已就绪可接管
 	if err := upg.Ready(); err != nil {
-		goo_log.Error(err.Error())
+		goolog.Error(err.Error())
 	}
 
 	// 父进程在子进程 Ready 后会收到 Exit，走统一优雅退出路径
@@ -270,7 +270,7 @@ func (s *Server) log(c *gin.Context) {
 		}
 	}
 
-	l := goo_log.WithTag("goo-api").
+	l := goolog.WithTag("goo-api").
 		WithField("client-ip", ClientIP(c)).
 		WithField("trace-id", RequestId(c)).
 		WithField("request", req)
@@ -326,7 +326,7 @@ func (s *Server) log(c *gin.Context) {
 func (s *Server) recovery(c *gin.Context) {
 	defer func() {
 		if r := recover(); r != nil {
-			goo_log.WithTag("goo-api").
+			goolog.WithTag("goo-api").
 				WithField("client-ip", ClientIP(c)).
 				WithField("trace-id", RequestId(c)).
 				WithField("method", c.Request.Method).

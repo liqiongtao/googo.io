@@ -1,4 +1,4 @@
-package goo_http
+package goohttp
 
 import (
 	"fmt"

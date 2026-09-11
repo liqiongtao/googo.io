@@ -1,4 +1,4 @@
-package goo_etcd
+package gooetcd
 
 import (
 	"context"
@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
-	"github.com/liqiongtao/googo.io/goocontext"
+	"github.com/liqiongtao/googo.io/goo-context"
+	goolog "github.com/liqiongtao/googo.io/goo-log"
 	"go.etcd.io/etcd/client/pkg/v3/transport"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/naming/endpoints"
@@ -49,7 +49,7 @@ func New(conf Config) (cli *Client, err error) {
 		var clientConfig *tls.Config
 		clientConfig, err = tlsInfo.ClientConfig()
 		if err != nil {
-			goo_log.WithTag("goo-etcd").WithField("config", conf).Error(err.Error())
+			goolog.WithTag("goo-etcd").WithField("config", conf).Error(err.Error())
 			return nil, err
 		}
 		cfg.TLS = clientConfig
@@ -57,7 +57,7 @@ func New(conf Config) (cli *Client, err error) {
 
 	cli.Client, err = clientv3.New(cfg)
 	if err != nil {
-		goo_log.WithTag("goo-etcd").WithField("config", conf).Error(err.Error())
+		goolog.WithTag("goo-etcd").WithField("config", conf).Error(err.Error())
 		return nil, err
 	}
 
@@ -68,7 +68,7 @@ func New(conf Config) (cli *Client, err error) {
 func (cli *Client) Set(key, val string, opts ...clientv3.OpOption) (resp *clientv3.PutResponse, err error) {
 	resp, err = cli.Client.Put(cli.ctx, key, val, opts...)
 	if err != nil {
-		goo_log.WithTag("goo-etcd").WithField("key", key).WithField("val", val).Error(err)
+		goolog.WithTag("goo-etcd").WithField("key", key).WithField("val", val).Error(err)
 	}
 	return
 }
@@ -88,7 +88,7 @@ func (cli *Client) SetTTL(key, val string, ttl int64, opts ...clientv3.OpOption)
 
 	lease, err = cli.Client.Grant(cli.ctx, ttl)
 	if err != nil {
-		goo_log.WithTag("goo-etcd").WithField("key", key).WithField("val", val).WithField("ttl", ttl).Error(err)
+		goolog.WithTag("goo-etcd").WithField("key", key).WithField("val", val).WithField("ttl", ttl).Error(err)
 		return
 	}
 
@@ -96,7 +96,7 @@ func (cli *Client) SetTTL(key, val string, ttl int64, opts ...clientv3.OpOption)
 	resp, err = cli.Client.Put(cli.ctx, key, val, opts...)
 	if err != nil {
 		_, _ = cli.Client.Revoke(cli.ctx, lease.ID)
-		goo_log.WithTag("goo-etcd").WithField("key", key).WithField("val", val).WithField("ttl", ttl).Error(err)
+		goolog.WithTag("goo-etcd").WithField("key", key).WithField("val", val).WithField("ttl", ttl).Error(err)
 		return
 	}
 
@@ -112,7 +112,7 @@ func (cli *Client) SetTTLWithPrevKV(key, val string, ttl int64) (resp *clientv3.
 func (cli *Client) Get(key string, opts ...clientv3.OpOption) (resp *clientv3.GetResponse, err error) {
 	resp, err = cli.Client.Get(cli.ctx, key, opts...)
 	if err != nil {
-		goo_log.WithTag("goo-etcd").WithField("key", key).Error(err)
+		goolog.WithTag("goo-etcd").WithField("key", key).Error(err)
 	}
 	return
 }
@@ -135,7 +135,7 @@ func (cli *Client) GetArray(key string) (data []string) {
 
 	resp, err := cli.Get(key, clientv3.WithPrefix())
 	if err != nil {
-		goo_log.WithTag("goo-etcd").WithField("key", key).Error(err)
+		goolog.WithTag("goo-etcd").WithField("key", key).Error(err)
 		return
 	}
 
@@ -152,7 +152,7 @@ func (cli *Client) GetMap(key string) (data map[string]string) {
 
 	resp, err := cli.Get(key, clientv3.WithPrefix())
 	if err != nil {
-		goo_log.WithTag("goo-etcd").WithField("key", key).Error(err)
+		goolog.WithTag("goo-etcd").WithField("key", key).Error(err)
 		return
 	}
 
@@ -169,7 +169,7 @@ func (cli *Client) Del(key string, opts ...clientv3.OpOption) (resp *clientv3.De
 	opts = append(opts, clientv3.WithPrevKV())
 	resp, err = cli.Client.Delete(cli.ctx, key, opts...)
 	if err != nil {
-		goo_log.WithTag("goo-etcd").WithField("key", key).Error(err)
+		goolog.WithTag("goo-etcd").WithField("key", key).Error(err)
 	}
 	return
 }
@@ -227,7 +227,7 @@ func (cli *Client) registerServiceOnce(ctx context.Context, serviceName, addr st
 
 	lease, err = cli.Client.Grant(ctx, ttl)
 	if err != nil {
-		goo_log.WithTag("goo-etcd").WithField("serviceName", serviceName).WithField("addr", addr).Error(err)
+		goolog.WithTag("goo-etcd").WithField("serviceName", serviceName).WithField("addr", addr).Error(err)
 		return
 	}
 
@@ -243,32 +243,32 @@ func (cli *Client) registerServiceOnce(ctx context.Context, serviceName, addr st
 
 	em, err = endpoints.NewManager(cli.Client, serviceName)
 	if err != nil {
-		goo_log.WithTag("goo-etcd").WithField("serviceName", serviceName).WithField("addr", addr).Error(err)
+		goolog.WithTag("goo-etcd").WithField("serviceName", serviceName).WithField("addr", addr).Error(err)
 		return
 	}
 
 	serviceKey := serviceName + "/" + strconv.FormatInt(int64(lease.ID), 10)
 	err = em.AddEndpoint(ctx, serviceKey, endpoints.Endpoint{Addr: addr}, clientv3.WithLease(lease.ID))
 	if err != nil {
-		goo_log.WithTag("goo-etcd").WithField("serviceName", serviceName).WithField("addr", addr).Error(err)
+		goolog.WithTag("goo-etcd").WithField("serviceName", serviceName).WithField("addr", addr).Error(err)
 		return
 	}
 
 	// 续租绑定进程级 ctx，避免注册超时 ctx 结束后 lease 被取消
 	ch, err = cli.Client.KeepAlive(cli.ctx, lease.ID)
 	if err != nil {
-		goo_log.WithTag("goo-etcd").WithField("serviceName", serviceName).WithField("addr", addr).Error(err)
+		goolog.WithTag("goo-etcd").WithField("serviceName", serviceName).WithField("addr", addr).Error(err)
 		return
 	}
 	registered = true
 
-	goo_log.WithTag("goo-etcd").WithField("serviceName", serviceName).WithField("addr", addr).Debug("服务注册成功")
+	goolog.WithTag("goo-etcd").WithField("serviceName", serviceName).WithField("addr", addr).Debug("服务注册成功")
 
 	go func() {
 		for {
 			select {
 			case <-cli.ctx.Done():
-				goo_log.WithTag("goo-etcd").WithField("serviceName", serviceName).WithField("addr", addr).Warn("服务退出,收回注册信息")
+				goolog.WithTag("goo-etcd").WithField("serviceName", serviceName).WithField("addr", addr).Warn("服务退出,收回注册信息")
 				rctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 				_, _ = cli.Client.Revoke(rctx, lease.ID)
 				cancel()
@@ -276,7 +276,7 @@ func (cli *Client) registerServiceOnce(ctx context.Context, serviceName, addr st
 
 			case rsp, ok := <-ch:
 				if !ok || rsp == nil {
-					goo_log.WithTag("goo-etcd").WithField("serviceName", serviceName).WithField("addr", addr).Error("服务注册续租失效")
+					goolog.WithTag("goo-etcd").WithField("serviceName", serviceName).WithField("addr", addr).Error("服务注册续租失效")
 					// 先撤销旧 lease，避免 TTL 内双 endpoint
 					rctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 					_, _ = cli.Client.Revoke(rctx, lease.ID)
@@ -287,7 +287,7 @@ func (cli *Client) registerServiceOnce(ctx context.Context, serviceName, addr st
 							if err == nil {
 								return
 							}
-							goo_log.WithTag("goo-etcd").WithField("serviceName", serviceName).WithField("addr", addr).
+							goolog.WithTag("goo-etcd").WithField("serviceName", serviceName).WithField("addr", addr).
 								ErrorF("服务重新注册失败: %v", err)
 							select {
 							case <-cli.ctx.Done():
@@ -317,7 +317,7 @@ func (cli *Client) Watch(key string) <-chan []string {
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
-				goo_log.WithTag("goo-etcd").WithField("key", key).Error(r)
+				goolog.WithTag("goo-etcd").WithField("key", key).Error(r)
 			}
 			close(ch)
 		}()
@@ -350,7 +350,7 @@ func (cli *Client) Watch(key string) <-chan []string {
 			for {
 				resp, gerr := cli.Get(key, clientv3.WithPrefix())
 				if gerr != nil {
-					goo_log.WithTag("goo-etcd").WithField("key", key).Error(gerr)
+					goolog.WithTag("goo-etcd").WithField("key", key).Error(gerr)
 					select {
 					case <-cli.ctx.Done():
 						return 0, false
@@ -402,11 +402,11 @@ func (cli *Client) Watch(key string) <-chan []string {
 				needResync := !ok
 				if ok {
 					if err := w.Err(); err != nil {
-						goo_log.WithTag("goo-etcd").WithField("key", key).Error(err)
+						goolog.WithTag("goo-etcd").WithField("key", key).Error(err)
 						needResync = true
 					}
 				} else {
-					goo_log.WithTag("goo-etcd").WithField("key", key).Warn("watch channel closed, resync")
+					goolog.WithTag("goo-etcd").WithField("key", key).Warn("watch channel closed, resync")
 				}
 
 				if needResync {

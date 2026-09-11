@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goolog "github.com/liqiongtao/googo.io/goo-log"
 )
 
 type Client struct {
@@ -38,7 +38,7 @@ func New(conf Config) (cli *Client, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(conf.ReadTimeout)*time.Second)
 	defer cancel()
 	if err = cli.DB.PingContext(ctx); err != nil {
-		goo_log.WithTag("goo-clickhouse").Error(err)
+		goolog.WithTag("goo-clickhouse").Error(err)
 		_ = cli.DB.Close()
 		cli = nil
 		return
@@ -90,7 +90,7 @@ func (cli *Client) connect() (err error) {
 		},
 		DialTimeout:      10 * time.Second,
 		ReadTimeout:      time.Duration(cli.Config.ReadTimeout) * time.Second,
-		ConnMaxLifetime:     time.Hour,
+		ConnMaxLifetime:  time.Hour,
 		MaxOpenConns:     20,
 		MaxIdleConns:     5,
 		ConnOpenStrategy: clickhouse.ConnOpenInOrder,
@@ -130,12 +130,12 @@ func (cli *Client) ping() {
 
 	var exception *clickhouse.Exception
 	if errors.As(err, &exception) {
-		goo_log.WithTag("goo-clickhouse").
+		goolog.WithTag("goo-clickhouse").
 			WithField("err_code", exception.Code).
 			WithField("stack_trace", exception.StackTrace).
 			Error(exception.Message)
 		return
 	}
 
-	goo_log.WithTag("goo-clickhouse").Error(err)
+	goolog.WithTag("goo-clickhouse").Error(err)
 }

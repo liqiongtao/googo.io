@@ -1,4 +1,4 @@
-package goo_oss
+package goooss
 
 import (
 	"io"
@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
+	goolog "github.com/liqiongtao/googo.io/goo-log"
 )
 
 type Uploader struct {
@@ -25,7 +25,7 @@ func New(conf Config) (*Uploader, error) {
 
 	client, err := o.getClient()
 	if err != nil {
-		goo_log.Error(err.Error())
+		goolog.Error(err.Error())
 		return nil, err
 	}
 
@@ -33,7 +33,7 @@ func New(conf Config) (*Uploader, error) {
 
 	bucket, err := o.getBucket()
 	if err != nil {
-		goo_log.Error(err.Error())
+		goolog.Error(err.Error())
 		return nil, err
 	}
 
@@ -78,7 +78,7 @@ func (o *Uploader) Upload(filename string, r io.Reader) (string, error) {
 	filename = applyPrefix(o.conf.Prefix, filename)
 
 	if err := o.Bucket.PutObject(filename, r, options...); err != nil {
-		goo_log.Error("Oss Upload Failed", err.Error(), filename)
+		goolog.Error("Oss Upload Failed", err.Error(), filename)
 		return "", err
 	}
 
@@ -95,13 +95,13 @@ func (o *Uploader) Upload(filename string, r io.Reader) (string, error) {
 
 func (o *Uploader) UploadFile(filename, filepath string) (string, error) {
 	if _, err := os.Stat(filepath); err != nil {
-		goo_log.Error(err.Error())
+		goolog.Error(err.Error())
 		return "", err
 	}
 
 	f, err := os.Open(filepath)
 	if err != nil {
-		goo_log.Error(err.Error())
+		goolog.Error(err.Error())
 		return "", err
 	}
 	defer func() { _ = f.Close() }()
