@@ -1,12 +1,14 @@
 package goowechat
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
+
 	goolog "github.com/liqiongtao/googo.io/goo-log"
 	goorequest "github.com/liqiongtao/googo.io/goo-request"
-	"time"
 )
 
 type cgiTicket struct {
@@ -25,7 +27,7 @@ func (this *cgiTicket) Get() string {
 
 func (this *cgiTicket) TTL() time.Duration {
 	key := fmt.Sprintf(cgi_ticket_key, this.Appid)
-	return __cache.TTL(key).Val()
+	return __cache.TTL(context.Background(), key).Val()
 }
 
 func (this *cgiTicket) Set() error {

@@ -1,6 +1,7 @@
 package goowechat
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -25,7 +26,7 @@ func (this *cgiToken) Get() string {
 
 func (this *cgiToken) TTL() time.Duration {
 	key := fmt.Sprintf(cgi_token_key, this.Appid)
-	return __cache.TTL(key).Val()
+	return __cache.TTL(context.Background(), key).Val()
 }
 
 func (this *cgiToken) Set() error {
