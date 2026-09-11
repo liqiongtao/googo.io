@@ -60,16 +60,10 @@ func Default() *Client {
 	__mu.RLock()
 	defer __mu.RUnlock()
 
-	if cli, ok := __clients["default"]; ok {
-		return cli
-	}
-
 	if l := len(__clients); l == 1 {
 		for _, cli := range __clients {
 			return cli
 		}
 	}
-
-	goolog.WithTag("goo-clickhouse").Error("no default db client")
-	return nil
+	return __clients["default"]
 }
