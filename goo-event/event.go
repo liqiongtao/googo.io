@@ -31,6 +31,7 @@ func (ev *Event) Publish(topic string, data interface{}) {
 				case ch <- msg:
 				default:
 					// 订阅方处理过慢时丢弃，避免永久阻塞发布 goroutine
+					goo_log.WithTag("goo-event").WithField("topic", topic).Warn("订阅 channel 已满，丢弃消息")
 				}
 			}
 		})

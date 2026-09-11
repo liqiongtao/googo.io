@@ -3,10 +3,12 @@ package goo_mail
 import (
 	"crypto/tls"
 	"fmt"
-	goo_log "github.com/liqiongtao/googo.io/goo-log"
 	"io"
 	"net"
 	"net/smtp"
+	"time"
+
+	goo_log "github.com/liqiongtao/googo.io/goo-log"
 )
 
 type iMail interface {
@@ -85,11 +87,12 @@ func (m *mail) Send(msg Message) (err error) {
 
 func (m *mail) client() (conn net.Conn, cli *smtp.Client, err error) {
 	addr := fmt.Sprintf("%s:%d", m.conf.Host, m.conf.Port)
+	dialer := &net.Dialer{Timeout: 10 * time.Second}
 
 	if m.conf.TLS {
-		conn, err = tls.Dial("tcp", addr, &tls.Config{InsecureSkipVerify: true})
+		conn, err = tls.DialWithDialer(dialer, "tcp", addr, &tls.Config{InsecureSkipVerify: true})
 	} else {
-		conn, err = net.Dial("tcp", addr)
+		conn, err = dialer.Dial("tcp", addr)
 	}
 
 	if err != nil {

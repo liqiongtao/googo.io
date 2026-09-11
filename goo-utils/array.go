@@ -157,9 +157,25 @@ func SplitSplice[T any](arr []T, size int) (list [][]T) {
 	return
 }
 
-func SliceHas(x any, f func(i int) bool) bool {
+func sliceLen(x any) (int, bool) {
+	if x == nil {
+		return 0, false
+	}
 	rv := reflect.ValueOf(x)
-	for i := 0; i < rv.Len(); i++ {
+	switch rv.Kind() {
+	case reflect.Slice, reflect.Array:
+		return rv.Len(), true
+	default:
+		return 0, false
+	}
+}
+
+func SliceHas(x any, f func(i int) bool) bool {
+	l, ok := sliceLen(x)
+	if !ok {
+		return false
+	}
+	for i := 0; i < l; i++ {
 		if f(i) {
 			return true
 		}
@@ -168,18 +184,23 @@ func SliceHas(x any, f func(i int) bool) bool {
 }
 
 func SliceMap(x any, f func(i int)) {
-	rv := reflect.ValueOf(x)
-	for i := 0; i < rv.Len(); i++ {
+	l, ok := sliceLen(x)
+	if !ok {
+		return
+	}
+	for i := 0; i < l; i++ {
 		f(i)
 	}
-	return
 }
 
 func Slice2UniqStrings(x any, f func(i int) string) (data []string) {
 	data = []string{}
+	l, ok := sliceLen(x)
+	if !ok {
+		return
+	}
 	m := map[string]struct{}{}
-	rv := reflect.ValueOf(x)
-	for i := 0; i < rv.Len(); i++ {
+	for i := 0; i < l; i++ {
 		v := f(i)
 		if _, ok := m[v]; !ok {
 			m[v] = struct{}{}
@@ -191,9 +212,12 @@ func Slice2UniqStrings(x any, f func(i int) string) (data []string) {
 
 func Slice2UniqInt64s(x any, f func(i int) int64) (data []int64) {
 	data = []int64{}
+	l, ok := sliceLen(x)
+	if !ok {
+		return
+	}
 	m := map[int64]struct{}{}
-	rv := reflect.ValueOf(x)
-	for i := 0; i < rv.Len(); i++ {
+	for i := 0; i < l; i++ {
 		v := f(i)
 		if _, ok := m[v]; !ok {
 			m[v] = struct{}{}
@@ -205,9 +229,12 @@ func Slice2UniqInt64s(x any, f func(i int) int64) (data []int64) {
 
 func Slice2UniqInt32s(x any, f func(i int) int32) (data []int32) {
 	data = []int32{}
+	l, ok := sliceLen(x)
+	if !ok {
+		return
+	}
 	m := map[int32]struct{}{}
-	rv := reflect.ValueOf(x)
-	for i := 0; i < rv.Len(); i++ {
+	for i := 0; i < l; i++ {
 		v := f(i)
 		if _, ok := m[v]; !ok {
 			m[v] = struct{}{}
@@ -219,9 +246,12 @@ func Slice2UniqInt32s(x any, f func(i int) int32) (data []int32) {
 
 func Slice2UniqInts(x any, f func(i int) int) (data []int) {
 	data = []int{}
+	l, ok := sliceLen(x)
+	if !ok {
+		return
+	}
 	m := map[int]struct{}{}
-	rv := reflect.ValueOf(x)
-	for i := 0; i < rv.Len(); i++ {
+	for i := 0; i < l; i++ {
 		v := f(i)
 		if _, ok := m[v]; !ok {
 			m[v] = struct{}{}
@@ -233,9 +263,12 @@ func Slice2UniqInts(x any, f func(i int) int) (data []int) {
 
 func Slice2UniqFloat64s(x any, f func(i int) float64) (data []float64) {
 	data = []float64{}
+	l, ok := sliceLen(x)
+	if !ok {
+		return
+	}
 	m := map[float64]struct{}{}
-	rv := reflect.ValueOf(x)
-	for i := 0; i < rv.Len(); i++ {
+	for i := 0; i < l; i++ {
 		v := f(i)
 		if _, ok := m[v]; !ok {
 			m[v] = struct{}{}
@@ -247,9 +280,12 @@ func Slice2UniqFloat64s(x any, f func(i int) float64) (data []float64) {
 
 func Slice2UniqFloat32s(x any, f func(i int) float32) (data []float32) {
 	data = []float32{}
+	l, ok := sliceLen(x)
+	if !ok {
+		return
+	}
 	m := map[float32]struct{}{}
-	rv := reflect.ValueOf(x)
-	for i := 0; i < rv.Len(); i++ {
+	for i := 0; i < l; i++ {
 		v := f(i)
 		if _, ok := m[v]; !ok {
 			m[v] = struct{}{}

@@ -3,6 +3,7 @@ package goo_task_queue
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math/rand"
 	"runtime"
 	"sync"
@@ -202,7 +203,16 @@ func (s *TaskQueueSubscriber) taskHandle(task *Task, handler TaskQueueHandler) {
 
 	startTime := time.Now()
 
-	err = handler(ctx, task)
+	// handler panic 须走失败收尾，否则任务会一直停在 processing 直到 Timeout 被 Leader 回收
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log().Error(r)
+				err = fmt.Errorf("panic: %v", r)
+			}
+		}()
+		err = handler(ctx, task)
+	}()
 	renewCancel()
 
 	if err == nil {

@@ -14,6 +14,7 @@ import (
 type Client struct {
 	Config
 	*sql.DB
+	stopPing chan struct{}
 }
 
 func New(conf Config) (cli *Client, err error) {
@@ -41,6 +42,25 @@ func New(conf Config) (cli *Client, err error) {
 		_ = cli.DB.Close()
 		cli = nil
 		return
+	}
+
+	if conf.AutoPing {
+		cli.stopPing = make(chan struct{})
+		go func(c *Client) {
+			ticker := time.NewTicker(30 * time.Second)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-c.stopPing:
+					return
+				case <-ticker.C:
+					if c.DB == nil {
+						return
+					}
+					c.ping()
+				}
+			}
+		}(cli)
 	}
 
 	return
@@ -79,6 +99,23 @@ func (cli *Client) connect() (err error) {
 
 	cli.DB = clickhouse.OpenDB(opts)
 	return
+}
+
+func (cli *Client) Close() error {
+	if cli == nil {
+		return nil
+	}
+	if cli.stopPing != nil {
+		select {
+		case <-cli.stopPing:
+		default:
+			close(cli.stopPing)
+		}
+	}
+	if cli.DB == nil {
+		return nil
+	}
+	return cli.DB.Close()
 }
 
 func (cli *Client) ping() {

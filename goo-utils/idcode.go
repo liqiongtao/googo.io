@@ -6,7 +6,6 @@ import (
 	"math/rand"
 	"strconv"
 	"strings"
-	"time"
 )
 
 const key = "6A7CDKV5TBH0ULFSEP82XMW1G9R3YJQNZ"
@@ -32,6 +31,10 @@ func NewIdCode(key string) *idCode {
  * 验证字符B = 从key里面获取一个字符，字符位置=(密钥长度-随机数+给定ID长度)%密钥长度
  */
 func (c *idCode) Encode(id int64) string {
+	if c.l == 0 {
+		return ""
+	}
+
 	id += c.base
 
 	n := c.randNum()
@@ -60,6 +63,10 @@ func (c *idCode) Encode(id int64) string {
  * 3. 验证验证字符B是否正确
  */
 func (c *idCode) Decode(str string) (id int64, err error) {
+	if c.l == 0 {
+		err = errors.New("key为空")
+		return
+	}
 	if str == "" {
 		err = errors.New("code为空")
 		return
@@ -109,7 +116,9 @@ func (c *idCode) Decode(str string) (id int64, err error) {
 }
 
 func (c *idCode) randNum() int {
-	rand.Seed(time.Now().UnixNano())
+	if c.l < 2 {
+		return 0
+	}
 	return rand.Intn(c.l - 1)
 }
 

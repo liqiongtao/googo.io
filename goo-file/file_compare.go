@@ -28,8 +28,15 @@ func Compare(srcFile, targetFile, appendFile, reduceFile string) (err error) {
 			return
 		}
 
-		os.Rename(appendFile+".0", appendFile)
-		os.Rename(reduceFile+".0", reduceFile)
+		if e := os.Rename(appendFile+".0", appendFile); e != nil {
+			err = e
+			goo_log.Error(e)
+			return
+		}
+		if e := os.Rename(reduceFile+".0", reduceFile); e != nil {
+			err = e
+			goo_log.Error(e)
+		}
 	}()
 
 	var (

@@ -44,6 +44,14 @@ func FileSort(filename, sortedFile string) (err error) {
 
 		l := len(partFiles)
 		if l == 0 {
+			// 空文件：写出空的排序结果，避免调用方误判已成功生成 sortedFile
+			fh, e := os.OpenFile(sortedFile, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0755)
+			if e != nil {
+				err = e
+				goo_log.Error(e)
+				return
+			}
+			_ = fh.Close()
 			return
 		}
 

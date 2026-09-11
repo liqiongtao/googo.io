@@ -21,22 +21,31 @@ func (q *TaskQueueList) FailTasks() []*Task {
 
 // 执行失败的任务Id集合
 func (q *TaskQueueList) getTasks(key string) []*Task {
-	taskIds := q.r.ZRange(key, 0, -1).Val()
-
 	var tasks []*Task
-	for _, taskId := range taskIds {
-		if taskId == "" {
-			continue
+	var start int64
+	for {
+		taskIds := q.r.ZRange(key, start, start+zrangeBatchSize-1).Val()
+		if len(taskIds) == 0 {
+			break
 		}
-		exists, err := q.TaskQueueTasks.taskExists(taskId)
-		if err != nil || !exists {
-			continue
+		for _, taskId := range taskIds {
+			if taskId == "" {
+				continue
+			}
+			exists, err := q.TaskQueueTasks.taskExists(taskId)
+			if err != nil || !exists {
+				continue
+			}
+			task, err := getTaskByCache(q.r, q.TaskQueueTasks.taskInfoKey(taskId))
+			if err != nil || task.Id == "" {
+				continue
+			}
+			tasks = append(tasks, task)
 		}
-		task, err := getTaskByCache(q.r, q.TaskQueueTasks.taskInfoKey(taskId))
-		if err != nil || task.Id == "" {
-			continue
+		if int64(len(taskIds)) < zrangeBatchSize {
+			break
 		}
-		tasks = append(tasks, task)
+		start += zrangeBatchSize
 	}
 
 	return tasks

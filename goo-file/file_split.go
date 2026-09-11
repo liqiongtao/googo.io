@@ -45,6 +45,13 @@ func FileSplit(filename string, maxLine int) (files []string, err error) {
 	}
 
 	readErr := ReadByLine(filename, func(b []byte, end bool) error {
+		mu.Lock()
+		e := splitErr
+		mu.Unlock()
+		if e != nil {
+			return e
+		}
+
 		defer func() {
 			if l := len(data); l < maxLine && !end {
 				return

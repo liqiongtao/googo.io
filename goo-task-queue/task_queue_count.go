@@ -1,5 +1,7 @@
 package goo_task_queue
 
+const zrangeBatchSize int64 = 500
+
 type TaskQueueCount struct {
 	*TaskQueue
 }
@@ -77,37 +79,51 @@ func (q *TaskQueueCount) countType(zsetKey, taskType string) int64 {
 		return 0
 	}
 	var n int64
-	for _, taskId := range q.r.ZRange(zsetKey, 0, -1).Val() {
-		if taskId == "" {
-			continue
-		}
+	q.forEachZRange(zsetKey, func(taskId string) {
 		exists, err := q.TaskQueueTasks.taskExists(taskId)
 		if err != nil || !exists {
-			continue
+			return
 		}
 		if q.r.HGet(q.taskInfoKey(taskId), "type").Val() == taskType {
 			n++
 		}
-	}
+	})
 	return n
 }
 
 func (q *TaskQueueCount) countGroupByType(zsetKey string) map[string]int64 {
-	taskIds := q.r.ZRange(zsetKey, 0, -1).Val()
 	counts := make(map[string]int64)
-	for _, taskId := range taskIds {
-		if taskId == "" {
-			continue
-		}
+	q.forEachZRange(zsetKey, func(taskId string) {
 		exists, err := q.TaskQueueTasks.taskExists(taskId)
 		if err != nil || !exists {
-			continue
+			return
 		}
 		typ := q.r.HGet(q.taskInfoKey(taskId), "type").Val()
 		if typ == "" {
-			continue
+			return
 		}
 		counts[typ]++
-	}
+	})
 	return counts
+}
+
+// forEachZRange 分批遍历 ZSET，避免一次 ZRange(0,-1) 把大队列整表拉进内存
+func (q *TaskQueueCount) forEachZRange(zsetKey string, fn func(taskId string)) {
+	var start int64
+	for {
+		ids := q.r.ZRange(zsetKey, start, start+zrangeBatchSize-1).Val()
+		if len(ids) == 0 {
+			return
+		}
+		for _, taskId := range ids {
+			if taskId == "" {
+				continue
+			}
+			fn(taskId)
+		}
+		if int64(len(ids)) < zrangeBatchSize {
+			return
+		}
+		start += zrangeBatchSize
+	}
 }

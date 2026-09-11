@@ -38,6 +38,10 @@ func ReadBySheet(r io.Reader, sheet string, fn func(n int, row []string) error) 
 			return err
 		}
 	}
+	if err := rows.Error(); err != nil {
+		goo_log.Error(err)
+		return err
+	}
 
 	return nil
 }

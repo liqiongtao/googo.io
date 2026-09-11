@@ -65,6 +65,7 @@ func (s *Server) Run(addr string) {
 	httpServer := &http.Server{
 		Handler:           s.Engine,
 		ReadHeaderTimeout: 10 * time.Second,
+		IdleTimeout:       120 * time.Second,
 	}
 
 	// 先注册钩子再 Listen/Root，避免信号窗口内空钩子直接 cancel
@@ -107,6 +108,8 @@ func (s *Server) Run(addr string) {
 	go func() {
 		if err := httpServer.Serve(lis); err != nil && err != http.ErrServerClosed {
 			goo_log.Error(err.Error())
+			// Serve 异常退出时触发优雅退出，避免进程假活
+			_ = syscall.Kill(os.Getpid(), syscall.SIGTERM)
 		}
 	}()
 

@@ -42,6 +42,8 @@ func FileMerge(file string, files []string) (err error) {
 				if e := os.Rename(_file, file); e != nil {
 					err = e
 				}
+			} else {
+				err = fmt.Errorf("合并源文件不存在: %s", files[0])
 			}
 			return
 		}
