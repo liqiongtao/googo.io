@@ -275,41 +275,51 @@ func (s *Server) log(c *gin.Context) {
 		WithField("trace-id", RequestId(c)).
 		WithField("request", req)
 
+	// defer：panic 时也能打出带 request 的访问日志，再 re-panic 交给外层 recovery
+	defer func() {
+		r := recover()
+
+		if !beginTime.IsZero() {
+			l = l.WithField("duration", fmt.Sprintf("%dms", time.Since(beginTime)/1e6))
+		}
+
+		ctx := c.Copy()
+		for k, v := range ctx.Keys {
+			if strings.HasPrefix(k, "__") {
+				continue
+			}
+			l = l.WithField(k, v)
+		}
+
+		if r != nil {
+			l.Error(r)
+			panic(r)
+		}
+
+		if resp, has := ctx.Get("__response"); has {
+			if rr, ok := resp.(*Response); resp != nil && ok {
+				l = l.WithField("response", resp)
+				if rr == nil {
+					l.Error(resp)
+					return
+				}
+
+				if rr.Errors != nil && len(rr.Errors) > 0 {
+					l.Error(rr.Errors)
+					return
+				}
+
+				if rr.Code > 0 {
+					l.Error()
+					return
+				}
+			}
+		}
+
+		l.Debug()
+	}()
+
 	c.Next()
-
-	if !beginTime.IsZero() {
-		l = l.WithField("duration", fmt.Sprintf("%dms", time.Since(beginTime)/1e6))
-	}
-
-	ctx := c.Copy()
-	for k, v := range ctx.Keys {
-		if strings.HasPrefix(k, "__") {
-			continue
-		}
-		l = l.WithField(k, v)
-	}
-
-	if resp, has := ctx.Get("__response"); has {
-		if r, ok := resp.(*Response); resp != nil && ok {
-			l = l.WithField("response", resp)
-			if r == nil {
-				l.Error(resp)
-				return
-			}
-
-			if r.Errors != nil && len(r.Errors) > 0 {
-				l.Error(r.Errors)
-				return
-			}
-
-			if r.Code > 0 {
-				l.Error()
-				return
-			}
-		}
-	}
-
-	l.Debug()
 }
 
 // 捕获panic信息
