@@ -1,6 +1,7 @@
 package gooredis
 
 import (
+	"context"
 	"sync"
 
 	goolog "github.com/liqiongtao/googo.io/goo-log"
@@ -11,14 +12,14 @@ var (
 	__mu      sync.RWMutex
 )
 
-func Init(configs ...Config) (err error) {
+func Init(ctx context.Context, configs ...Config) (err error) {
 	for _, conf := range configs {
 		name := conf.Name
 		if name == "" {
 			name = "default"
 		}
 
-		cli, e := New(conf)
+		cli, e := New(ctx, conf)
 		if e != nil {
 			return e
 		}

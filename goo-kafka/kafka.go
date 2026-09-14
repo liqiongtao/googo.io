@@ -1,6 +1,7 @@
 package gookafka
 
 import (
+	"context"
 	"sync"
 
 	gooredis "github.com/liqiongtao/googo.io/goo-redis"
@@ -12,8 +13,8 @@ var (
 )
 
 // 初始化
-func Init(conf Config, opts ...Option) error {
-	c, err := New(conf, opts...)
+func Init(ctx context.Context, conf Config, opts ...Option) error {
+	c, err := New(ctx, conf, opts...)
 	if err != nil {
 		return err
 	}
@@ -24,7 +25,7 @@ func Init(conf Config, opts ...Option) error {
 }
 
 // 初始化
-func New(conf Config, opts ...Option) (*Client, error) {
+func New(ctx context.Context, conf Config, opts ...Option) (*Client, error) {
 	c := &Client{conf: conf}
 	for _, opt := range opts {
 		switch opt.Name {
@@ -32,7 +33,7 @@ func New(conf Config, opts ...Option) (*Client, error) {
 			c.redis = opt.Value.(*gooredis.Client)
 		}
 	}
-	if err := c.init(); err != nil {
+	if err := c.init(ctx); err != nil {
 		return nil, err
 	}
 	return c, nil

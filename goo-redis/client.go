@@ -9,16 +9,13 @@ import (
 )
 
 type Client struct {
+	context.Context
 	Config
 	*redis.Client
 }
 
-func (c *Client) ctx() context.Context {
-	return context.Background()
-}
-
-func New(conf Config) (cli *Client, err error) {
-	cli = &Client{Config: conf}
+func New(ctx context.Context, conf Config) (cli *Client, err error) {
+	cli = &Client{Context: ctx, Config: conf}
 
 	opts := &redis.Options{
 		Addr:     conf.Addr,
@@ -83,7 +80,7 @@ func New(conf Config) (cli *Client, err error) {
 
 	cli.Client = redis.NewClient(opts)
 
-	if err = cli.Client.Ping(cli.ctx()).Err(); err != nil {
+	if err = cli.Client.Ping(cli.Context).Err(); err != nil {
 		goolog.WithTag("goo-redis").Error(err)
 		_ = cli.Close()
 		cli = nil
@@ -96,97 +93,93 @@ func New(conf Config) (cli *Client, err error) {
 // ---- 兼容旧调用（无 context 参数）----
 
 func (c *Client) Ping() *redis.StatusCmd {
-	return c.Client.Ping(c.ctx())
+	return c.Client.Ping(c.Context)
 }
 
 func (c *Client) Get(key string) *redis.StringCmd {
-	return c.Client.Get(c.ctx(), key)
+	return c.Client.Get(c.Context, key)
 }
 
 func (c *Client) Set(key string, value any, expiration time.Duration) *redis.StatusCmd {
-	return c.Client.Set(c.ctx(), key, value, expiration)
+	return c.Client.Set(c.Context, key, value, expiration)
 }
 
 func (c *Client) SetNX(key string, value any, expiration time.Duration) *redis.BoolCmd {
-	return c.Client.SetNX(c.ctx(), key, value, expiration)
+	return c.Client.SetNX(c.Context, key, value, expiration)
 }
 
 func (c *Client) Del(keys ...string) *redis.IntCmd {
-	return c.Client.Del(c.ctx(), keys...)
+	return c.Client.Del(c.Context, keys...)
 }
 
 func (c *Client) Exists(keys ...string) *redis.IntCmd {
-	return c.Client.Exists(c.ctx(), keys...)
+	return c.Client.Exists(c.Context, keys...)
 }
 
 func (c *Client) Expire(key string, expiration time.Duration) *redis.BoolCmd {
-	return c.Client.Expire(c.ctx(), key, expiration)
+	return c.Client.Expire(c.Context, key, expiration)
 }
 
 func (c *Client) Eval(script string, keys []string, args ...any) *redis.Cmd {
-	return c.Client.Eval(c.ctx(), script, keys, args...)
+	return c.Client.Eval(c.Context, script, keys, args...)
 }
 
 func (c *Client) Subscribe(channels ...string) *redis.PubSub {
-	return c.Client.Subscribe(c.ctx(), channels...)
+	return c.Client.Subscribe(c.Context, channels...)
 }
 
 func (c *Client) HSet(key string, values ...any) *redis.IntCmd {
-	return c.Client.HSet(c.ctx(), key, values...)
+	return c.Client.HSet(c.Context, key, values...)
 }
 
 func (c *Client) HGet(key, field string) *redis.StringCmd {
-	return c.Client.HGet(c.ctx(), key, field)
+	return c.Client.HGet(c.Context, key, field)
 }
 
 func (c *Client) HGetAll(key string) *redis.MapStringStringCmd {
-	return c.Client.HGetAll(c.ctx(), key)
+	return c.Client.HGetAll(c.Context, key)
 }
 
 func (c *Client) HDel(key string, fields ...string) *redis.IntCmd {
-	return c.Client.HDel(c.ctx(), key, fields...)
+	return c.Client.HDel(c.Context, key, fields...)
 }
 
 func (c *Client) HKeys(key string) *redis.StringSliceCmd {
-	return c.Client.HKeys(c.ctx(), key)
+	return c.Client.HKeys(c.Context, key)
 }
 
 func (c *Client) HMSet(key string, values ...any) *redis.BoolCmd {
-	return c.Client.HMSet(c.ctx(), key, values...)
+	return c.Client.HMSet(c.Context, key, values...)
 }
 
 func (c *Client) HIncrBy(key, field string, incr int64) *redis.IntCmd {
-	return c.Client.HIncrBy(c.ctx(), key, field, incr)
+	return c.Client.HIncrBy(c.Context, key, field, incr)
 }
 
 func (c *Client) ZAdd(key string, members ...redis.Z) *redis.IntCmd {
-	return c.Client.ZAdd(c.ctx(), key, members...)
+	return c.Client.ZAdd(c.Context, key, members...)
 }
 
 func (c *Client) ZRem(key string, members ...any) *redis.IntCmd {
-	return c.Client.ZRem(c.ctx(), key, members...)
+	return c.Client.ZRem(c.Context, key, members...)
 }
 
 func (c *Client) ZCard(key string) *redis.IntCmd {
-	return c.Client.ZCard(c.ctx(), key)
+	return c.Client.ZCard(c.Context, key)
 }
 
 func (c *Client) ZRange(key string, start, stop int64) *redis.StringSliceCmd {
-	return c.Client.ZRange(c.ctx(), key, start, stop)
+	return c.Client.ZRange(c.Context, key, start, stop)
 }
 
 func (c *Client) ZRangeWithScores(key string, start, stop int64) *redis.ZSliceCmd {
-	return c.Client.ZRangeWithScores(c.ctx(), key, start, stop)
+	return c.Client.ZRangeWithScores(c.Context, key, start, stop)
 }
 
 func (c *Client) Publish(channel string, message any) *redis.IntCmd {
-	return c.Client.Publish(c.ctx(), channel, message)
+	return c.Client.Publish(c.Context, channel, message)
 }
 
 func (c *Client) TxPipeline() redis.Pipeliner {
 	return c.Client.TxPipeline()
-}
-
-func (c *Client) Context() context.Context {
-	return c.ctx()
 }

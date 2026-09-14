@@ -100,13 +100,12 @@ func (t *TaskQueueTasks) taskDelForce(taskId string) error {
 	if taskId == "" {
 		return nil
 	}
-	ctx := t.r.Context()
 	pi := t.r.TxPipeline()
-	pi.Del(ctx, t.taskInfoKey(taskId))
-	pi.ZRem(ctx, t.TaskPendingKey, taskId)
-	pi.ZRem(ctx, t.TaskProcessingKey, taskId)
-	pi.ZRem(ctx, t.TaskFailKey, taskId)
-	if _, err := pi.Exec(ctx); err != nil {
+	pi.Del(t.r.Context, t.taskInfoKey(taskId))
+	pi.ZRem(t.r.Context, t.TaskPendingKey, taskId)
+	pi.ZRem(t.r.Context, t.TaskProcessingKey, taskId)
+	pi.ZRem(t.r.Context, t.TaskFailKey, taskId)
+	if _, err := pi.Exec(t.r.Context); err != nil {
 		t.log().WithTag("taskDelForce").Error(err)
 		return err
 	}

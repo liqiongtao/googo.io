@@ -4,12 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	gooredis "github.com/liqiongtao/googo.io/goo-redis"
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 	"math/rand"
 	"os"
 	"testing"
 	"time"
+
+	gooredis "github.com/liqiongtao/googo.io/goo-redis"
+	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 )
 
 var (
@@ -21,7 +22,7 @@ var (
 )
 
 func TestTaskQueue_Publish(t *testing.T) {
-	r, err := gooredis.New(redisConfig)
+	r, err := gooredis.New(context.Background(), redisConfig)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -41,7 +42,7 @@ func TestTaskQueue_Publish(t *testing.T) {
 }
 
 func TestTaskQueue_Subscribe(t *testing.T) {
-	r, err := gooredis.New(redisConfig)
+	r, err := gooredis.New(context.Background(), redisConfig)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -59,7 +60,7 @@ func TestTaskQueue_Subscribe(t *testing.T) {
 }
 
 func TestTaskQueue_Subscribe2(t *testing.T) {
-	r, err := gooredis.New(redisConfig)
+	r, err := gooredis.New(context.Background(), redisConfig)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -77,7 +78,7 @@ func TestTaskQueue_Subscribe2(t *testing.T) {
 }
 
 func TestTaskQueue_TaskCount(t *testing.T) {
-	r, err := gooredis.New(redisConfig)
+	r, err := gooredis.New(context.Background(), redisConfig)
 	if err != nil {
 		fmt.Println(err)
 		return

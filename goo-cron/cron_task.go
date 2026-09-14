@@ -66,6 +66,8 @@ func (c *CronTask) Run() {
 	<-c.c.Stop().Done()
 	c.wg.Wait()
 	goolog.WithTag("goo-cron").Debug("系统退出成功，全部任务执行结束")
+
+	time.Sleep(time.Second)
 }
 
 func (c *CronTask) execTask(task *TaskData) {
@@ -138,6 +140,12 @@ func (c *CronTask) Subscribe(ctx context.Context) {
 		}
 
 		sub := c.r.Subscribe(c.key)
+		if ctx.Err() != nil {
+			_ = sub.Close()
+			goolog.WithTag("goo-cron").Info("定时任务订阅服务退出")
+			return
+		}
+
 		goolog.WithTag("goo-cron").WithField("key", c.key).Info("定时任务订阅已建立")
 
 		for running := true; running; {
