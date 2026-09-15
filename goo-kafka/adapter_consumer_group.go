@@ -1,6 +1,7 @@
 package gookafka
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -96,8 +97,8 @@ func (g group) doHandler(msg *sarama.ConsumerMessage, session sarama.ConsumerGro
 		}
 	}
 
-	// 跟随 session：rebalance 时可取消；不挂 Root，进程退出只停拉取
-	ctx := goocontext.WithGenerateTraceId(session.Context())
+	// 在途处理用 Background：session/Root 取消只停拉新消息，不打断当前条（与分区消费、task-queue 一致）
+	ctx := goocontext.WithGenerateTraceId(context.Background())
 	log := goocontext.Log(ctx).WithTag("goo-kafka-consumer-group", g.id).WithField("msg", m)
 
 	{

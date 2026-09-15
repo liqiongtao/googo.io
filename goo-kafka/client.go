@@ -1,7 +1,6 @@
 package gookafka
 
 import (
-	"context"
 	"fmt"
 	"time"
 
@@ -17,7 +16,7 @@ type Client struct {
 	redis *gooredis.Client
 }
 
-func (c *Client) init(ctx context.Context) (err error) {
+func (c *Client) init() (err error) {
 	clientID := c.conf.ClientID
 	if clientID == "" {
 		clientID = uuid.New().String()
@@ -81,7 +80,7 @@ func (c *Client) init(ctx context.Context) (err error) {
 	if c.redis == nil {
 		if cfg := c.conf.RedisConfig; cfg.Addr != "" {
 			var redisErr error
-			c.redis, redisErr = gooredis.New(ctx, cfg)
+			c.redis, redisErr = gooredis.New(cfg)
 			if redisErr != nil {
 				goolog.WithTag("goo-kafka").Error("Redis 初始化失败", redisErr)
 				c.redis = nil

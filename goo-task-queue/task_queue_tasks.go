@@ -37,7 +37,9 @@ return {member, tostring(gen)}
 	// ARGV[1]=可调度上限；ARGV[2]=processing 开始时间；ARGV[3]=info key 前缀；ARGV[4]=info TTL 秒
 	args := []any{nowMs + 0.5, nowMs, t.TaskInfoKey + ":", taskInfoTTLSec}
 
-	result, err := t.r.Eval(luaScript, keys, args...).Result()
+	ctx, cancel := redisOpContext()
+	defer cancel()
+	result, err := t.r.Client.Eval(ctx, luaScript, keys, args...).Result()
 	if err != nil {
 		if errors.Is(err, gooredis.ErrNil) {
 			return nil, nil

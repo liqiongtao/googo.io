@@ -65,7 +65,9 @@ func (c *ESClient) Search(index []string, body []byte) (*esapi.Response, error) 
 	return c.exec(req)
 }
 
-// 分页查询，用于大数量查询，普通查询，默认最多返回10000条
+// 分页查询，用于大数量查询，普通查询，默认最多返回10000条。
+// 先预取下一页再处理当前页，避免 fn 耗时超过 scroll keep-alive（默认 1m）导致扫描中断。
+// 单条文档处理可任意慢；若需完全不受 scroll 约束，用 SearchAfter。
 func (c *ESClient) PageSearch(index []string, body []byte, fn func(p goo_utils.Params) error) error {
 	var (
 		scrollDuration = time.Minute
@@ -87,18 +89,17 @@ func (c *ESClient) PageSearch(index []string, body []byte, fn func(p goo_utils.P
 		}
 	}()
 
-	for n := 0; ; n++ {
+	fetch := func(first bool) ([]goo_utils.Params, error) {
 		var (
 			res *esapi.Response
 			err error
 		)
-
-		if n == 0 {
+		if first {
 			res, err = esapi.SearchRequest{
 				Index:  index,
 				Body:   bytes.NewReader(body),
 				Scroll: scrollDuration,
-				Size:   &size, // 每次获取的文档数量
+				Size:   &size,
 			}.Do(context.Background(), c.Client())
 		} else {
 			res, err = esapi.ScrollRequest{
@@ -106,49 +107,57 @@ func (c *ESClient) PageSearch(index []string, body []byte, fn func(p goo_utils.P
 				Scroll:   scrollDuration,
 			}.Do(context.Background(), c.Client())
 		}
-
 		if err != nil {
 			c.log().Error(err)
-			return err
+			return nil, err
 		}
-
 		if res.IsError() {
 			err = fmt.Errorf("error getting response: %s", res.String())
 			_ = res.Body.Close()
 			c.log().Error(err)
-			return err
+			return nil, err
 		}
-
 		b, err := io.ReadAll(res.Body)
 		_ = res.Body.Close()
 		if err != nil {
 			c.log().Error(err)
-			return err
+			return nil, err
 		}
-
 		p, err := goo_utils.Byte(b).Params()
 		if err != nil {
 			c.log().Error(err)
-			return err
+			return nil, err
 		}
-
 		if sid := p.Get("_scroll_id").String(); sid != "" {
 			scrollId = sid
 		}
+		return p.Get("hits.hits").Array(), nil
+	}
 
-		hits := p.Get("hits.hits").Array()
+	hits, err := fetch(true)
+	if err != nil {
+		return err
+	}
+
+	for n := 0; ; n++ {
 		if len(hits) == 0 {
 			break
 		}
 
-		c.log().DebugF("第 %d 页，每页 %d 条", n+1, size)
+		// 先拉下一页刷新 scroll，再处理当前页，避免 fn 过慢导致 scroll 过期
+		nextHits, nextErr := fetch(false)
 
+		c.log().DebugF("第 %d 页，每页 %d 条", n+1, size)
 		for _, hit := range hits {
 			if err = fn(hit.Get("_source")); err != nil {
 				c.log().Error(err)
 				return err
 			}
 		}
+		if nextErr != nil {
+			return nextErr
+		}
+		hits = nextHits
 	}
 
 	return nil

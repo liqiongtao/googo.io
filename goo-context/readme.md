@@ -36,11 +36,15 @@ go func() {
 goocontext.Wait() // 等 OnExit 钩子跑完，不要只 <-Root().Done()
 ```
 
-## 请求派生
+## 请求派生与 API 约定
 
-在途请求/消费不要挂在 `Root()` 上，否则进程退出会取消未完成业务：
+**退出监听**：组件内部直接用 `goocontext.Root()`，不要再让调用方传入生命周期 ctx。  
+**业务 Context**：只有单次请求/任务/消息才通过参数传递（从 `context.Background()` 派生）。  
+**收尾写存储**：`WithTimeout(context.Background(), …)`，不跟 Root 混用。
 
 ```go
 ctx := goocontext.WithGenerateTraceId(context.Background())
 log := goocontext.Log(ctx) // WithField 为 copy-on-write，需 log = log.WithField(...)
 ```
+
+完整约定见 `.cursor/rules/goocontext-usage.mdc`。

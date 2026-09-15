@@ -1,7 +1,6 @@
 package gookafka
 
 import (
-	"context"
 	"sync"
 
 	gooredis "github.com/liqiongtao/googo.io/goo-redis"
@@ -12,9 +11,9 @@ var (
 	__mu     sync.RWMutex
 )
 
-// 初始化
-func Init(ctx context.Context, conf Config, opts ...Option) error {
-	c, err := New(ctx, conf, opts...)
+// Init 初始化默认客户端
+func Init(conf Config, opts ...Option) error {
+	c, err := New(conf, opts...)
 	if err != nil {
 		return err
 	}
@@ -24,8 +23,8 @@ func Init(ctx context.Context, conf Config, opts ...Option) error {
 	return nil
 }
 
-// 初始化
-func New(ctx context.Context, conf Config, opts ...Option) (*Client, error) {
+// New 创建客户端
+func New(conf Config, opts ...Option) (*Client, error) {
 	c := &Client{conf: conf}
 	for _, opt := range opts {
 		switch opt.Name {
@@ -33,7 +32,7 @@ func New(ctx context.Context, conf Config, opts ...Option) (*Client, error) {
 			c.redis = opt.Value.(*gooredis.Client)
 		}
 	}
-	if err := c.init(ctx); err != nil {
+	if err := c.init(); err != nil {
 		return nil, err
 	}
 	return c, nil

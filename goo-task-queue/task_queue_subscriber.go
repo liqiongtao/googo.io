@@ -28,15 +28,12 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 		return
 	}
 
-	// 进程级退出 context：Leader / 心跳 / 拉取共用，避免多次 WithCancel
-	ctx := goocontext.Root()
-
 	goo_utils.AsyncFunc(func() {
-		s.TaskQueueLeader.Generate(ctx)
+		s.TaskQueueLeader.Generate()
 	})
 
 	goo_utils.AsyncFunc(func() {
-		s.heartBeat(ctx)
+		s.heartBeat()
 	})
 
 	if limit <= 0 {
@@ -99,7 +96,7 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 
 		for {
 			select {
-			case <-ctx.Done():
+			case <-goocontext.Root().Done():
 				s.log().Info("准备退出")
 				return
 			default:
@@ -111,7 +108,7 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 			} else if s.MaxMemoryPercent > 0 && percent >= s.MaxMemoryPercent {
 				n := rand.Intn(600) + 3000
 				s.log().WarnF("内存占用超过最大限制=%0.2f%%，等待%dms后重试", percent, n)
-				if !sleepOrDone(ctx, time.Duration(n)*time.Millisecond) {
+				if !sleepOrDone(goocontext.Root(), time.Duration(n)*time.Millisecond) {
 					s.log().Info("准备退出")
 					return
 				}
@@ -120,7 +117,7 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 
 			// 先占执行槽再拉取，保证本 Worker 在途任务数不超过 limit
 			select {
-			case <-ctx.Done():
+			case <-goocontext.Root().Done():
 				s.log().Info("准备退出")
 				return
 			case limitCH <- struct{}{}:
@@ -129,7 +126,7 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 			task, err := s.getOneTask()
 			if err != nil || task == nil {
 				<-limitCH // 立即归还，空载睡眠不占槽
-				if !sleepOrDone(ctx, time.Duration(rand.Intn(600)+200)*time.Millisecond) {
+				if !sleepOrDone(goocontext.Root(), time.Duration(rand.Intn(600)+200)*time.Millisecond) {
 					s.log().Info("准备退出")
 					return
 				}
@@ -137,7 +134,7 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 			}
 
 			select {
-			case <-ctx.Done():
+			case <-goocontext.Root().Done():
 				<-limitCH
 				// 已抢占但尚未交给执行侧：放回 pending，避免卡在 Timeout 才被 Leader 回收
 				_ = s.TaskQueueTasks.putBack(task)
@@ -219,6 +216,7 @@ func (s *TaskQueueSubscriber) taskHandle(task *Task, handler TaskQueueHandler) {
 		log().WithField("执行时长_ms", time.Since(startTime).Milliseconds()).
 			WithField("generation", task.Generation).
 			InfoF("执行任务成功(%d/%d)", task.RetryTimes, task.MaxRetry)
+		// 收尾写 Redis 用 Background+超时（见 redisOpContext），不跟 Root，避免 Exit 后 context canceled
 		if err := s.TaskQueueTasks.taskDel(task); err != nil {
 			if errors.Is(err, errStaleGeneration) {
 				log().Warn("成功收尾跳过：generation 已过期")
@@ -315,16 +313,16 @@ func (s *TaskQueueSubscriber) workId() string {
 	return s.instanceId
 }
 
-func (s *TaskQueueSubscriber) heartBeat(ctx context.Context) {
+func (s *TaskQueueSubscriber) heartBeat() {
 	for {
 		select {
-		case <-ctx.Done():
+		case <-goocontext.Root().Done():
 			return
 		default:
 			s.r.HSet(s.TaskWorkersKey, s.workId(), time.Now().Format("2006-01-02 15:04:05"))
 			s.r.Expire(s.TaskWorkersKey, time.Second*10)
 
-			if !sleepOrDone(ctx, time.Duration(rand.Intn(600)+200)*time.Millisecond) {
+			if !sleepOrDone(goocontext.Root(), time.Duration(rand.Intn(600)+200)*time.Millisecond) {
 				return
 			}
 		}

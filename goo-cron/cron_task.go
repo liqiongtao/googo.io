@@ -1,7 +1,6 @@
 package goo_cron
 
 import (
-	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -48,15 +47,13 @@ func (c *CronTask) goAsync(fn func()) {
 }
 
 func (c *CronTask) Run() {
-	ctx := goocontext.Root()
-
 	c.goAsync(func() {
-		c.Subscribe(ctx)
+		c.Subscribe()
 	})
 
 	c.c.Start()
 
-	<-ctx.Done()
+	<-goocontext.Root().Done()
 	goolog.WithTag("goo-cron").Debug("系统退出，等待全部任务执行结束...")
 
 	for _, entry := range c.c.Entries() {
@@ -128,19 +125,19 @@ func (c *CronTask) Remove(taskCode string) {
 	}
 }
 
-func (c *CronTask) Subscribe(ctx context.Context) {
+func (c *CronTask) Subscribe() {
 	if c.r == nil {
 		return
 	}
 
 	for {
-		if ctx.Err() != nil {
+		if goocontext.Root().Err() != nil {
 			goolog.WithTag("goo-cron").Info("定时任务订阅服务退出")
 			return
 		}
 
 		sub := c.r.Subscribe(c.key)
-		if ctx.Err() != nil {
+		if goocontext.Root().Err() != nil {
 			_ = sub.Close()
 			goolog.WithTag("goo-cron").Info("定时任务订阅服务退出")
 			return
@@ -150,7 +147,7 @@ func (c *CronTask) Subscribe(ctx context.Context) {
 
 		for running := true; running; {
 			select {
-			case <-ctx.Done():
+			case <-goocontext.Root().Done():
 				_ = sub.Close()
 				goolog.WithTag("goo-cron").Info("定时任务订阅服务退出")
 				return
@@ -198,8 +195,9 @@ func (c *CronTask) Subscribe(ctx context.Context) {
 
 		_ = sub.Close()
 		goolog.WithTag("goo-cron").Warn("定时任务订阅通道关闭，1s 后重连")
+
 		select {
-		case <-ctx.Done():
+		case <-goocontext.Root().Done():
 			goolog.WithTag("goo-cron").Info("定时任务订阅服务退出")
 			return
 		case <-time.After(time.Second):

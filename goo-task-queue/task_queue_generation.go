@@ -25,7 +25,9 @@ end
 return 1
 `
 	allArgs := append([]any{strconv.FormatInt(expectGen, 10)}, args...)
-	res, err := t.r.Eval(script, keys, allArgs...).Result()
+	ctx, cancel := redisOpContext()
+	defer cancel()
+	res, err := t.r.Client.Eval(ctx, script, keys, allArgs...).Result()
 	if err != nil {
 		if errors.Is(err, gooredis.ErrNil) {
 			return false, nil
@@ -100,12 +102,14 @@ func (t *TaskQueueTasks) taskDelForce(taskId string) error {
 	if taskId == "" {
 		return nil
 	}
+	ctx, cancel := redisOpContext()
+	defer cancel()
 	pi := t.r.TxPipeline()
-	pi.Del(t.r.Context, t.taskInfoKey(taskId))
-	pi.ZRem(t.r.Context, t.TaskPendingKey, taskId)
-	pi.ZRem(t.r.Context, t.TaskProcessingKey, taskId)
-	pi.ZRem(t.r.Context, t.TaskFailKey, taskId)
-	if _, err := pi.Exec(t.r.Context); err != nil {
+	pi.Del(ctx, t.taskInfoKey(taskId))
+	pi.ZRem(ctx, t.TaskPendingKey, taskId)
+	pi.ZRem(ctx, t.TaskProcessingKey, taskId)
+	pi.ZRem(ctx, t.TaskFailKey, taskId)
+	if _, err := pi.Exec(ctx); err != nil {
 		t.log().WithTag("taskDelForce").Error(err)
 		return err
 	}
@@ -242,7 +246,9 @@ redis.call('ZREM', KEYS[2], ARGV[1])
 redis.call('ZADD', KEYS[3], ARGV[3], ARGV[1])
 return 1
 `
-	res, err := t.r.Eval(script, []string{
+	ctx, cancel := redisOpContext()
+	defer cancel()
+	res, err := t.r.Client.Eval(ctx, script, []string{
 		t.taskInfoKey(task.Id),
 		t.TaskProcessingKey,
 		t.TaskPendingKey,

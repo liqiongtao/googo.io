@@ -1,0 +1,65 @@
+---
+description: goocontext.Root 与业务 Context 分层用法
+alwaysApply: true
+---
+
+# Context 用法：Root vs 业务
+
+`kill -3` / TERM / INT 会先 `cancel(Root)`，再跑退出钩子。两套 Context 职责不同，不要混用。
+
+## API 约定（优先遵守）
+
+| 场景 | 做法 |
+|------|------|
+| 监听系统退出（停拉活、停订阅、停竞选、心跳循环） | 组件**内部**直接 `goocontext.Root()`，**不要**再让调用方传入生命周期 ctx |
+| 单次业务（handler、RPC、一条消息） | 通过**参数**传 `context.Context`（Background 派生 / Timeout / Trace） |
+| 成功/失败收尾写存储 | 内部 `WithTimeout(Background, 短超时)`，不跟 Root、不跟业务超时混用 |
+| 进程关服（HTTP Shutdown 等） | `WithTimeout(Background, …)`，不用已 cancel 的 Root |
+
+```go
+// ✅ 退出监听：内部 Root，无生命周期参数
+func (s *Subscriber) Subscribe(limit int, handler Handler) {
+	for {
+		select {
+		case <-goocontext.Root().Done():
+			return
+		default:
+			// 拉新任务…
+		}
+	}
+}
+
+// ✅ 业务 ctx 才进参数
+func handler(ctx context.Context, task *Task) error { … }
+
+// ❌ 为“退出”再要求外部传 ctx
+func Subscribe(ctx context.Context, handler Handler) // 若 ctx 只是 Root，删掉该参数
+```
+
+例外：测试或需「只停本组件、非整进程退出」时用独立 `Stop()` / cancel，而不是再塞一个与 Root 同义的 ctx 参数。
+
+## 分层速查
+
+| 用途 | 用什么 |
+|------|--------|
+| 停拉新活 / 停监听 | 内部 `goocontext.Root()` |
+| 在途业务 | `Background` + 按需 Timeout（参数传递） |
+| 收尾写 Redis 等 | `WithTimeout(Background, 短超时)` |
+| HTTP/gRPC Shutdown | `WithTimeout(Background, …)` |
+
+## 反例
+
+```go
+// ❌ 在途业务挂在 Root → 退出时被直接取消
+handler(goocontext.Root(), task)
+
+// ❌ 收尾跟已 cancel 的生命周期 ctx → context canceled
+_ = redis.Eval(rootCtx, ...)
+```
+
+## 模块对照
+
+- **goo-task-queue / goo-cron / goo-kafka / goo-event**：退出用内部 Root；业务 handler 用 Background(+Timeout)
+- **goo-redis**：命令用 Background；`Subscribe` 跟 Root；`New/Init` 的 ctx 不参与生命周期
+- **goo-etcd**：Client 内部绑 Root（watch/续租）；退出 Revoke 用 Background+超时
+- **goo-http / goo-grpc**：Shutdown / GracefulStop 用 Background+超时

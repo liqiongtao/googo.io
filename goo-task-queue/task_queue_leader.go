@@ -1,11 +1,11 @@
 package gootaskqueue
 
 import (
-	"context"
 	"math/rand"
 	"sync"
 	"time"
 
+	goocontext "github.com/liqiongtao/googo.io/goo-context"
 	goolog "github.com/liqiongtao/googo.io/goo-log"
 	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
 )
@@ -14,26 +14,26 @@ type TaskQueueLeader struct {
 	*TaskQueue
 }
 
-func (l *TaskQueueLeader) Generate(ctx context.Context) {
+func (l *TaskQueueLeader) Generate() {
 	for {
 		select {
-		case <-ctx.Done():
+		case <-goocontext.Root().Done():
 			return
 		default:
 		}
 
-		l.handler(ctx)
+		l.handler()
 
 		select {
-		case <-ctx.Done():
+		case <-goocontext.Root().Done():
 			return
 		case <-time.After(time.Duration(rand.Intn(600)+200) * time.Millisecond):
 		}
 	}
 }
 
-// handler 尝试执政；丢锁或 ctx 取消后返回，由 Generate 继续竞选。
-func (l *TaskQueueLeader) handler(ctx context.Context) {
+// handler 尝试执政；丢锁或进程退出后返回，由 Generate 继续竞选。
+func (l *TaskQueueLeader) handler() {
 	if !l.lock() {
 		return
 	}
@@ -55,7 +55,7 @@ func (l *TaskQueueLeader) handler(ctx context.Context) {
 	run(func() {
 		for {
 			select {
-			case <-ctx.Done():
+			case <-goocontext.Root().Done():
 				return
 			case <-lost:
 				return
@@ -64,7 +64,7 @@ func (l *TaskQueueLeader) handler(ctx context.Context) {
 					lostOnce.Do(func() { close(lost) })
 					return
 				}
-				if !sleepOrDone(ctx, time.Second) {
+				if !sleepOrDone(goocontext.Root(), time.Second) {
 					return
 				}
 			}
@@ -73,13 +73,13 @@ func (l *TaskQueueLeader) handler(ctx context.Context) {
 	run(func() {
 		for {
 			select {
-			case <-ctx.Done():
+			case <-goocontext.Root().Done():
 				return
 			case <-lost:
 				return
 			default:
-				l.recover(ctx)
-				if !sleepOrDone(ctx, time.Second) {
+				l.recover()
+				if !sleepOrDone(goocontext.Root(), time.Second) {
 					return
 				}
 			}
@@ -88,13 +88,13 @@ func (l *TaskQueueLeader) handler(ctx context.Context) {
 	run(func() {
 		for {
 			select {
-			case <-ctx.Done():
+			case <-goocontext.Root().Done():
 				return
 			case <-lost:
 				return
 			default:
-				l.workers(ctx)
-				if !sleepOrDone(ctx, time.Second) {
+				l.workers()
+				if !sleepOrDone(goocontext.Root(), time.Second) {
 					return
 				}
 			}
@@ -105,7 +105,7 @@ func (l *TaskQueueLeader) handler(ctx context.Context) {
 }
 
 // recover 按名次从最老开始分批扫描 processing，避免同 score exclusive 游标跳过成员
-func (l *TaskQueueLeader) recover(ctx context.Context) error {
+func (l *TaskQueueLeader) recover() error {
 	const batch int64 = 100
 	var start int64
 	scanned := 0
@@ -113,7 +113,7 @@ func (l *TaskQueueLeader) recover(ctx context.Context) error {
 
 	for {
 		select {
-		case <-ctx.Done():
+		case <-goocontext.Root().Done():
 			return nil
 		default:
 		}
@@ -179,15 +179,15 @@ func (l *TaskQueueLeader) recover(ctx context.Context) error {
 	}
 
 	if scanned == 0 {
-		sleepOrDone(ctx, time.Second*10)
+		sleepOrDone(goocontext.Root(), time.Second*10)
 	}
 	return nil
 }
 
-func (l *TaskQueueLeader) workers(ctx context.Context) error {
+func (l *TaskQueueLeader) workers() error {
 	workerIds := l.r.HKeys(l.TaskWorkersKey).Val()
 	if len(workerIds) == 0 {
-		sleepOrDone(ctx, time.Second*10)
+		sleepOrDone(goocontext.Root(), time.Second*10)
 		return nil
 	}
 

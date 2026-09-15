@@ -1,7 +1,6 @@
 package gooredis
 
 import (
-	"context"
 	"sync"
 
 	goolog "github.com/liqiongtao/googo.io/goo-log"
@@ -12,14 +11,15 @@ var (
 	__mu      sync.RWMutex
 )
 
-func Init(ctx context.Context, configs ...Config) (err error) {
+func Init(configs ...Config) (err error) {
+	// ctx 仅兼容旧签名，不参与生命周期（见 Client.New / Subscribe）
 	for _, conf := range configs {
 		name := conf.Name
 		if name == "" {
 			name = "default"
 		}
 
-		cli, e := New(ctx, conf)
+		cli, e := New(conf)
 		if e != nil {
 			return e
 		}

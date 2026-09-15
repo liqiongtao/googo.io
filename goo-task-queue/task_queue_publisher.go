@@ -20,6 +20,8 @@ func (p *TaskQueuePublisher) Publish(tasks ...*Task) error {
 		return err
 	}
 
+	ctx, cancel := redisOpContext()
+	defer cancel()
 	pi := p.r.TxPipeline()
 
 	for _, task := range tasks {
@@ -47,15 +49,15 @@ func (p *TaskQueuePublisher) Publish(tasks ...*Task) error {
 		score := priorityScore(task.HighPriority, task.Ts)
 		infoKey := p.taskInfoKey(task.Id)
 
-		pi.HMSet(p.r.Context, infoKey, task.MapData())
-		pi.HIncrBy(p.r.Context, infoKey, "generation", 1) // 使旧执行收尾失效
-		pi.Expire(p.r.Context, infoKey, time.Duration(infoTTLSecUntil(task.Ts))*time.Second)
-		pi.ZAdd(p.r.Context, p.TaskPendingKey, gooredis.Z{Score: score, Member: task.Id})
-		pi.ZRem(p.r.Context, p.TaskProcessingKey, task.Id) // 执行中重投：摘掉 processing
-		pi.ZRem(p.r.Context, p.TaskFailKey, task.Id)
+		pi.HMSet(ctx, infoKey, task.MapData())
+		pi.HIncrBy(ctx, infoKey, "generation", 1) // 使旧执行收尾失效
+		pi.Expire(ctx, infoKey, time.Duration(infoTTLSecUntil(task.Ts))*time.Second)
+		pi.ZAdd(ctx, p.TaskPendingKey, gooredis.Z{Score: score, Member: task.Id})
+		pi.ZRem(ctx, p.TaskProcessingKey, task.Id) // 执行中重投：摘掉 processing
+		pi.ZRem(ctx, p.TaskFailKey, task.Id)
 	}
 
-	if _, err := pi.Exec(p.r.Context); err != nil {
+	if _, err := pi.Exec(ctx); err != nil {
 		p.log().WithField("tasks", tasks).ErrorF("发布任务失败: %s", err.Error())
 		return err
 	}

@@ -177,9 +177,6 @@ func (c *consumer) ConsumeGroup(groupId string, topics []string, handler Consume
 		done = make(chan struct{})
 	)
 
-	ctx, cancel := context.WithCancel(goocontext.Root())
-	defer cancel()
-
 	goo_utils.AsyncFunc(func() {
 		for err := range cg.Errors() {
 			if err != nil {
@@ -191,18 +188,18 @@ func (c *consumer) ConsumeGroup(groupId string, topics []string, handler Consume
 	goo_utils.AsyncFunc(func() {
 		defer close(done)
 		for {
-			if ctx.Err() != nil {
+			if goocontext.Root().Err() != nil {
 				return
 			}
-			err := cg.Consume(ctx, topics, group{id: groupId, handler: handler, cli: c.cli})
-			if ctx.Err() != nil {
+			err := cg.Consume(goocontext.Root(), topics, group{id: groupId, handler: handler, cli: c.cli})
+			if goocontext.Root().Err() != nil {
 				return
 			}
 			if err != nil && !errors.Is(err, sarama.ErrClosedConsumerGroup) {
 				l.Error(err)
 				// 避免 broker 异常时空转打满 CPU
 				select {
-				case <-ctx.Done():
+				case <-goocontext.Root().Done():
 					return
 				case <-time.After(time.Second):
 				}
@@ -210,8 +207,7 @@ func (c *consumer) ConsumeGroup(groupId string, topics []string, handler Consume
 		}
 	})
 
-	<-ctx.Done()
-	cancel()
+	<-goocontext.Root().Done()
 	<-done
 
 	time.Sleep(time.Second)
