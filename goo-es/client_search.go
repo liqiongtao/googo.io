@@ -66,8 +66,8 @@ func (c *ESClient) Search(index []string, body []byte) (*esapi.Response, error) 
 }
 
 // 分页查询，用于大数量查询，普通查询，默认最多返回10000条。
-// 先预取下一页再处理当前页，避免 fn 耗时超过 scroll keep-alive（默认 1m）导致扫描中断。
-// 单条文档处理可任意慢；若需完全不受 scroll 约束，用 SearchAfter。
+// 先预取下一页再处理当前页，使「整页」fn 总耗时尽量落在 scroll keep-alive（默认 1m）内。
+// 若单页处理仍可能超过 keep-alive，请用 SearchAfter。
 func (c *ESClient) PageSearch(index []string, body []byte, fn func(p goo_utils.Params) error) error {
 	var (
 		scrollDuration = time.Minute

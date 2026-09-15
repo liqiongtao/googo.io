@@ -22,7 +22,7 @@ var (
 )
 
 func TestTaskQueue_Publish(t *testing.T) {
-	r, err := gooredis.New(context.Background(), redisConfig)
+	r, err := gooredis.New(redisConfig)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -42,7 +42,7 @@ func TestTaskQueue_Publish(t *testing.T) {
 }
 
 func TestTaskQueue_Subscribe(t *testing.T) {
-	r, err := gooredis.New(context.Background(), redisConfig)
+	r, err := gooredis.New(redisConfig)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -60,7 +60,7 @@ func TestTaskQueue_Subscribe(t *testing.T) {
 }
 
 func TestTaskQueue_Subscribe2(t *testing.T) {
-	r, err := gooredis.New(context.Background(), redisConfig)
+	r, err := gooredis.New(redisConfig)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -78,7 +78,7 @@ func TestTaskQueue_Subscribe2(t *testing.T) {
 }
 
 func TestTaskQueue_TaskCount(t *testing.T) {
-	r, err := gooredis.New(context.Background(), redisConfig)
+	r, err := gooredis.New(redisConfig)
 	if err != nil {
 		fmt.Println(err)
 		return

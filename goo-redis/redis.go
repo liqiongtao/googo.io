@@ -12,7 +12,6 @@ var (
 )
 
 func Init(configs ...Config) (err error) {
-	// ctx 仅兼容旧签名，不参与生命周期（见 Client.New / Subscribe）
 	for _, conf := range configs {
 		name := conf.Name
 		if name == "" {

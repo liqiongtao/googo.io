@@ -48,12 +48,12 @@ func (t *TestMessage) Deserialize(b []byte) {
 }
 
 func TestProducer(t *testing.T) {
-	redis, _ := gooredis.New(context.Background(), gooredis.Config{
+	redis, _ := gooredis.New(gooredis.Config{
 		Addr:     "redis.in:20063",
 		Password: "",
 		DB:       0,
 	})
-	Init(context.Background(), Config{
+	Init(Config{
 		User:     "admin",
 		Password: "",
 		Addrs:    []string{"kafka.in:20092"},
@@ -67,7 +67,7 @@ func TestProducer(t *testing.T) {
 }
 
 func TestConsumer(t *testing.T) {
-	Init(context.Background(), Config{
+	Init(Config{
 		User:     "admin",
 		Password: "",
 		Addrs:    []string{"kafka.in:20092"},

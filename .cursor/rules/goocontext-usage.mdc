@@ -60,6 +60,6 @@ _ = redis.Eval(rootCtx, ...)
 ## 模块对照
 
 - **goo-task-queue / goo-cron / goo-kafka / goo-event**：退出用内部 Root；业务 handler 用 Background(+Timeout)
-- **goo-redis**：命令用 Background；`Subscribe` 跟 Root；`New/Init` 的 ctx 不参与生命周期
+- **goo-redis**：`New/Init` 无生命周期 ctx；命令用 Background；`Subscribe` 跟 Root
 - **goo-etcd**：Client 内部绑 Root（watch/续租）；退出 Revoke 用 Background+超时
 - **goo-http / goo-grpc**：Shutdown / GracefulStop 用 Background+超时

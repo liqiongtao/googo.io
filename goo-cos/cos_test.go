@@ -1,7 +1,6 @@
 package goo_cos
 
 import (
-	"context"
 	"fmt"
 	"testing"
 
@@ -9,7 +8,7 @@ import (
 )
 
 func TestCosClient(t *testing.T) {
-	redis, _ := gooredis.New(context.Background(), gooredis.Config{
+	redis, _ := gooredis.New(gooredis.Config{
 		Addr:     "",
 		Password: "",
 		DB:       0,
