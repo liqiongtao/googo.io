@@ -8,30 +8,36 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	goocontext "github.com/liqiongtao/googo.io/goo-context"
 )
 
 // 唯一ID
 func RequestId(c *gin.Context) string {
 	if v := c.GetHeader("X-Request-Id"); v != "" {
+		c.Set(goocontext.TraceIdKey, v)
 		return v
 	}
 	if v := c.Query("request_id"); v != "" {
+		c.Set(goocontext.TraceIdKey, v)
 		return v
 	}
 	if v := c.GetHeader("X-Trace-Id"); v != "" {
+		c.Set(goocontext.TraceIdKey, v)
 		return v
 	}
 	if v := c.Query("trace_id"); v != "" {
+		c.Set(goocontext.TraceIdKey, v)
 		return v
 	}
 	if v := c.Query("trace-id"); v != "" {
+		c.Set(goocontext.TraceIdKey, v)
 		return v
 	}
-	if v := c.GetString("trace-id"); v != "" {
+	if v := c.GetString(goocontext.TraceIdKey); v != "" {
 		return v
 	}
 	traceId := uuid.New().String()
-	c.Set("trace-id", traceId)
+	c.Set(goocontext.TraceIdKey, traceId)
 	return traceId
 }
 

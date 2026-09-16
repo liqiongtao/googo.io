@@ -170,6 +170,11 @@ func (s *Server) noAccess(c *gin.Context) {
 
 // 设置字段
 func (s *Server) setFields(c *gin.Context) {
+	_ = RequestId(c)
+	if s.opts.serverName != "" {
+		c.Set(goocontext.ServiceNameKey, s.opts.serverName)
+	}
+	c.Set(goocontext.RequestUriKey, c.Request.RequestURI)
 	c.Next()
 }
 
