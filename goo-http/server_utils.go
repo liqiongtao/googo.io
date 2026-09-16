@@ -27,11 +27,11 @@ func RequestId(c *gin.Context) string {
 	if v := c.Query("trace-id"); v != "" {
 		return v
 	}
-	if v := c.GetString("__trace_id"); v != "" {
+	if v := c.GetString("trace-id"); v != "" {
 		return v
 	}
 	traceId := uuid.New().String()
-	c.Set("__trace_id", traceId)
+	c.Set("trace-id", traceId)
 	return traceId
 }
 

@@ -10,11 +10,10 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
-type Key string
-
 const (
-	TraceIdKey     Key = "trace-id"
-	ServiceNameKey Key = "service-name"
+	TraceIdKey     = "trace-id"
+	ServiceNameKey = "service-name"
+	RequestUriKey  = "request-uri"
 )
 
 func Default(ctx context.Context) context.Context {
@@ -25,7 +24,7 @@ func Default(ctx context.Context) context.Context {
 }
 
 func WithValue(ctx context.Context, key string, value any) context.Context {
-	return context.WithValue(Default(ctx), Key(key), value)
+	return context.WithValue(Default(ctx), key, value)
 }
 
 func Value[T any](ctx context.Context, key string) (T, bool) {
@@ -34,7 +33,7 @@ func Value[T any](ctx context.Context, key string) (T, bool) {
 		return zero, false
 	}
 
-	v := ctx.Value(Key(key))
+	v := ctx.Value(key)
 	if v == nil {
 		var zero T
 		return zero, false
@@ -94,7 +93,7 @@ func ValueBool(ctx context.Context, key string) bool {
 }
 
 func WithTraceId(ctx context.Context, traceId string) context.Context {
-	return WithValue(ctx, string(TraceIdKey), traceId)
+	return WithValue(ctx, TraceIdKey, traceId)
 }
 
 func WithGenerateTraceId(ctx context.Context) context.Context {
@@ -104,25 +103,39 @@ func WithGenerateTraceId(ctx context.Context) context.Context {
 func TraceId(ctx context.Context) string {
 	ctx = Default(ctx)
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
-		if v, ok := md[string(TraceIdKey)]; ok {
+		if v := md.Get(TraceIdKey); len(v) > 0 {
 			return strings.Join(v, " ")
 		}
 	}
-	return ValueString(ctx, string(TraceIdKey))
+	return ValueString(ctx, TraceIdKey)
 }
 
 func WithServiceName(ctx context.Context, serviceName string) context.Context {
-	return WithValue(ctx, string(ServiceNameKey), serviceName)
+	return WithValue(ctx, ServiceNameKey, serviceName)
 }
 
 func ServiceName(ctx context.Context) string {
 	ctx = Default(ctx)
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
-		if v, ok := md[string(ServiceNameKey)]; ok {
+		if v := md.Get(ServiceNameKey); len(v) > 0 {
 			return strings.Join(v, " ")
 		}
 	}
-	return ValueString(ctx, string(ServiceNameKey))
+	return ValueString(ctx, ServiceNameKey)
+}
+
+func WithRequestUri(ctx context.Context, requestUri string) context.Context {
+	return WithValue(ctx, RequestUriKey, requestUri)
+}
+
+func RequestUri(ctx context.Context) string {
+	ctx = Default(ctx)
+	if md, ok := metadata.FromIncomingContext(ctx); ok {
+		if v := md.Get(RequestUriKey); len(v) > 0 {
+			return strings.Join(v, " ")
+		}
+	}
+	return ValueString(ctx, RequestUriKey)
 }
 
 func WithCancel(ctx context.Context) (context.Context, context.CancelFunc) {
@@ -137,15 +150,38 @@ func WithDeadline(ctx context.Context, d time.Time) (context.Context, context.Ca
 	return context.WithDeadline(Default(ctx), d)
 }
 
-func Log(ctx context.Context) *goolog.Entry {
+func MetaDataContext(ctx context.Context) context.Context {
 	ctx = Default(ctx)
-	log := goolog.WithField("trace-id", TraceId(ctx))
+
+	md, ok := metadata.FromOutgoingContext(ctx)
+	if ok {
+		md = md.Copy()
+	} else {
+		md = metadata.MD{}
+	}
 
 	if v := ServiceName(ctx); v != "" {
-		log = log.WithField("service-name", v)
+		md.Set(ServiceNameKey, v)
 	}
-	if v := ValueString(ctx, "request-uri"); v != "" {
-		log = log.WithField("request-uri", v)
+	if v := TraceId(ctx); v != "" {
+		md.Set(TraceIdKey, v)
+	}
+	if v := RequestUri(ctx); v != "" {
+		md.Set(RequestUriKey, v)
+	}
+
+	return metadata.NewOutgoingContext(ctx, md)
+}
+
+func Log(ctx context.Context) *goolog.Entry {
+	ctx = Default(ctx)
+	log := goolog.WithField(TraceIdKey, TraceId(ctx))
+
+	if v := ServiceName(ctx); v != "" {
+		log = log.WithField(ServiceNameKey, v)
+	}
+	if v := RequestUri(ctx); v != "" {
+		log = log.WithField(RequestUriKey, v)
 	}
 
 	return log
