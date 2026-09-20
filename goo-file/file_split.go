@@ -9,7 +9,7 @@ import (
 	"sync"
 
 	goolog "github.com/liqiongtao/googo.io/goo-log"
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
+	gooutils "github.com/liqiongtao/googo.io/goo-util"
 )
 
 func FileSplit(filename string, maxLine int) (files []string, err error) {
@@ -64,7 +64,7 @@ func FileSplit(filename string, maxLine int) (files []string, err error) {
 			ch <- struct{}{}
 
 			func(partNum int, data []string) {
-				goo_utils.AsyncFunc(func() {
+				gooutils.AsyncFunc(func() {
 					defer wg.Done()
 					defer func() { <-ch }()
 

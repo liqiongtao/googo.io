@@ -6,7 +6,7 @@ import (
 	"fmt"
 	goolog "github.com/liqiongtao/googo.io/goo-log"
 	goorequest "github.com/liqiongtao/googo.io/goo-request"
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
+	gooutils "github.com/liqiongtao/googo.io/goo-util"
 )
 
 // ---------------------------------
@@ -64,10 +64,10 @@ type MinipUserInfoResponse struct {
 }
 
 func MinipUserInfo(sessionKey, encryptedData, iv string) (*MinipUserInfoResponse, error) {
-	data := goo_utils.Base64Decode(encryptedData)
-	key := goo_utils.Base64Decode(sessionKey)
+	data := gooutils.Base64Decode(encryptedData)
+	key := gooutils.Base64Decode(sessionKey)
 
-	buf, err := goo_utils.AESCBCDecrypt(data, key, goo_utils.Base64Decode(iv))
+	buf, err := gooutils.AESCBCDecrypt(data, key, gooutils.Base64Decode(iv))
 	if err != nil {
 		goolog.Error(err.Error())
 		return nil, err
@@ -108,10 +108,10 @@ type WXMobileData struct {
 
 func MinipMobile(sessionKey, encryptedData, iv string) (*WXMobileData, error) {
 	// 解析数据
-	encryptedDataRaw := goo_utils.Base64Decode(encryptedData)
-	ivRaw := goo_utils.Base64Decode(iv)
-	key := goo_utils.Base64Decode(sessionKey)
-	buf, err := goo_utils.AESCBCDecrypt(encryptedDataRaw, key, ivRaw)
+	encryptedDataRaw := gooutils.Base64Decode(encryptedData)
+	ivRaw := gooutils.Base64Decode(iv)
+	key := gooutils.Base64Decode(sessionKey)
+	buf, err := gooutils.AESCBCDecrypt(encryptedDataRaw, key, ivRaw)
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +129,7 @@ func MinipMobile(sessionKey, encryptedData, iv string) (*WXMobileData, error) {
 
 func SendTemplateMessage(appid, secret, openid, templateId, page string, data interface{}) error {
 	accessToken := CGIToken(appid, secret).Get()
-	params := goo_utils.M{
+	params := gooutils.M{
 		"access_token": accessToken,
 		"template_id":  templateId,
 		"page":         page,
@@ -146,7 +146,7 @@ func SendTemplateMessage(appid, secret, openid, templateId, page string, data in
 
 	l := goolog.WithField("params", params.String()).WithField("result", string(b))
 
-	p, err := goo_utils.Byte(b).Params()
+	p, err := gooutils.Byte(b).Params()
 	if err != nil {
 		l.Error("发送订阅消息", err)
 		return err

@@ -1,7 +1,7 @@
 package gooetcd
 
 import (
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
+	gooutils "github.com/liqiongtao/googo.io/goo-util"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
@@ -15,7 +15,7 @@ func Init(conf Config) (err error) {
 	__client = cli
 
 	// 绑定本次实例，避免重复 Init 后误关新 client
-	goo_utils.AsyncFunc(func() {
+	gooutils.AsyncFunc(func() {
 		<-cli.ctx.Done()
 		cli.Close()
 	})

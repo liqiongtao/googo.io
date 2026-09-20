@@ -1,7 +1,8 @@
-package goo_cos
+package goocos
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -9,7 +10,7 @@ import (
 
 	goolog "github.com/liqiongtao/googo.io/goo-log"
 	gooredis "github.com/liqiongtao/googo.io/goo-redis"
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
+	gooutils "github.com/liqiongtao/googo.io/goo-util"
 	sts "github.com/tencentyun/qcloud-cos-sts-sdk/go"
 	"golang.org/x/sync/singleflight"
 )
@@ -57,7 +58,7 @@ var (
 func stsCacheKey(cfg StsConfig) string {
 	actions := append([]string{}, cfg.GetAction()...)
 	sort.Strings(actions)
-	fp := goo_utils.MD5([]byte(strings.Join(actions, ",") + "|" +
+	fp := gooutils.MD5([]byte(strings.Join(actions, ",") + "|" +
 		fmt.Sprintf("%d", cfg.GetExpire()) + "|" +
 		cfg.SecretId + "|" +
 		strings.Join(cfg.GetResource(), ",")))
@@ -76,7 +77,7 @@ func STSCredentialWithCache(cfg StsConfig, redis *gooredis.Client) (*sts.Credent
 				if uerr := json.Unmarshal([]byte(cmd.Val()), &credentials); uerr == nil && credentials != nil {
 					return credentials, nil
 				}
-			} else if cerr != gooredis.ErrNil {
+			} else if !errors.Is(cerr, gooredis.ErrNil) {
 				goolog.ErrorF("sts redis get %s error: %s", key, cerr.Error())
 			}
 		}

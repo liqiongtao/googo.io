@@ -1,4 +1,4 @@
-package goo_mongo
+package goomongo
 
 type Config struct {
 	Name       string `yaml:"name" json:"name"`
@@ -7,6 +7,6 @@ type Config struct {
 	Password   string `yaml:"password" json:"password"`
 	Database   string `yaml:"database" json:"database"`
 	AuthSource string `yaml:"auth_source" json:"authSource"` // 认证库，默认 admin
-	Timeout    int    `yaml:"timeout" json:"timeout"`         // Connect/Ping 超时秒数，默认 10
+	Timeout    int    `yaml:"timeout" json:"timeout"`        // Connect/Ping 超时秒数，默认 10
 	AutoPing   bool   `yaml:"auto_ping" json:"autoPing"`
 }

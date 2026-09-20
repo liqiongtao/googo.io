@@ -3,7 +3,7 @@ package gooes
 import (
 	"testing"
 
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
+	gooutils "github.com/liqiongtao/googo.io/goo-util"
 )
 
 func TestClient(t *testing.T) {
@@ -17,17 +17,17 @@ func TestClient(t *testing.T) {
 
 	index := []string{"smartcard-http-sca-*"}
 
-	query := goo_utils.M{
-		"sort": []goo_utils.M{
+	query := gooutils.M{
+		"sort": []gooutils.M{
 			{"log_datetime": "asc"},
 		},
-		"query": goo_utils.M{
-			"bool": goo_utils.M{
-				"filter": []goo_utils.M{
-					{"match_phrase": goo_utils.M{"log_tags": "/sca/device/reportinfo"}},
+		"query": gooutils.M{
+			"bool": gooutils.M{
+				"filter": []gooutils.M{
+					{"match_phrase": gooutils.M{"log_tags": "/sca/device/reportinfo"}},
 					{
-						"range": goo_utils.M{
-							"log_datetime": goo_utils.M{
+						"range": gooutils.M{
+							"log_datetime": gooutils.M{
 								"gte": date + " 00:00:00",
 								"lte": date + " 23:59:59",
 							},
@@ -38,7 +38,7 @@ func TestClient(t *testing.T) {
 		},
 	}
 
-	Client().PageSearch(index, query.Json(), func(p goo_utils.Params) error {
+	Client().PageSearch(index, query.Json(), func(p gooutils.Params) error {
 		//fmt.Println(p)
 		return nil
 	})

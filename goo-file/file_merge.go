@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	goolog "github.com/liqiongtao/googo.io/goo-log"
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
+	gooutils "github.com/liqiongtao/googo.io/goo-util"
 	"io"
 	"os"
 	"runtime"
@@ -49,7 +49,7 @@ func FileMerge(file string, files []string) (err error) {
 		}
 
 		filename := fmt.Sprintf("%s.%d", file, index)
-		filesArr := goo_utils.SplitStringArray(files, size)
+		filesArr := gooutils.SplitStringArray(files, size)
 
 		var mergeErr error
 		files, tempFiles, mergeErr = fileGroupMerge(filename, filesArr)
@@ -100,7 +100,7 @@ func fileGroupMerge(file string, filesArr [][]string) (files, tempFiles []string
 		goolog.DebugF("文件合并，临时文件: %s", _file)
 
 		func(_file string, _files []string) {
-			goo_utils.AsyncFunc(func() {
+			gooutils.AsyncFunc(func() {
 				defer wg.Done()
 				defer func() { <-ch }()
 

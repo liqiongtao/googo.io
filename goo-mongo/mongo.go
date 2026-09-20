@@ -1,4 +1,4 @@
-package goo_mongo
+package goomongo
 
 import (
 	"sync"

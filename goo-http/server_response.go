@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/go-playground/validator/v10"
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
+	gooutils "github.com/liqiongtao/googo.io/goo-util"
 )
 
 type Response struct {
@@ -66,7 +66,7 @@ func ErrorWithValidate(err error, messages map[string]string) *Response {
 	var v validator.ValidationErrors
 	if errors.As(err, &v) {
 		for _, i := range v {
-			field := goo_utils.Camel2Case(i.Field())
+			field := gooutils.Camel2Case(i.Field())
 			key := fmt.Sprintf("%s_%s", field, strings.ToLower(i.Tag()))
 			if msg, ok := messages[key]; ok {
 				return Error(7002, msg)

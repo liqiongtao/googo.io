@@ -3,7 +3,7 @@ package goowechat
 import (
 	"fmt"
 	goolog "github.com/liqiongtao/googo.io/goo-log"
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
+	gooutils "github.com/liqiongtao/googo.io/goo-util"
 	"net/url"
 	"strings"
 	"time"
@@ -13,14 +13,14 @@ func JsApi(appid, secret, urlStr string) map[string]interface{} {
 	ticket := CGITicket(appid, secret).Get()
 
 	ts := time.Now().Unix()
-	nonceStr := goo_utils.NonceStr()
+	nonceStr := gooutils.NonceStr()
 
 	urlStr, _ = url.QueryUnescape(urlStr)
 	urlStr = strings.Split(urlStr, "#")[0]
 
 	rawstr := fmt.Sprintf(jsapi_ticket_qs, ticket, nonceStr, ts, urlStr)
 	goolog.DebugF("Wechat-JsApi: %s", rawstr)
-	rawstr = goo_utils.SHA1([]byte(rawstr))
+	rawstr = gooutils.SHA1([]byte(rawstr))
 
 	params := map[string]interface{}{
 		"debug":     false,

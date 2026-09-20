@@ -1,4 +1,4 @@
-package goo_cron
+package goocron
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 	"github.com/liqiongtao/googo.io/goo-context"
 	goolog "github.com/liqiongtao/googo.io/goo-log"
 	gooredis "github.com/liqiongtao/googo.io/goo-redis"
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
+	gooutils "github.com/liqiongtao/googo.io/goo-util"
 	"github.com/robfig/cron/v3"
 )
 
@@ -40,7 +40,7 @@ func (c *CronTask) Cron() *cron.Cron {
 
 func (c *CronTask) goAsync(fn func()) {
 	c.wg.Add(1)
-	goo_utils.AsyncFunc(func() {
+	gooutils.AsyncFunc(func() {
 		defer c.wg.Done()
 		fn()
 	})

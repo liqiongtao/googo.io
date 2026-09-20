@@ -101,7 +101,7 @@ func TestCutFileSequentialUnderConcurrency(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	max := 0
+	num := 0
 	for _, f := range matches {
 		base := strings.TrimSuffix(filepath.Base(f), ".log")
 		i := strings.LastIndex(base, "_")
@@ -109,13 +109,13 @@ func TestCutFileSequentialUnderConcurrency(t *testing.T) {
 		if convErr != nil {
 			t.Fatal(convErr)
 		}
-		if n > max {
-			max = n
+		if n > num {
+			num = n
 		}
 	}
 	// 单 worker 下序号应连续：文件数 == 最大序号
-	if max > 0 && len(matches) != max {
-		t.Fatalf("rotated files not sequential: count=%d maxSuffix=%d files=%v", len(matches), max, matches)
+	if num > 0 && len(matches) != num {
+		t.Fatalf("rotated files not sequential: count=%d maxSuffix=%d files=%v", len(matches), num, matches)
 	}
 }
 

@@ -1,4 +1,4 @@
-package goo_cron
+package goocron
 
 import (
 	gooredis "github.com/liqiongtao/googo.io/goo-redis"

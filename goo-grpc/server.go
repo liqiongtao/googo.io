@@ -14,7 +14,7 @@ import (
 	"github.com/liqiongtao/googo.io/goo-context"
 	goolog "github.com/liqiongtao/googo.io/goo-log"
 	goo_pprof "github.com/liqiongtao/googo.io/goo-pprof"
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
+	gooutils "github.com/liqiongtao/googo.io/goo-util"
 	"google.golang.org/grpc"
 )
 
@@ -83,7 +83,7 @@ func (s *Server) Serve() (err error) {
 	// 本机内网IP
 	if s.conf.ServiceEndpoint == "" || s.conf.Addr == "" {
 		var localIp string
-		localIp, err = goo_utils.LocalIP()
+		localIp, err = gooutils.LocalIP()
 		if err != nil {
 			goolog.WithTag("goo-grpc").Error(err)
 			return

@@ -9,7 +9,7 @@ import (
 	googrpc "github.com/liqiongtao/googo.io/goo-grpc"
 	pb_grpc_v1 "github.com/liqiongtao/googo.io/goo-grpc/test/proto"
 	goolog "github.com/liqiongtao/googo.io/goo-log"
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
+	gooutils "github.com/liqiongtao/googo.io/goo-util"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -31,8 +31,8 @@ func main() {
 
 	c := pb_grpc_v1.NewGetterClient(cc)
 
-	goo_utils.AsyncFunc(func() {
-		uuid := goo_utils.UUID()
+	gooutils.AsyncFunc(func() {
+		uuid := gooutils.UUID()
 		for {
 			ctx := metadata.NewOutgoingContext(context.TODO(), metadata.New(map[string]string{"trace-id": uuid}))
 

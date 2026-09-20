@@ -5,7 +5,7 @@ import (
 
 	"github.com/liqiongtao/googo.io/goo-context"
 	goolog "github.com/liqiongtao/googo.io/goo-log"
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
+	gooutils "github.com/liqiongtao/googo.io/goo-util"
 )
 
 type Event struct {
@@ -25,7 +25,7 @@ func (ev *Event) Publish(topic string, data any) {
 	if chs, ok := ev.subscribes[topic]; ok {
 		channels := append([]MessageChan{}, chs...)
 		msg := Message{Topic: topic, Data: data}
-		goo_utils.AsyncFunc(func() {
+		gooutils.AsyncFunc(func() {
 			for _, ch := range channels {
 				select {
 				case ch <- msg:
@@ -48,7 +48,7 @@ func (ev *Event) Subscribe(topic string, fn SubscribeFunc) (unsubscribe func()) 
 	ev.subscribes[topic] = append(ev.subscribes[topic], ch)
 	ev.mu.Unlock()
 
-	goo_utils.AsyncFunc(func() {
+	gooutils.AsyncFunc(func() {
 		for {
 			select {
 			case <-goocontext.Root().Done():

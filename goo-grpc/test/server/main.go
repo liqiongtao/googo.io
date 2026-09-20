@@ -8,7 +8,7 @@ import (
 	gooetcd "github.com/liqiongtao/googo.io/goo-etcd"
 	googrpc "github.com/liqiongtao/googo.io/goo-grpc"
 	pb_grpc_v1 "github.com/liqiongtao/googo.io/goo-grpc/test/proto"
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
+	gooutils "github.com/liqiongtao/googo.io/goo-util"
 )
 
 func main() {
@@ -28,7 +28,7 @@ func main() {
 	pb_grpc_v1.RegisterGetterServer(s.Server, Server{})
 
 	// 启动
-	goo_utils.AsyncFunc(func() {
+	gooutils.AsyncFunc(func() {
 		s.Serve()
 	})
 

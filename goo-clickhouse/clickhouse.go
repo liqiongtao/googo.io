@@ -1,4 +1,4 @@
-package goo_clickhouse
+package gooclickhouse
 
 import (
 	"sync"

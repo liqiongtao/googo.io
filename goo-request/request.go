@@ -16,7 +16,7 @@ import (
 	"time"
 
 	goolog "github.com/liqiongtao/googo.io/goo-log"
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
+	gooutils "github.com/liqiongtao/googo.io/goo-util"
 )
 
 type Request struct {
@@ -322,7 +322,7 @@ func (r *Request) Upload(url, fileField, fileName string, fh io.Reader, data map
 	w := multipart.NewWriter(pw)
 	contentType := w.FormDataContentType()
 
-	goo_utils.AsyncFunc(func() {
+	gooutils.AsyncFunc(func() {
 		defer pw.Close()
 		defer w.Close()
 

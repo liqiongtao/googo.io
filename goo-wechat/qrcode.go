@@ -7,7 +7,7 @@ import (
 	"fmt"
 	goolog "github.com/liqiongtao/googo.io/goo-log"
 	goorequest "github.com/liqiongtao/googo.io/goo-request"
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
+	gooutils "github.com/liqiongtao/googo.io/goo-util"
 )
 
 type QrcodeParams struct {
@@ -20,7 +20,7 @@ type QrcodeParams struct {
 	// 自动配置线条颜色，如果颜色依然是黑色，则说明不建议配置主色调，默认 false
 	AutoColor bool `json:"auto_color"`
 	// 默认是{"r":0,"g":0,"b":0} 。auto_color 为 false 时生效，使用 rgb 设置颜色 例如 {"r":"xxx","g":"xxx","b":"xxx"} 十进制表示
-	LineColor goo_utils.M `json:"line_color"`
+	LineColor gooutils.M `json:"line_color"`
 	// 默认是false，是否需要透明底色，为 true 时，生成透明底色的小程序
 	IsHyaline bool `json:"is_hyaline"` // 是否透明
 }

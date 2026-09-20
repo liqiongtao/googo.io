@@ -12,7 +12,7 @@ import (
 
 	"github.com/liqiongtao/googo.io/goo-context"
 	goolog "github.com/liqiongtao/googo.io/goo-log"
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
+	gooutils "github.com/liqiongtao/googo.io/goo-util"
 )
 
 type TaskQueueHandler func(ctx context.Context, task *Task) error
@@ -28,11 +28,11 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 		return
 	}
 
-	goo_utils.AsyncFunc(func() {
+	gooutils.AsyncFunc(func() {
 		s.TaskQueueLeader.Generate()
 	})
 
-	goo_utils.AsyncFunc(func() {
+	gooutils.AsyncFunc(func() {
 		s.heartBeat()
 	})
 
@@ -53,7 +53,7 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 	}
 
 	// 执行任务
-	goo_utils.AsyncFunc(func() {
+	gooutils.AsyncFunc(func() {
 		defer func() { done <- struct{}{} }()
 
 		var (
@@ -70,7 +70,7 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 			atomic.AddInt64(&cnt, 1)
 			wg.Add(1)
 
-			goo_utils.AsyncFunc(func() {
+			gooutils.AsyncFunc(func() {
 				defer func() {
 					<-limitCH
 					left := atomic.AddInt64(&cnt, -1)
@@ -87,7 +87,7 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 	})
 
 	// 获取任务：同步拉取，空队列时不占用执行槽睡眠
-	goo_utils.AsyncFunc(func() {
+	gooutils.AsyncFunc(func() {
 		// panic 时也要关掉 taskCH，否则执行侧与主流程永久阻塞
 		defer func() {
 			closeTasks()
@@ -102,7 +102,7 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 			default:
 			}
 
-			percent, err := goo_utils.MemoryUsedPercent()
+			percent, err := gooutils.MemoryUsedPercent()
 			if err != nil {
 				s.log().WarnF("读取内存占用失败: %v", err)
 			} else if s.MaxMemoryPercent > 0 && percent >= s.MaxMemoryPercent {
@@ -149,7 +149,7 @@ func (s *TaskQueueSubscriber) Subscribe(limit int, handler TaskQueueHandler) {
 		<-done
 	}
 
-	goo_utils.AsyncFuncGroup(func() {
+	gooutils.AsyncFuncGroup(func() {
 		s.r.HDel(s.TaskWorkersKey, s.workId())
 	}, func() {
 		close(done)
@@ -173,13 +173,13 @@ func (s *TaskQueueSubscriber) taskHandle(task *Task, handler TaskQueueHandler) {
 		return
 	}
 
-	traceId := goo_utils.UUID()
+	traceId := gooutils.UUID()
 
 	log := func() *goolog.Entry {
 		return s.log().WithTag("taskHandle").WithField("trace-id", traceId).WithField("task_id", task.Id)
 	}
 
-	percent, err := goo_utils.MemoryUsedPercent()
+	percent, err := gooutils.MemoryUsedPercent()
 	if err != nil {
 		log().WithField("task", task).ErrorF("获取任务，获取内存失败: %s", err.Error())
 	} else {
@@ -194,7 +194,7 @@ func (s *TaskQueueSubscriber) taskHandle(task *Task, handler TaskQueueHandler) {
 	// 续租跟随任务 ctx：Timeout 到期或 handler 返回后停止，避免卡死任务被无限续租
 	renewCtx, renewCancel := context.WithCancel(ctx)
 	defer renewCancel()
-	goo_utils.AsyncFunc(func() {
+	gooutils.AsyncFunc(func() {
 		s.leaseRenewLoop(renewCtx, task, log)
 	})
 

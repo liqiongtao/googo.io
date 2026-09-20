@@ -5,10 +5,10 @@ import (
 	"io"
 
 	goolog "github.com/liqiongtao/googo.io/goo-log"
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
+	gooutils "github.com/liqiongtao/googo.io/goo-util"
 )
 
-func (c *ESClient) Loop(index []string, filter []goo_utils.M, fn func(p goo_utils.Params) error) {
+func (c *ESClient) Loop(index []string, filter []gooutils.M, fn func(p gooutils.Params) error) {
 	size := 500
 	for n := 0; n < 1000; n++ {
 		_, list := c.Query(index, filter, n*size, size)
@@ -31,12 +31,12 @@ func (c *ESClient) Loop(index []string, filter []goo_utils.M, fn func(p goo_util
 	}
 }
 
-func (c *ESClient) Query(index []string, filter []goo_utils.M, offset, size int) (int64, []goo_utils.Params) {
-	m := goo_utils.M{
+func (c *ESClient) Query(index []string, filter []gooutils.M, offset, size int) (int64, []gooutils.Params) {
+	m := gooutils.M{
 		"from": offset,
 		"size": size,
-		"query": goo_utils.M{
-			"bool": goo_utils.M{
+		"query": gooutils.M{
+			"bool": gooutils.M{
 				"filter": filter,
 			},
 		},
@@ -45,32 +45,32 @@ func (c *ESClient) Query(index []string, filter []goo_utils.M, offset, size int)
 	res, err := c.Search(index, m.Json())
 	if err != nil {
 		goolog.Error("[ES]", err)
-		return 0, []goo_utils.Params{}
+		return 0, []gooutils.Params{}
 	}
 	defer res.Body.Close()
 
 	if res.IsError() {
 		goolog.Error("[ES]", res.String())
-		return 0, []goo_utils.Params{}
+		return 0, []gooutils.Params{}
 	}
 
 	var b bytes.Buffer
 	if _, er := io.Copy(&b, res.Body); er != nil {
 		goolog.Error("[ES]", er.Error())
-		return 0, []goo_utils.Params{}
+		return 0, []gooutils.Params{}
 	}
 
-	p, er := goo_utils.Byte(b.Bytes()).Params()
+	p, er := gooutils.Byte(b.Bytes()).Params()
 	if er != nil {
 		goolog.Error("[ES]", er.Error())
-		return 0, []goo_utils.Params{}
+		return 0, []gooutils.Params{}
 	}
 
 	return p.Get("hits.total.value").Int64(), p.Get("hits.hits").Array()
 }
 
-func (c *ESClient) LoopV2(index []string, m goo_utils.M, fn func(p goo_utils.Params) error) {
-	body := goo_utils.M{}
+func (c *ESClient) LoopV2(index []string, m gooutils.M, fn func(p gooutils.Params) error) {
+	body := gooutils.M{}
 	for k, v := range m {
 		body[k] = v
 	}
@@ -98,29 +98,29 @@ func (c *ESClient) LoopV2(index []string, m goo_utils.M, fn func(p goo_utils.Par
 	}
 }
 
-func (c *ESClient) QueryV2(index []string, m goo_utils.M) (int64, []goo_utils.Params) {
+func (c *ESClient) QueryV2(index []string, m gooutils.M) (int64, []gooutils.Params) {
 	res, err := c.Search(index, m.Json())
 	if err != nil {
 		goolog.Error("[ES]", err)
-		return 0, []goo_utils.Params{}
+		return 0, []gooutils.Params{}
 	}
 	defer res.Body.Close()
 
 	if res.IsError() {
 		goolog.Error("[ES]", res.String())
-		return 0, []goo_utils.Params{}
+		return 0, []gooutils.Params{}
 	}
 
 	var b bytes.Buffer
 	if _, er := io.Copy(&b, res.Body); er != nil {
 		goolog.Error("[ES]", er.Error())
-		return 0, []goo_utils.Params{}
+		return 0, []gooutils.Params{}
 	}
 
-	p, er := goo_utils.Byte(b.Bytes()).Params()
+	p, er := gooutils.Byte(b.Bytes()).Params()
 	if er != nil {
 		goolog.Error("[ES]", er.Error())
-		return 0, []goo_utils.Params{}
+		return 0, []gooutils.Params{}
 	}
 
 	return p.Get("hits.total.value").Int64(), p.Get("hits.hits").Array()

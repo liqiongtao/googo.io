@@ -10,7 +10,7 @@ import (
 	"github.com/IBM/sarama"
 	"github.com/liqiongtao/googo.io/goo-context"
 	goolog "github.com/liqiongtao/googo.io/goo-log"
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
+	gooutils "github.com/liqiongtao/googo.io/goo-util"
 )
 
 type consumer struct {
@@ -177,7 +177,7 @@ func (c *consumer) ConsumeGroup(groupId string, topics []string, handler Consume
 		done = make(chan struct{})
 	)
 
-	goo_utils.AsyncFunc(func() {
+	gooutils.AsyncFunc(func() {
 		for err := range cg.Errors() {
 			if err != nil {
 				l.Error(err)
@@ -185,7 +185,7 @@ func (c *consumer) ConsumeGroup(groupId string, topics []string, handler Consume
 		}
 	})
 
-	goo_utils.AsyncFunc(func() {
+	gooutils.AsyncFunc(func() {
 		defer close(done)
 		for {
 			if goocontext.Root().Err() != nil {

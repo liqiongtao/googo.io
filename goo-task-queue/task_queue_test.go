@@ -10,7 +10,7 @@ import (
 	"time"
 
 	gooredis "github.com/liqiongtao/googo.io/goo-redis"
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
+	gooutils "github.com/liqiongtao/googo.io/goo-util"
 )
 
 var (
@@ -34,7 +34,7 @@ func TestTaskQueue_Publish(t *testing.T) {
 		task := &Task{
 			Id:      fmt.Sprintf("%d", i+1),
 			Type:    "test",
-			Payload: goo_utils.M{"name": fmt.Sprintf("name-%d", i+1)}.String(),
+			Payload: gooutils.M{"name": fmt.Sprintf("name-%d", i+1)}.String(),
 		}
 		q.Publish(task)
 		time.Sleep(time.Duration(rand.Intn(300)+300) * time.Millisecond)

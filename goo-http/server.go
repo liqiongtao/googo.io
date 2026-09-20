@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -106,7 +107,7 @@ func (s *Server) Run(addr string) {
 	}
 
 	go func() {
-		if err := httpServer.Serve(lis); err != nil && err != http.ErrServerClosed {
+		if err := httpServer.Serve(lis); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			goolog.Error(err.Error())
 			// Serve 异常退出时触发优雅退出，避免进程假活
 			_ = syscall.Kill(os.Getpid(), syscall.SIGTERM)

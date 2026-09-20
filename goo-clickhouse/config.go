@@ -1,4 +1,4 @@
-package goo_clickhouse
+package gooclickhouse
 
 type Config struct {
 	Name         string `yaml:"name" json:"name"`

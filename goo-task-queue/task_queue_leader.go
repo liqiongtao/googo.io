@@ -7,7 +7,7 @@ import (
 
 	goocontext "github.com/liqiongtao/googo.io/goo-context"
 	goolog "github.com/liqiongtao/googo.io/goo-log"
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
+	gooutils "github.com/liqiongtao/googo.io/goo-util"
 )
 
 type TaskQueueLeader struct {
@@ -45,7 +45,7 @@ func (l *TaskQueueLeader) handler() {
 
 	run := func(fn func()) {
 		wg.Add(1)
-		goo_utils.AsyncFunc(func() {
+		gooutils.AsyncFunc(func() {
 			defer wg.Done()
 			fn()
 		})

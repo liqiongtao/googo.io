@@ -9,7 +9,7 @@ import (
 
 	goolog "github.com/liqiongtao/googo.io/goo-log"
 	gooredis "github.com/liqiongtao/googo.io/goo-redis"
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
+	gooutils "github.com/liqiongtao/googo.io/goo-util"
 )
 
 type TaskQueue struct {
@@ -41,7 +41,7 @@ func New(r *gooredis.Client) *TaskQueue {
 		keys.WithPrefix(r.Config.Prefix)
 	}
 
-	localIp, err := goo_utils.LocalIP()
+	localIp, err := gooutils.LocalIP()
 	if err != nil || localIp == "" {
 		if host, herr := os.Hostname(); herr == nil && host != "" {
 			localIp = host

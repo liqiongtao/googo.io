@@ -8,7 +8,7 @@ import (
 	"time"
 
 	gooredis "github.com/liqiongtao/googo.io/goo-redis"
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
+	gooutils "github.com/liqiongtao/googo.io/goo-util"
 )
 
 var (
@@ -36,7 +36,7 @@ func (t *TestMessage) Headers() map[string]string {
 }
 
 func (t *TestMessage) Serialize() []byte {
-	t.TraceId = goo_utils.UUID()
+	t.TraceId = gooutils.UUID()
 	b, _ := json.Marshal(t)
 	return b
 }

@@ -1,4 +1,4 @@
-package goo_cos
+package goocos
 
 var (
 	// 文档: https://cloud.tencent.com/document/product/436/31923#.E6.9F.A5.E8.AF.A2.E5.AF.B9.E8.B1.A1.E5.88.97.E8.A1.A8

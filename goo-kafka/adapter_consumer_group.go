@@ -10,7 +10,7 @@ import (
 	"github.com/IBM/sarama"
 	"github.com/liqiongtao/googo.io/goo-context"
 	goolog "github.com/liqiongtao/googo.io/goo-log"
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
+	gooutils "github.com/liqiongtao/googo.io/goo-util"
 )
 
 var errConcurrentConsume = errors.New("concurrent consume")
@@ -70,7 +70,7 @@ func (g group) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.Co
 func (g group) doHandler(msg *sarama.ConsumerMessage, session sarama.ConsumerGroupSession) (err error) {
 	key := string(msg.Key)
 
-	m := goo_utils.M{
+	m := gooutils.M{
 		"topic":     msg.Topic,
 		"key":       key,
 		"partition": msg.Partition,
@@ -110,7 +110,7 @@ func (g group) doHandler(msg *sarama.ConsumerMessage, session sarama.ConsumerGro
 			uniqKey = consumeLockKey(g.id, msg.Topic, fmt.Sprintf("%d-%d", msg.Partition, msg.Offset))
 		}
 		if g.cli.redis != nil {
-			ok, setErr := g.cli.redis.SetNX(uniqKey, goo_utils.M{
+			ok, setErr := g.cli.redis.SetNX(uniqKey, gooutils.M{
 				"topic":     msg.Topic,
 				"body":      m["body"],
 				"headers":   m["headers"],
@@ -134,7 +134,7 @@ func (g group) doHandler(msg *sarama.ConsumerMessage, session sarama.ConsumerGro
 	}
 
 	if g.cli.redis != nil && key != "" {
-		g.cli.redis.Set(consumeCacheKey(msg.Topic, key), goo_utils.M{
+		g.cli.redis.Set(consumeCacheKey(msg.Topic, key), gooutils.M{
 			"topic":     msg.Topic,
 			"body":      m["body"],
 			"headers":   m["headers"],

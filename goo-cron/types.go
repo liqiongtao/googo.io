@@ -1,4 +1,4 @@
-package goo_cron
+package goocron
 
 import (
 	"encoding/json"

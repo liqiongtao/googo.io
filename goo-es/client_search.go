@@ -5,7 +5,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/elastic/go-elasticsearch/v7/esapi"
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
+	gooutils "github.com/liqiongtao/googo.io/goo-util"
 	"io"
 	"time"
 )
@@ -68,7 +68,7 @@ func (c *ESClient) Search(index []string, body []byte) (*esapi.Response, error) 
 // 分页查询，用于大数量查询，普通查询，默认最多返回10000条。
 // 先预取下一页再处理当前页，使「整页」fn 总耗时尽量落在 scroll keep-alive（默认 1m）内。
 // 若单页处理仍可能超过 keep-alive，请用 SearchAfter。
-func (c *ESClient) PageSearch(index []string, body []byte, fn func(p goo_utils.Params) error) error {
+func (c *ESClient) PageSearch(index []string, body []byte, fn func(p gooutils.Params) error) error {
 	var (
 		scrollDuration = time.Minute
 		size           = 500
@@ -89,7 +89,7 @@ func (c *ESClient) PageSearch(index []string, body []byte, fn func(p goo_utils.P
 		}
 	}()
 
-	fetch := func(first bool) ([]goo_utils.Params, error) {
+	fetch := func(first bool) ([]gooutils.Params, error) {
 		var (
 			res *esapi.Response
 			err error
@@ -123,7 +123,7 @@ func (c *ESClient) PageSearch(index []string, body []byte, fn func(p goo_utils.P
 			c.log().Error(err)
 			return nil, err
 		}
-		p, err := goo_utils.Byte(b).Params()
+		p, err := gooutils.Byte(b).Params()
 		if err != nil {
 			c.log().Error(err)
 			return nil, err
@@ -166,8 +166,8 @@ func (c *ESClient) PageSearch(index []string, body []byte, fn func(p goo_utils.P
 // SearchAfter 用 search_after 深翻页，不受 scroll 超时影响。
 // body 未指定 sort 时默认 [{"_id":"asc"}]；请勿与 from 同用（会忽略 from）。
 // 不会修改调用方传入的 body（内部浅拷贝）。
-func (c *ESClient) SearchAfter(index []string, body goo_utils.M, fn func(p goo_utils.Params) error) error {
-	q := goo_utils.M{}
+func (c *ESClient) SearchAfter(index []string, body gooutils.M, fn func(p gooutils.Params) error) error {
+	q := gooutils.M{}
 	for k, v := range body {
 		q[k] = v
 	}
@@ -175,7 +175,7 @@ func (c *ESClient) SearchAfter(index []string, body goo_utils.M, fn func(p goo_u
 		q["size"] = 500
 	}
 	if q["sort"] == nil {
-		q["sort"] = []goo_utils.M{{"_id": "asc"}}
+		q["sort"] = []gooutils.M{{"_id": "asc"}}
 	}
 	delete(q, "from")
 
@@ -200,7 +200,7 @@ func (c *ESClient) SearchAfter(index []string, body goo_utils.M, fn func(p goo_u
 			return err
 		}
 
-		p, err := goo_utils.Byte(b).Params()
+		p, err := gooutils.Byte(b).Params()
 		if err != nil {
 			c.log().Error(err)
 			return err

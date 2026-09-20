@@ -1,4 +1,4 @@
-package goo_cos
+package goocos
 
 import (
 	"context"

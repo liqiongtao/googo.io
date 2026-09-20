@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
+	gooutils "github.com/liqiongtao/googo.io/goo-util"
 )
 
 type Encryption struct {
@@ -30,7 +30,7 @@ func (enc *Encryption) Encode(b []byte) (str string, err error) {
 		return
 	}
 	var bts []byte
-	bts, err = goo_utils.AESCBCEncrypt(b, []byte(enc.Key), []byte(enc.Secret))
+	bts, err = gooutils.AESCBCEncrypt(b, []byte(enc.Key), []byte(enc.Secret))
 	if err != nil {
 		return
 	}
@@ -48,6 +48,6 @@ func (enc *Encryption) Decode(str string) (b []byte, err error) {
 	if err != nil {
 		return
 	}
-	b, err = goo_utils.AESCBCDecrypt(bts, []byte(enc.Key), []byte(enc.Secret))
+	b, err = gooutils.AESCBCDecrypt(bts, []byte(enc.Key), []byte(enc.Secret))
 	return
 }

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	goolog "github.com/liqiongtao/googo.io/goo-log"
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
+	gooutils "github.com/liqiongtao/googo.io/goo-util"
 	"time"
 )
 
@@ -28,35 +28,35 @@ func CreateToken(appId string, openid int64) (tokenStr string, err error) {
 	token := &Token{
 		AppId:     appId,
 		OpenId:    openid,
-		NonceStr:  goo_utils.NonceStr(),
+		NonceStr:  gooutils.NonceStr(),
 		Timestamp: time.Now().Unix(),
 	}
 
 	var (
-		key    = goo_utils.MD5([]byte(appId))
+		key    = gooutils.MD5([]byte(appId))
 		iv     = key[8:24]
 		encBuf []byte
 	)
 
-	encBuf, err = goo_utils.AESCBCEncrypt(token.Bytes(), []byte(key), []byte(iv))
+	encBuf, err = gooutils.AESCBCEncrypt(token.Bytes(), []byte(key), []byte(iv))
 	if err != nil {
 		goolog.Error(err.Error())
 		return
 	}
 
-	tokenStr = goo_utils.Base64Encode(encBuf)
+	tokenStr = gooutils.Base64Encode(encBuf)
 	return
 }
 
 func ParseToken(tokenStr, appId string) (token *Token, err error) {
 	var (
-		tokenBuf = goo_utils.Base64Decode(tokenStr)
-		key      = goo_utils.MD5([]byte(appId))
+		tokenBuf = gooutils.Base64Decode(tokenStr)
+		key      = gooutils.MD5([]byte(appId))
 		iv       = key[8:24]
 		b        []byte
 	)
 
-	b, err = goo_utils.AESCBCDecrypt(tokenBuf, []byte(key), []byte(iv))
+	b, err = gooutils.AESCBCDecrypt(tokenBuf, []byte(key), []byte(iv))
 	if err != nil {
 		goolog.Error(err.Error())
 		return

@@ -1,4 +1,4 @@
-package goo_message
+package goomessage
 
 import (
 	"bytes"
@@ -9,7 +9,7 @@ import (
 	"sync"
 
 	goo_request "github.com/liqiongtao/googo.io/goo-request"
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
+	gooutils "github.com/liqiongtao/googo.io/goo-util"
 )
 
 var (
@@ -54,7 +54,7 @@ func FeiShu(hookUrl string, text string) error {
 		return errors.New("feishu service error")
 	}
 
-	rst, err := goo_utils.Byte(buf).Params()
+	rst, err := gooutils.Byte(buf).Params()
 	if err != nil {
 		fmt.Println("[goo-msg][1003]", text, string(buf), err)
 		return err

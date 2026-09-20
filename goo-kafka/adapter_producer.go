@@ -7,7 +7,7 @@ import (
 
 	"github.com/IBM/sarama"
 	goolog "github.com/liqiongtao/googo.io/goo-log"
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
+	gooutils "github.com/liqiongtao/googo.io/goo-util"
 )
 
 type producer struct {
@@ -41,7 +41,7 @@ func (p *producer) SendMessage(msg IMessage) (partition int32, offset int64, err
 	}
 
 	defer func() {
-		log := goolog.WithTag("goo-kafka-producer").WithField("msg", goo_utils.M{
+		log := goolog.WithTag("goo-kafka-producer").WithField("msg", gooutils.M{
 			"topic":     msg.Topic(),
 			"key":       msg.Key(),
 			"headers":   msg.Headers(),
@@ -100,7 +100,7 @@ func (p *producer) SendAsyncMessage(msg IMessage, cb MessageHandler) (err error)
 	}
 
 	defer func() {
-		log := goolog.WithTag("goo-kafka-producer").WithField("msg", goo_utils.M{
+		log := goolog.WithTag("goo-kafka-producer").WithField("msg", gooutils.M{
 			"topic":     msg.Topic(),
 			"key":       msg.Key(),
 			"headers":   msg.Headers(),
@@ -165,7 +165,7 @@ func (p *producer) tryDedup(msg IMessage) (dedupKey string, err error) {
 	}
 
 	dedupKey = prodDedupKey(msg.Topic(), msg.Key())
-	val := goo_utils.M{
+	val := gooutils.M{
 		"topic":     msg.Topic(),
 		"body":      msg,
 		"headers":   msg.Headers(),

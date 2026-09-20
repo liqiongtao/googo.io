@@ -303,7 +303,7 @@ func (fa *FileAdapter) rotateCount(ymd string) int {
 	}
 
 	// 取已有切割文件的最大序号，而不是文件个数（避免空洞时错位，或误判）
-	max := 0
+	num := 0
 	for _, f := range files {
 		base := strings.TrimSuffix(filepath.Base(f), ".log")
 		i := strings.LastIndex(base, "_")
@@ -314,9 +314,9 @@ func (fa *FileAdapter) rotateCount(ymd string) int {
 		if convErr != nil {
 			continue
 		}
-		if n > max {
-			max = n
+		if n > num {
+			num = n
 		}
 	}
-	return max
+	return num
 }

@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	goo_utils "github.com/liqiongtao/googo.io/goo-utils"
+	gooutils "github.com/liqiongtao/googo.io/goo-util"
 )
 
 type LocalUpload struct {
@@ -30,7 +30,7 @@ func (lu LocalUpload) Upload(c *gin.Context, uploadDir string) *Response {
 		return Error(7002, fmt.Sprintf("上传失败，原因：文件超过 %d 字节限制", maxUploadBytes))
 	}
 
-	md5str := goo_utils.MD5(data)
+	md5str := gooutils.MD5(data)
 	relDir := path.Join(md5str[0:2], md5str[2:4])
 	// 统一成 / 再取 Base，避免 Windows 风格路径穿越
 	baseName := path.Base(strings.ReplaceAll(fh.Filename, "\\", "/"))
