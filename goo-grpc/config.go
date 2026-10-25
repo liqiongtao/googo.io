@@ -12,6 +12,10 @@ type Config struct {
 	// 监听地址
 	Addr string `json:"addr" yaml:"addr"`
 
+	// 不打印成功路径 Debug 访问日志的方法（FullMethod，如 /pkg.Svc/Health）
+	// 失败仍会打 Error；也可用 NoLogMethodsOption 追加
+	NoLogMethods []string `json:"no_log_methods" yaml:"no_log_methods"`
+
 	// 最大空闲链接时间，即空闲链接在配置的时间内，未收到新的心跳和请求，则会将链接关闭，比向客户端发送一个GoAway；
 	// 空闲链接的定义：最近未完成的RPC数变为0 的时间，或链接建立以来；
 	// 默认是无穷

@@ -57,6 +57,14 @@ func newDefaultServerOptions(cfg Config) serverOptions {
 		enforcementPolicy.MinTime = cfg.EnforcementPolicyMinTime
 	}
 
+	noLogMethods := map[string]struct{}{}
+	for _, method := range cfg.NoLogMethods {
+		if method == "" {
+			continue
+		}
+		noLogMethods[method] = struct{}{}
+	}
+
 	return serverOptions{
 		AuthFunc:      nil,
 		EtcdClient:    nil,
@@ -65,7 +73,7 @@ func newDefaultServerOptions(cfg Config) serverOptions {
 			grpc.KeepaliveParams(keepaliveParams),
 			grpc.KeepaliveEnforcementPolicy(enforcementPolicy),
 		},
-		NoLogMethods: map[string]struct{}{},
+		NoLogMethods: noLogMethods,
 	}
 }
 
@@ -114,10 +122,14 @@ func ServerOptions(opt ...grpc.ServerOption) ServerOption {
 	})
 }
 
-// 配置项 - 不打印日志的方法
-func NoLogMethodsOption(methods []string) ServerOption {
+// 配置项 - 不打印成功路径 Debug 访问日志的方法（FullMethod）
+// 与 Config.NoLogMethods 合并；失败仍打 Error
+func NoLogMethodsOption(methods ...string) ServerOption {
 	return newFuncOption(func(opts *serverOptions) {
 		for _, method := range methods {
+			if method == "" {
+				continue
+			}
 			opts.NoLogMethods[method] = struct{}{}
 		}
 	})

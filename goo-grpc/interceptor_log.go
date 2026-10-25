@@ -43,9 +43,34 @@ func clientStreamInterceptorLog() grpc.StreamClientInterceptor {
 	}
 }
 
+func skipDebugLog(noLogMethods map[string]struct{}, fullMethod string) bool {
+	if len(noLogMethods) == 0 {
+		return false
+	}
+	_, ok := noLogMethods[fullMethod]
+	return ok
+}
+
+func logServerError(fullMethod string, err error) {
+	log := goolog.WithTag("goo-grpc").WithField("method", fullMethod)
+	if s, _ := status.FromError(err); s != nil {
+		log = log.WithField("response", s.Proto())
+	}
+	log.Error("请求失败")
+}
+
 // 服务端 - 单向拦截器 - 日志
 func serverUnaryInterceptorLog(noLogMethods map[string]struct{}) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
+		// 过滤方法：不采集 request/response 等 debug info，失败仍打 Error
+		if skipDebugLog(noLogMethods, info.FullMethod) {
+			resp, err = handler(ctx, req)
+			if err != nil {
+				logServerError(info.FullMethod, err)
+			}
+			return
+		}
+
 		log := goolog.WithTag("goo-grpc").WithField("method", info.FullMethod)
 
 		if v, ok := req.(*pb_goo_v1.Request); ok {
@@ -95,11 +120,6 @@ func serverUnaryInterceptorLog(noLogMethods map[string]struct{}) grpc.UnaryServe
 				return
 			}
 
-			// 不打印日志的方法
-			if _, ok := noLogMethods[info.FullMethod]; ok {
-				return
-			}
-
 			log.Debug()
 		}()
 
@@ -111,6 +131,14 @@ func serverUnaryInterceptorLog(noLogMethods map[string]struct{}) grpc.UnaryServe
 // 服务端 - 流式拦截器 - 日志
 func serverStreamInterceptorLog(noLogMethods map[string]struct{}) grpc.StreamServerInterceptor {
 	return func(srv any, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) (err error) {
+		if skipDebugLog(noLogMethods, info.FullMethod) {
+			err = handler(srv, ss)
+			if err != nil {
+				logServerError(info.FullMethod, err)
+			}
+			return
+		}
+
 		log := goolog.WithTag("goo-grpc").WithField("method", info.FullMethod)
 
 		if md, ok := metadata.FromIncomingContext(ss.Context()); ok {
@@ -124,11 +152,6 @@ func serverStreamInterceptorLog(noLogMethods map[string]struct{}) grpc.StreamSer
 
 			if err != nil {
 				log.Error(err)
-				return
-			}
-
-			// 不打印日志的方法
-			if _, ok := noLogMethods[info.FullMethod]; ok {
 				return
 			}
 
