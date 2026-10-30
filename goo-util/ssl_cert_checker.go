@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"net"
 	"time"
 )
@@ -45,15 +46,15 @@ func SSLCertCheck(domain string) (*CertInfo, error) {
 	info.SerialNumber = cert.SerialNumber.String()
 	info.DNSNames = cert.DNSNames
 
-	// 计算剩余天数
+	// 计算剩余天数（Floor：未满一天过期为 -1，今天过期且未到期为 0）
 	now := time.Now()
-	daysRemaining := int(cert.NotAfter.Sub(now).Hours() / 24)
+	daysRemaining := int(math.Floor(cert.NotAfter.Sub(now).Hours() / 24))
 	info.DaysRemaining = daysRemaining
 
 	// 检查证书状态
 	info.IsValid = now.After(cert.NotBefore) && now.Before(cert.NotAfter)
 	info.IsExpired = now.After(cert.NotAfter)
-	info.WillExpireSoon = daysRemaining <= 14 && daysRemaining > 0
+	info.WillExpireSoon = !info.IsExpired && daysRemaining <= 14
 
 	return info, nil
 }
@@ -67,7 +68,7 @@ type CertInfo struct {
 	DaysRemaining  int       `json:"days_remaining"`   // 距离证书过期的剩余天数, 负值表示已过期多少天，0表示今天过期
 	IsValid        bool      `json:"is_valid"`         // 证书当前是否有效, false=证书已过期或未生效
 	IsExpired      bool      `json:"is_expired"`       // 证书是否已过期, false=证书未过期
-	WillExpireSoon bool      `json:"will_expire_soon"` // 证书是否即将过期, 小于14天时
+	WillExpireSoon bool      `json:"will_expire_soon"` // 证书是否即将过期, 14天内（含今天过期）
 	SerialNumber   string    `json:"serial_number"`    // 证书序列号, 由CA颁发的唯一标识符
 	DNSNames       []string  `json:"dns_names"`        // 证书支持的域名列表（SAN - Subject Alternative Names）
 }
